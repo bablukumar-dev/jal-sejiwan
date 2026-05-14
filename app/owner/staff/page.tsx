@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
@@ -75,9 +76,9 @@ export default function StaffManagement() {
           <Users className="w-8 h-8 mb-4 text-blue-300" />
           <h2 className="text-xl font-bold mb-1">Manage Workforce</h2>
           <p className="text-blue-200 text-sm mb-6">Add or update staff member details and assigned routes.</p>
-          <button className="w-full bg-white text-blue-700 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform">
+          <Link href="/owner/staff/add" className="w-full bg-white text-blue-700 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform">
             <UserPlus className="w-5 h-5" /> Add New Staff
-          </button>
+          </Link>
         </div>
 
         {/* Search & Filter */}

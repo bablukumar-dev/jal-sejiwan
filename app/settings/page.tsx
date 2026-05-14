@@ -28,10 +28,12 @@ export default function SettingsPage() {
   useEffect(() => {
     const storedImage = localStorage.getItem('profileImage');
     if (storedImage) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProfileImage(storedImage);
     }
     const notifs = localStorage.getItem('notificationsEnabled');
     if (notifs !== null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setNotificationsEnabled(notifs === 'true');
     }
   }, []);
