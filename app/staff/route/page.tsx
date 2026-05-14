@@ -103,7 +103,14 @@ export default function MyRoute() {
                   </div>
                 
                 <div className="flex justify-between items-start mb-2 ml-4">
-                  <h3 className="font-bold text-slate-900 text-lg">{customer.name}</h3>
+                  <div className="flex items-start gap-2 max-w-[70%]">
+                    <h3 className="font-bold text-slate-900 text-lg leading-tight">{customer.name}</h3>
+                    {customer.due > 0 && (
+                      <span className="bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap mt-0.5">
+                        Due ₹{customer.due}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex flex-col items-end gap-1">
                     {customer.due > 1000 && <span className="bg-orange-100 text-orange-700 text-[8px] font-bold px-2 py-1 rounded uppercase tracking-wider">Urgent</span>}
                     {delivery.priority && (

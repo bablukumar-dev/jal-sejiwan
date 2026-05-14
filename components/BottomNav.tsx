@@ -22,7 +22,6 @@ export default function BottomNav({ role, activeTab }: BottomNavProps) {
       { id: 'customers', label: 'Customers', icon: Users, href: '/owner/customers' },
       { id: 'deliveries', label: 'Deliveries', icon: Truck, href: '/owner/deliveries' },
       { id: 'inventory', label: 'Inventory', icon: Package, href: '/inventory/dashboard' },
-      { id: 'reports', label: 'Reports', icon: BarChart3, href: '/owner/reports' },
     ];
   } else if (role === 'staff') {
     links = [

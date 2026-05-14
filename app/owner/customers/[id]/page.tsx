@@ -50,9 +50,6 @@ export default function CustomerDetail() {
           <div className="flex-1">
             <div className="flex justify-between items-start">
               <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Customer Profile</div>
-              <Link href={`/owner/customers/edit/${customer.id}`} className="text-blue-600 p-1">
-                <Edit className="w-4 h-4" />
-              </Link>
             </div>
             <h1 className="text-2xl font-bold text-slate-900 leading-tight">{customer.name}</h1>
             <div className="flex items-center gap-1 text-slate-600 mt-1">
@@ -64,7 +61,11 @@ export default function CustomerDetail() {
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          <Link href={`/owner/customers/edit/${customer.id}`} className="bg-slate-100 text-slate-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
+            <Edit className="w-5 h-5 text-blue-600" />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Edit</span>
+          </Link>
           <button 
             onClick={() => window.location.href = `tel:${customer.phone}`}
             className="bg-slate-100 text-slate-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform"

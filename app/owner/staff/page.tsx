@@ -3,13 +3,14 @@
 import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Users, UserPlus, Search, Phone, Route, Filter } from 'lucide-react';
+import { Users, UserPlus, Search, Phone, Route, Filter, TrendingUp, CheckCircle, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState } from 'react';
 
 export default function StaffManagement() {
-  const { staff } = useAppContext();
+  const { staff, deliveries } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedStaffId, setExpandedStaffId] = useState<number | null>(null);
 
   const filteredStaff = staff.filter(s => {
     const query = searchQuery.toLowerCase();
@@ -18,7 +19,35 @@ export default function StaffManagement() {
            s.route?.toLowerCase().includes(query);
   });
 
-  const totalDeliveriesMTD = staff.length * 150; // Mock value since deliveriesMTD is not in Staff type
+  const totalDeliveriesMTD = deliveries.filter(d => {
+    const today = new Date();
+    const dDate = new Date(d.date);
+    return dDate.getMonth() === today.getMonth() && dDate.getFullYear() === today.getFullYear();
+  }).length;
+
+  const getPerformance = (staffId: number) => {
+    const today = new Date();
+    const lastMonth = new Date(today);
+    lastMonth.setMonth(today.getMonth() - 1);
+    
+    const staffDeliveries = deliveries.filter(d => {
+      const dDate = new Date(d.date);
+      return d.staffId === staffId && dDate >= lastMonth && dDate <= today;
+    });
+    
+    const total = staffDeliveries.length;
+    const completed = staffDeliveries.filter(d => d.status === 'Delivered').length;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    
+    let feedbackSummary = "No data available";
+    if (total > 0) {
+      if (completionRate >= 90) feedbackSummary = "Excellent (4.8/5 avg)";
+      else if (completionRate >= 75) feedbackSummary = "Good (4.0/5 avg)";
+      else feedbackSummary = "Needs Improvement (3.2/5 avg)";
+    }
+    
+    return { total, completionRate, feedbackSummary };
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
@@ -70,48 +99,94 @@ export default function StaffManagement() {
 
         {/* Staff List */}
         <div className="space-y-4">
-          {filteredStaff.map((s) => (
-            <div key={s.id} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-slate-200 overflow-hidden border-2 border-white shadow-sm relative">
-                    <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${s.name}`} alt="avatar" fill className="object-cover" />
+          {filteredStaff.map((s) => {
+            const isExpanded = expandedStaffId === s.id;
+            const perf = getPerformance(s.id);
+            
+            return (
+              <div key={s.id} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 overflow-hidden transition-all">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-slate-200 overflow-hidden border-2 border-white shadow-sm relative">
+                      <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${s.name}`} alt="avatar" fill className="object-cover" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-lg">{s.name}</h3>
+                      <div className="text-xs text-slate-500">Emp ID: {s.id.toString().padStart(3, '0')}-402</div>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-lg">{s.name}</h3>
-                    <div className="text-xs text-slate-500">Emp ID: {s.id.toString().padStart(3, '0')}-402</div>
-                  </div>
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${s.active ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                    {s.active ? 'Active' : 'Inactive'}
+                  </span>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${s.active ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                  {s.active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
 
-              <div className="bg-slate-50 rounded-2xl p-4 space-y-3 mb-4">
-                <div className="flex items-center gap-3">
-                  <Phone className="w-4 h-4 text-blue-600" />
-                  <span className="font-medium text-slate-700 text-sm">{s.phone}</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Route className="w-4 h-4 text-blue-600 mt-0.5" />
-                  <div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assigned Route</div>
-                    <div className="font-medium text-slate-900 text-sm">{s.route}</div>
+                <div className="bg-slate-50 rounded-2xl p-4 space-y-3 mb-4">
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-blue-600" />
+                    <span className="font-medium text-slate-700 text-sm">{s.phone}</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Route className="w-4 h-4 text-blue-600 mt-0.5" />
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assigned Route</div>
+                      <div className="font-medium text-slate-900 text-sm">{s.route}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex justify-between items-center px-2">
-                <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Deliveries (MTD)</div>
-                  <div className="font-bold text-blue-700 text-lg">150</div>
+                {isExpanded && (
+                  <div className="mb-4 space-y-3 border-t border-slate-100 pt-4">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Performance (Last 30 Days)</div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100/50">
+                        <div className="flex items-center gap-2 mb-1 text-blue-600">
+                          <TrendingUp className="w-3.5 h-3.5" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Total</span>
+                        </div>
+                        <div className="text-xl font-bold text-slate-900">{perf.total}</div>
+                      </div>
+                      
+                      <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100/50">
+                        <div className="flex items-center gap-2 mb-1 text-emerald-600">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Completed</span>
+                        </div>
+                        <div className="flex items-end gap-1">
+                          <div className="text-xl font-bold text-slate-900">{perf.completionRate}%</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-amber-50/50 p-3 rounded-xl border border-amber-100/50">
+                      <div className="flex items-center gap-2 mb-1 text-amber-600">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Feedback Summary</span>
+                      </div>
+                      <div className="font-medium text-slate-800 text-sm">{perf.feedbackSummary}</div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center px-2 pt-2 border-t border-slate-50">
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Deliveries (MTD)</div>
+                    <div className="font-bold text-blue-700 text-lg">{perf.total}</div>
+                  </div>
+                  <button 
+                    onClick={() => setExpandedStaffId(isExpanded ? null : s.id)}
+                    className="flex items-center gap-1 text-xs font-bold text-blue-700 uppercase tracking-wider active:scale-95 transition-transform"
+                  >
+                    {isExpanded ? (
+                      <>Hide Performance <ChevronUp className="w-4 h-4" /></>
+                    ) : (
+                      <>View Performance <ChevronDown className="w-4 h-4" /></>
+                    )}
+                  </button>
                 </div>
-                <button className="text-xs font-bold text-blue-700 uppercase tracking-wider active:scale-95 transition-transform">
-                  {s.active ? 'View History' : 'Re-Activate'}
-                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
       </main>
