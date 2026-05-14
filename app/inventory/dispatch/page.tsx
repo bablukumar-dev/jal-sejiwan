@@ -26,7 +26,7 @@ export default function DispatchScreen() {
     }));
 
     // In a real app, we would log this dispatch to history
-    router.back();
+    router.push('/inventory/dashboard');
   };
 
   return (

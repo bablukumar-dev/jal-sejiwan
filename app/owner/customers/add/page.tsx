@@ -120,24 +120,25 @@ export default function AddCustomer() {
                 <select 
                   className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 appearance-none font-medium text-slate-900"
                   value={area}
-                  onChange={(e) => {
-                    if (e.target.value === 'add_new') {
-                      const newAreaPrompt = prompt('Enter new Area / Ilaaka name:');
-                      if (newAreaPrompt && newAreaPrompt.trim() !== '') {
-                        const newAreaName = newAreaPrompt.trim();
-                        if (!areas.includes(newAreaName)) {
-                          setAreas([...areas, newAreaName]);
-                        }
-                        setArea(newAreaName);
+                  onChange={(e) => setArea(e.target.value)}
+                >
+                  <option value="">Select Area...</option>
+                  {areas.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newAreaPrompt = prompt('Enter new Area / Ilaaka name:');
+                    if (newAreaPrompt && newAreaPrompt.trim() !== '') {
+                      const newAreaName = newAreaPrompt.trim();
+                      if (!areas.includes(newAreaName)) {
+                        setAreas([...areas, newAreaName]);
                       }
-                    } else {
-                      setArea(e.target.value);
+                      setArea(newAreaName);
                     }
                   }}
-                >
-                  {areas.map(a => <option key={a} value={a}>{a}</option>)}
-                  <option value="add_new" className="text-blue-600 font-bold">+ Add New Area</option>
-                </select>
+                  className="bg-slate-200 text-blue-700 px-4 rounded-xl font-bold whitespace-nowrap active:scale-95"
+                >+ Add</button>
               </div>
             </div>
             <div>
@@ -148,24 +149,25 @@ export default function AddCustomer() {
                 <select 
                   className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 appearance-none font-medium text-slate-900"
                   value={route}
-                  onChange={(e) => {
-                    if (e.target.value === 'add_new') {
-                      const newRoutePrompt = prompt('Enter new Route name:');
-                      if (newRoutePrompt && newRoutePrompt.trim() !== '') {
-                        const newRouteName = newRoutePrompt.trim();
-                        if (!routes.includes(newRouteName)) {
-                          setRoutes([...routes, newRouteName]);
-                        }
-                        setRoute(newRouteName);
+                  onChange={(e) => setRoute(e.target.value)}
+                >
+                  <option value="">Select Route...</option>
+                  {routes.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newRoutePrompt = prompt('Enter new Route name:');
+                    if (newRoutePrompt && newRoutePrompt.trim() !== '') {
+                      const newRouteName = newRoutePrompt.trim();
+                      if (!routes.includes(newRouteName)) {
+                        setRoutes([...routes, newRouteName]);
                       }
-                    } else {
-                      setRoute(e.target.value);
+                      setRoute(newRouteName);
                     }
                   }}
-                >
-                  {routes.map(r => <option key={r} value={r}>{r}</option>)}
-                  <option value="add_new" className="text-blue-600 font-bold">+ Add New Route</option>
-                </select>
+                  className="bg-slate-200 text-blue-700 px-4 rounded-xl font-bold whitespace-nowrap active:scale-95"
+                >+ Add</button>
               </div>
             </div>
             <div>

@@ -27,7 +27,7 @@ export default function ReturnReconciliation() {
       damagedCans: prev.damagedCans + damaged,
       cansInDelivery: prev.cansInDelivery - totalDispatched // Assuming all dispatched are accounted for
     }));
-    router.back();
+    router.push('/inventory/dashboard');
   };
 
   return (
@@ -48,9 +48,11 @@ export default function ReturnReconciliation() {
             value={selectedStaffId || ''}
             onChange={(e) => setSelectedStaffId(Number(e.target.value))}
           >
+            <option value="" disabled>Select Staff</option>
             {staff.map(s => (
               <option key={s.id} value={s.id}>{s.name} - {s.route}</option>
             ))}
+            {staff.length === 0 && <option value="" disabled>No staff available - Please add staff</option>}
           </select>
         </div>
 

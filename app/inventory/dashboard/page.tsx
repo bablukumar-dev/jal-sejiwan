@@ -89,15 +89,15 @@ export default function InventoryDashboard() {
               </div>
             </Link>
             
-            <button className="w-full bg-slate-100 rounded-2xl p-4 flex items-center gap-4 text-slate-900 active:scale-95 transition-transform border border-slate-200">
+            <Link href="/inventory/reconciliation" className="w-full bg-slate-100 rounded-2xl p-4 flex items-center gap-4 text-slate-900 active:scale-95 transition-transform border border-slate-200 text-left">
               <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center shrink-0 text-slate-600">
                 <ArrowDownLeft className="w-6 h-6" />
               </div>
-              <div className="text-left">
+              <div>
                 <h4 className="font-bold text-lg">Stock Return</h4>
                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Inflow Management</div>
               </div>
-            </button>
+            </Link>
 
             <Link href="/inventory/reconciliation" className="w-full bg-orange-50 rounded-2xl p-4 flex items-center gap-4 text-slate-900 active:scale-95 transition-transform border border-orange-100">
               <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center shrink-0 text-orange-700">
