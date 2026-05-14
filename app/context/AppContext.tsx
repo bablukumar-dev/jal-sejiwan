@@ -156,7 +156,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Load from localStorage on mount
   useEffect(() => {
     try {
-      if (!localStorage.getItem('demo_data_cleared_v1')) {
+      if (!localStorage.getItem('demo_data_cleared_v2')) {
         localStorage.removeItem('customers');
         localStorage.removeItem('deliveries');
         localStorage.removeItem('payments');
@@ -166,7 +166,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('routes');
         localStorage.removeItem('areas');
         localStorage.removeItem('businessInfo');
-        localStorage.setItem('demo_data_cleared_v1', 'true');
+        localStorage.setItem('demo_data_cleared_v2', 'true');
       }
 
       const storedCustomers = localStorage.getItem('customers');

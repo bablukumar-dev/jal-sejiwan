@@ -18,7 +18,7 @@ const INDIAN_LANGUAGES = [
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { businessInfo, setBusinessInfo, staff } = useAppContext();
+  const { businessInfo, setBusinessInfo, staff, routes, deliveries } = useAppContext();
   
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [newName, setNewName] = useState(businessInfo.ownerName);
@@ -104,7 +104,7 @@ export default function SettingsPage() {
 
         <div className="flex justify-between bg-white p-5 rounded-3xl border border-slate-100 mb-8 shadow-sm px-6">
           <div className="text-center flex-1">
-            <div className="text-2xl font-bold text-slate-900 tracking-tight">14</div>
+            <div className="text-2xl font-bold text-slate-900 tracking-tight">{routes.length}</div>
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Routes</div>
           </div>
           <div className="w-px bg-slate-100 mx-2"></div>
@@ -114,7 +114,7 @@ export default function SettingsPage() {
           </div>
           <div className="w-px bg-slate-100 mx-2"></div>
           <div className="text-center flex-1">
-            <div className="text-2xl font-bold text-slate-900 tracking-tight">12k</div>
+            <div className="text-2xl font-bold text-slate-900 tracking-tight">{deliveries.length > 1000 ? `${(deliveries.length / 1000).toFixed(1)}k` : deliveries.length}</div>
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Orders</div>
           </div>
         </div>
@@ -139,7 +139,7 @@ export default function SettingsPage() {
         <div className="mb-8">
           <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">Operational Control</h3>
           <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-            <button onClick={() => alert("Route Management is coming soon in the next update!")} className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
+            <Link href="/owner/routes" className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                   <Route className="w-5 h-5" />
@@ -150,8 +150,8 @@ export default function SettingsPage() {
                 </div>
               </div>
               <ChevronRight className="w-5 h-5 text-slate-300" />
-            </button>
-            <button onClick={() => alert("Price Settings is coming soon in the next update!")} className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
+            </Link>
+            <Link href="/owner/prices" className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
                   <BadgeIndianRupee className="w-5 h-5" />
@@ -162,7 +162,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               <ChevronRight className="w-5 h-5 text-slate-300" />
-            </button>
+            </Link>
             <Link href="/owner/staff" className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-purple-50 group-hover:text-purple-600 transition-colors">
