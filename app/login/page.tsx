@@ -114,7 +114,17 @@ export default function Login() {
           return;
         }
         
-        redirectBasedOnRole();
+        let targetRole = role;
+        try {
+          const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+          if (userDoc.exists() && userDoc.data().role) {
+            targetRole = userDoc.data().role;
+          }
+        } catch (firestoreErr) {
+          console.error("Could not fetch user role", firestoreErr);
+        }
+        
+        redirectBasedOnRole(targetRole);
       }
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
@@ -141,6 +151,7 @@ export default function Login() {
       provider.setCustomParameters({ prompt: 'select_account' });
       const result = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
       
+      let targetRole = role;
       try {
         const userDoc = await getDoc(doc(db, 'users', result.user.uid));
         if (!userDoc.exists()) {
@@ -150,12 +161,16 @@ export default function Login() {
             role: role,
             createdAt: serverTimestamp(),
           });
+        } else {
+          if (userDoc.data().role) {
+            targetRole = userDoc.data().role;
+          }
         }
       } catch (firestoreErr) {
         handleFirestoreError(firestoreErr, OperationType.GET, `users/${result.user.uid}`);
       }
       
-      redirectBasedOnRole();
+      redirectBasedOnRole(targetRole);
     } catch (err: any) {
       if (err.code === 'auth/operation-not-allowed') {
         setError('Google sign-in is not enabled. Please enable it in the Firebase Console.');
@@ -175,10 +190,10 @@ export default function Login() {
     }
   };
 
-  const redirectBasedOnRole = () => {
-    if (role === 'owner') router.push('/owner/dashboard');
-    if (role === 'staff') router.push('/staff/dashboard');
-    if (role === 'manager') router.push('/inventory/dashboard');
+  const redirectBasedOnRole = (targetRole: string) => {
+    if (targetRole === 'owner') router.push('/owner/dashboard');
+    if (targetRole === 'staff') router.push('/staff/dashboard');
+    if (targetRole === 'manager') router.push('/inventory/dashboard');
   };
 
   return (
@@ -233,6 +248,7 @@ export default function Login() {
                 className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleEmailAuth(); }}
               />
             </div>
           </div>
@@ -250,6 +266,7 @@ export default function Login() {
               className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleEmailAuth(); }}
             />
           </div>
         </div>
@@ -266,6 +283,7 @@ export default function Login() {
               className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleEmailAuth(); }}
             />
           </div>
         </div>
