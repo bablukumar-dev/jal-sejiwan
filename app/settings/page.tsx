@@ -5,6 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
+import { auth } from '@/firebase';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
@@ -24,8 +25,33 @@ export default function SettingsPage() {
   const [newName, setNewName] = useState(businessInfo.ownerName);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [userRole, setUserRole] = useState<'owner' | 'staff' | 'manager'>('owner');
+  const [userName, setUserName] = useState<string>('');
 
   useEffect(() => {
+    let unmounted = false;
+    const role = localStorage.getItem('userRole') as 'owner' | 'staff' | 'manager';
+    if (role) setUserRole(role);
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        if (!unmounted) setUserName(user.displayName || user.email?.split('@')[0] || 'User');
+        
+        // Fetch role from Firestore to ensure it's up to date
+        try {
+          const { doc, getDoc } = await import('firebase/firestore');
+          const { db } = await import('@/firebase');
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists() && userDoc.data().role && !unmounted) {
+            setUserRole(userDoc.data().role);
+            localStorage.setItem('userRole', userDoc.data().role);
+          }
+        } catch (e) {
+          console.error("Could not fetch user role", e);
+        }
+      }
+    });
+
     const storedImage = localStorage.getItem('profileImage');
     if (storedImage) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -36,6 +62,10 @@ export default function SettingsPage() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setNotificationsEnabled(notifs === 'true');
     }
+    return () => {
+      unmounted = true;
+      unsubscribe();
+    };
   }, []);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +112,9 @@ export default function SettingsPage() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-4xl font-bold text-blue-400">{businessInfo.ownerName.charAt(0).toUpperCase()}</span>
+                <span className="text-4xl font-bold text-blue-400">
+                  {userRole === 'owner' ? businessInfo.ownerName.charAt(0).toUpperCase() : userName?.charAt(0).toUpperCase()}
+                </span>
               )}
             </div>
             <label className="absolute bottom-0 right-0 bg-blue-600 outline outline-4 outline-white text-white p-2.5 rounded-full shadow-lg cursor-pointer active:scale-95 transition-transform hover:bg-blue-700">
@@ -91,92 +123,102 @@ export default function SettingsPage() {
             </label>
           </div>
           <div className="mt-4 flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900 leading-none tracking-tight">{businessInfo.ownerName}</h1>
-            <button 
-              onClick={() => { setNewName(businessInfo.ownerName); setIsEditingProfile(true); }}
-              className="p-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-            </button>
+            <h1 className="text-2xl font-bold text-slate-900 leading-none tracking-tight">
+              {userRole === 'owner' ? businessInfo.ownerName : userName}
+            </h1>
+            {userRole === 'owner' && (
+              <button 
+                onClick={() => { setNewName(businessInfo.ownerName); setIsEditingProfile(true); }}
+                className="p-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
-          <p className="text-sm font-medium text-slate-500 mt-1.5">{businessInfo.name} • Admin</p>
+          <p className="text-sm font-medium text-slate-500 mt-1.5">
+            {businessInfo.name} • {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+          </p>
         </div>
 
-        <div className="flex justify-between bg-white p-5 rounded-3xl border border-slate-100 mb-8 shadow-sm px-6">
-          <div className="text-center flex-1">
-            <div className="text-2xl font-bold text-slate-900 tracking-tight">{routes.length}</div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Routes</div>
-          </div>
-          <div className="w-px bg-slate-100 mx-2"></div>
-          <div className="text-center flex-1">
-            <div className="text-2xl font-bold text-slate-900 tracking-tight">{staff.filter(s => s.active).length}</div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Staff</div>
-          </div>
-          <div className="w-px bg-slate-100 mx-2"></div>
-          <div className="text-center flex-1">
-            <div className="text-2xl font-bold text-slate-900 tracking-tight">{deliveries.length > 1000 ? `${(deliveries.length / 1000).toFixed(1)}k` : deliveries.length}</div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Orders</div>
-          </div>
-        </div>
-
-        {/* Premium Banner */}
-        <div className="bg-gradient-to-r from-blue-700 to-indigo-700 rounded-3xl p-6 text-white mb-8 text-center relative overflow-hidden shadow-lg shadow-blue-900/20">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -mr-10 -mt-10 opacity-10 blur-2xl"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full -ml-8 -mb-8 opacity-10 blur-xl"></div>
-          <div className="relative z-10">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
-              <BadgeCheck className="w-6 h-6 text-white" />
+        {userRole === 'owner' && (
+          <>
+            <div className="flex justify-between bg-white p-5 rounded-3xl border border-slate-100 mb-8 shadow-sm px-6">
+              <div className="text-center flex-1">
+                <div className="text-2xl font-bold text-slate-900 tracking-tight">{routes.length}</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Routes</div>
+              </div>
+              <div className="w-px bg-slate-100 mx-2"></div>
+              <div className="text-center flex-1">
+                <div className="text-2xl font-bold text-slate-900 tracking-tight">{staff.filter(s => s.active).length}</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Staff</div>
+              </div>
+              <div className="w-px bg-slate-100 mx-2"></div>
+              <div className="text-center flex-1">
+                <div className="text-2xl font-bold text-slate-900 tracking-tight">{deliveries.length > 1000 ? `${(deliveries.length / 1000).toFixed(1)}k` : deliveries.length}</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Orders</div>
+              </div>
             </div>
-            <h2 className="text-lg font-bold mb-1">Premium Partner</h2>
-            <p className="text-blue-100 text-sm mb-4">Status active until Oct 2025</p>
-            <button className="bg-white text-blue-700 font-bold px-6 py-2.5 rounded-full text-sm active:scale-95 transition-transform hover:bg-slate-50">
-              RENEW NOW
-            </button>
-          </div>
-        </div>
 
-        {/* Operational Control */}
-        <div className="mb-8">
-          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">Operational Control</h3>
-          <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-            <Link href="/owner/routes" className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                  <Route className="w-5 h-5" />
+            {/* Premium Banner */}
+            <div className="bg-gradient-to-r from-blue-700 to-indigo-700 rounded-3xl p-6 text-white mb-8 text-center relative overflow-hidden shadow-lg shadow-blue-900/20">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -mr-10 -mt-10 opacity-10 blur-2xl"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full -ml-8 -mb-8 opacity-10 blur-xl"></div>
+              <div className="relative z-10">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
+                  <BadgeCheck className="w-6 h-6 text-white" />
                 </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-slate-900">Route Management</h4>
-                  <p className="text-xs text-slate-500">Manage delivery sectors and timing</p>
-                </div>
+                <h2 className="text-lg font-bold mb-1">Premium Partner</h2>
+                <p className="text-blue-100 text-sm mb-4">Status active until Oct 2025</p>
+                <button className="bg-white text-blue-700 font-bold px-6 py-2.5 rounded-full text-sm active:scale-95 transition-transform hover:bg-slate-50">
+                  RENEW NOW
+                </button>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-300" />
-            </Link>
-            <Link href="/owner/prices" className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
-                  <BadgeIndianRupee className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-slate-900">Price Settings</h4>
-                  <p className="text-xs text-slate-500">Update bottle rates and discounts</p>
-                </div>
+            </div>
+
+            {/* Operational Control */}
+            <div className="mb-8">
+              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">Operational Control</h3>
+              <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                <Link href="/owner/routes" className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                      <Route className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-bold text-slate-900">Route Management</h4>
+                      <p className="text-xs text-slate-500">Manage delivery sectors and timing</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-300" />
+                </Link>
+                <Link href="/owner/prices" className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
+                      <BadgeIndianRupee className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-bold text-slate-900">Price Settings</h4>
+                      <p className="text-xs text-slate-500">Update bottle rates and discounts</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-300" />
+                </Link>
+                <Link href="/owner/staff" className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-purple-50 group-hover:text-purple-600 transition-colors">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-bold text-slate-900">Staff Accounts</h4>
+                      <p className="text-xs text-slate-500">{staff.length} Active delivery partners</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-300" />
+                </Link>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-300" />
-            </Link>
-            <Link href="/owner/staff" className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-purple-50 group-hover:text-purple-600 transition-colors">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-slate-900">Staff Accounts</h4>
-                  <p className="text-xs text-slate-500">{staff.length} Active delivery partners</p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-slate-300" />
-            </Link>
-          </div>
-        </div>
+            </div>
+          </>
+        )}
 
         {/* App Configuration */}
         <div className="mb-8">
@@ -264,7 +306,7 @@ export default function SettingsPage() {
 
       </main>
 
-      <BottomNav role="owner" activeTab="settings" />
+      <BottomNav role={userRole} activeTab="settings" />
 
       {/* Edit Profile Modal */}
       <AnimatePresence>

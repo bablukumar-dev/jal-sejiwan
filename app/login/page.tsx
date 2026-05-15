@@ -191,6 +191,7 @@ export default function Login() {
   };
 
   const redirectBasedOnRole = (targetRole: string) => {
+    localStorage.setItem('userRole', targetRole);
     if (targetRole === 'owner') router.push('/owner/dashboard');
     if (targetRole === 'staff') router.push('/staff/dashboard');
     if (targetRole === 'manager') router.push('/inventory/dashboard');
