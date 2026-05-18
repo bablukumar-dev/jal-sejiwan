@@ -57,7 +57,12 @@ export default function AddCustomer() {
 
     setCustomers([...customers, newCustomer]);
     alert('Customer Successfully Added');
-    router.push('/owner/customers');
+    const role = localStorage.getItem('userRole');
+    if (role === 'staff') {
+      router.push('/staff/dashboard');
+    } else {
+      router.push('/owner/customers');
+    }
   };
 
   return (

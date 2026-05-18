@@ -23,15 +23,28 @@ export default function SettingsPage() {
   
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [newName, setNewName] = useState(businessInfo.ownerName);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [userRole, setUserRole] = useState<'owner' | 'staff' | 'manager'>('owner');
+  const [profileImage, setProfileImage] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('profileImage');
+    }
+    return null;
+  });
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('notificationsEnabled') !== 'false';
+    }
+    return true;
+  });
+  const [userRole, setUserRole] = useState<'owner' | 'staff' | 'manager'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('userRole') as 'owner' | 'staff' | 'manager') || 'owner';
+    }
+    return 'owner';
+  });
   const [userName, setUserName] = useState<string>('');
 
   useEffect(() => {
     let unmounted = false;
-    const role = localStorage.getItem('userRole') as 'owner' | 'staff' | 'manager';
-    if (role) setUserRole(role);
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
@@ -52,16 +65,6 @@ export default function SettingsPage() {
       }
     });
 
-    const storedImage = localStorage.getItem('profileImage');
-    if (storedImage) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setProfileImage(storedImage);
-    }
-    const notifs = localStorage.getItem('notificationsEnabled');
-    if (notifs !== null) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setNotificationsEnabled(notifs === 'true');
-    }
     return () => {
       unmounted = true;
       unsubscribe();
@@ -94,8 +97,23 @@ export default function SettingsPage() {
     router.push('/login');
   };
 
-  const handleSaveProfile = () => {
-    setBusinessInfo({ ...businessInfo, ownerName: newName });
+  const handleSaveProfile = async () => {
+    if (userRole === 'owner') {
+      setBusinessInfo({ ...businessInfo, ownerName: newName });
+    } else {
+      setUserName(newName);
+      try {
+        const { updateProfile } = await import('firebase/auth');
+        const { doc, updateDoc } = await import('firebase/firestore');
+        const { db, auth } = await import('@/firebase');
+        if (auth.currentUser) {
+          await updateProfile(auth.currentUser, { displayName: newName });
+          await updateDoc(doc(db, 'users', auth.currentUser.uid), { name: newName });
+        }
+      } catch (e) {
+        console.error("Failed to update profile", e);
+      }
+    }
     setIsEditingProfile(false);
   };
 
@@ -126,14 +144,12 @@ export default function SettingsPage() {
             <h1 className="text-2xl font-bold text-slate-900 leading-none tracking-tight">
               {userRole === 'owner' ? businessInfo.ownerName : userName}
             </h1>
-            {userRole === 'owner' && (
-              <button 
-                onClick={() => { setNewName(businessInfo.ownerName); setIsEditingProfile(true); }}
-                className="p-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-              </button>
-            )}
+            <button 
+              onClick={() => { setNewName(userRole === 'owner' ? businessInfo.ownerName : userName); setIsEditingProfile(true); }}
+              className="p-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
           </div>
           <p className="text-sm font-medium text-slate-500 mt-1.5">
             {businessInfo.name} • {userRole.charAt(0).toUpperCase() + userRole.slice(1)}

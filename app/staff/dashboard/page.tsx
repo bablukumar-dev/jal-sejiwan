@@ -2,17 +2,53 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Route, FileText, Plus, Wallet, Droplet, ArrowRight, ChevronRight } from 'lucide-react';
+import { Route, FileText, Plus, Wallet, Droplet, ArrowRight, ChevronRight, X } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
+import { useState, useEffect } from 'react';
+import { auth } from '@/firebase';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function StaffDashboard() {
-  const { deliveries, payments } = useAppContext();
+  const { deliveries, payments, staff } = useAppContext();
+  const [userName, setUserName] = useState('');
+  const [staffRoute, setStaffRoute] = useState('');
+  const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
+  
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        setUserName(user.displayName || user.email?.split('@')[0] || 'User');
+        // Find staff route if any
+        try {
+          const { doc, getDoc } = await import('firebase/firestore');
+          const { db } = await import('@/firebase');
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists() && userDoc.data().role === 'staff') {
+             // In a real app we might link staff document in `staff` context
+             // For now we check if there's a matching staff in context
+             const currentStaff = staff.find(s => s.phone === userDoc.data().phone || s.name === userDoc.data().name);
+             if (currentStaff) {
+               if (currentStaff.route) {
+                 setStaffRoute(currentStaff.route);
+               }
+               setCurrentStaffId(currentStaff.id);
+             }
+          }
+        } catch (e) {
+           console.error(e);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [staff]);
+
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   
   const today = '2026-03-27';
-  const staffId = 1; // Mock logged-in staff ID
-
-  const todaysDeliveries = deliveries.filter(d => d.date === today && d.staffId === staffId);
+  
+  const todaysDeliveries = deliveries.filter(d => d.date === today && d.staffId === currentStaffId);
   const totalTarget = todaysDeliveries.length;
   const completedDeliveries = todaysDeliveries.filter(d => d.status === 'Delivered').length;
   const completionPercentage = totalTarget > 0 ? Math.round((completedDeliveries / totalTarget) * 100) : 0;
@@ -27,10 +63,10 @@ export default function StaffDashboard() {
       <main className="max-w-md mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-900">Rajesh Kumar</h1>
+          <h1 className="text-3xl font-bold text-slate-900">{userName}</h1>
           <div className="flex items-center gap-2 mt-2">
-            <span className="bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1 rounded uppercase tracking-wider">Sector 45</span>
-            <span className="text-blue-400 text-xs font-bold uppercase tracking-wider">Active Route</span>
+            <span className="bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1 rounded uppercase tracking-wider">{staffRoute || 'No Route'}</span>
+            {staffRoute && <span className="text-blue-400 text-xs font-bold uppercase tracking-wider">Active Route</span>}
           </div>
         </div>
 
@@ -87,14 +123,14 @@ export default function StaffDashboard() {
         <div className="bg-slate-100 rounded-3xl p-6 border border-slate-200">
           <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Route Summary</h3>
           <div className="space-y-3">
-            <div className="bg-white rounded-xl p-4 flex items-center justify-between border border-slate-200 active:scale-95 transition-transform">
+            <div onClick={() => setIsSummaryModalOpen(true)} className="bg-white rounded-xl p-4 flex items-center justify-between border border-slate-200 active:scale-95 transition-transform cursor-pointer">
               <div className="flex items-center gap-3">
                 <FileText className="w-5 h-5 text-blue-600" />
                 <span className="font-bold text-slate-900">Daily Summary</span>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </div>
-            <div className="bg-white rounded-xl p-4 flex items-center justify-between border border-slate-200 active:scale-95 transition-transform">
+            <div onClick={() => setIsPaymentModalOpen(true)} className="bg-white rounded-xl p-4 flex items-center justify-between border border-slate-200 active:scale-95 transition-transform cursor-pointer">
               <div className="flex items-center gap-3">
                 <Wallet className="w-5 h-5 text-blue-600" />
                 <span className="font-bold text-slate-900">Payment Ledger</span>
@@ -107,9 +143,95 @@ export default function StaffDashboard() {
       </main>
 
       {/* FAB */}
-      <button className="fixed bottom-24 right-6 bg-blue-600 text-white w-16 h-16 rounded-2xl shadow-lg shadow-blue-600/30 z-40 active:scale-90 duration-200 flex items-center justify-center">
+      <Link href="/owner/customers/add" className="fixed bottom-24 right-6 bg-blue-600 text-white w-16 h-16 rounded-2xl shadow-lg shadow-blue-600/30 z-40 active:scale-90 duration-200 flex items-center justify-center">
         <Plus className="w-8 h-8" />
-      </button>
+      </Link>
+
+      {/* Modals */}
+      <AnimatePresence>
+        {isSummaryModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm"
+               onClick={() => setIsSummaryModalOpen(false)}>
+            <motion.div 
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-sm shadow-xl max-h-[85vh] flex flex-col"
+            >
+              <div className="flex justify-between items-center mb-4 shrink-0">
+                <h2 className="text-xl font-bold text-slate-900">Daily Summary</h2>
+                <button onClick={() => setIsSummaryModalOpen(false)} className="p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {todaysDeliveries.length === 0 ? (
+                  <p className="text-slate-500 text-center py-4">No deliveries recorded today.</p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between border-b pb-2">
+                       <span className="text-slate-500">Total Assigned</span>
+                       <span className="font-bold">{totalTarget}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                       <span className="text-slate-500">Delivered</span>
+                       <span className="font-bold text-blue-600">{completedDeliveries}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                       <span className="text-slate-500">Empties Returned</span>
+                       <span className="font-bold text-orange-600">{emptyReturned}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                       <span className="text-slate-500">Pending</span>
+                       <span className="font-bold text-slate-900">{totalTarget - completedDeliveries}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {isPaymentModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm"
+               onClick={() => setIsPaymentModalOpen(false)}>
+            <motion.div 
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-sm shadow-xl max-h-[85vh] flex flex-col"
+            >
+              <div className="flex justify-between items-center mb-4 shrink-0">
+                <h2 className="text-xl font-bold text-slate-900">Payment Ledger</h2>
+                <button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                 {payments.filter(p => p.date === today).length === 0 ? (
+                    <p className="text-slate-500 text-center py-4">No payments collected today.</p>
+                 ) : (
+                    <div className="space-y-3">
+                      {payments.filter(p => p.date === today).map(p => (
+                         <div key={p.id} className="bg-slate-50 p-3 rounded-lg flex justify-between items-center">
+                            <div>
+                               <div className="font-bold text-slate-800">{p.customerName}</div>
+                               <div className="text-xs text-slate-500">{p.mode}</div>
+                            </div>
+                            <div className="font-bold text-green-600">₹{p.amount}</div>
+                         </div>
+                      ))}
+                    </div>
+                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <BottomNav role="staff" activeTab="dashboard" />
     </div>
