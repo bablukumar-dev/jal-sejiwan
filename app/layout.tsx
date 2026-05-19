@@ -13,9 +13,11 @@ const sourceSerif = Source_Serif_4({
   variable: '--font-source-serif',
 });
 
+import { AuthGuard } from '@/components/AuthGuard';
+
 export const metadata: Metadata = {
-  title: 'My Google AI Studio App',
-  description: 'My Google AI Studio App',
+  title: 'Jal Sejiwan',
+  description: 'Smart Water Management Application',
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
@@ -23,7 +25,9 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     <html lang="en" className={`${inter.variable} ${sourceSerif.variable}`}>
       <body suppressHydrationWarning className="antialiased">
         <AppProvider>
-          {children}
+          <AuthGuard>
+            {children}
+          </AuthGuard>
         </AppProvider>
       </body>
     </html>

@@ -35,35 +35,41 @@ export default function EditCustomer() {
   }
 
   const handleSave = () => {
-    const newErrors: {name?: string, phone?: string} = {};
-    if (!name.trim()) newErrors.name = 'Name is required';
-    if (!/^\d{10}$/.test(phone)) newErrors.phone = 'Mobile must be 10 digits';
+    try {
+        const newErrors: {name?: string, phone?: string} = {};
+        if (!name.trim()) newErrors.name = 'Name is required';
+        if (!phone.trim()) newErrors.phone = 'Phone is required';
+        else if (phone.length < 10) newErrors.phone = 'Mobile must be at least 10 digits';
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
+        if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        return;
+        }
+
+        const updatedCustomer = {
+        ...customer,
+        name,
+        phone,
+        address,
+        area,
+        route,
+        type,
+        deliveryType,
+        defaultQty,
+        rate,
+        due,
+        emptyBalance,
+        active,
+        notes
+        };
+
+        setCustomers(customers.map(c => c.id === customerId ? updatedCustomer : c));
+        alert('Customer Successfully Updated');
+        router.push(`/owner/customers/${customerId}`);
+    } catch (e) {
+        console.error("Failed to update customer", e);
+        alert("Failed to update customer. Please try again.");
     }
-
-    const updatedCustomer = {
-      ...customer,
-      name,
-      phone,
-      address,
-      area,
-      route,
-      type,
-      deliveryType,
-      defaultQty,
-      rate,
-      due,
-      emptyBalance,
-      active,
-      notes
-    };
-
-    setCustomers(customers.map(c => c.id === customerId ? updatedCustomer : c));
-    alert('Customer Successfully Updated');
-    router.push(`/owner/customers/${customerId}`);
   };
 
   return (

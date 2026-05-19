@@ -54,46 +54,52 @@ export default function DeliveryEntry() {
   const subtotal = delivered * rate;
 
   const handleConfirm = () => {
-    // Update delivery
-    const updatedDeliveries = deliveries.map(d => 
-      d.id === deliveryId ? { ...d, status: 'Delivered', deliveredQty: delivered, returnedEmpty: empties, date: date } : d
-    );
-    setDeliveries(updatedDeliveries);
+    try {
+        // Update delivery
+        const updatedDeliveries = deliveries.map(d => 
+        d.id === deliveryId ? { ...d, status: 'Delivered', deliveredQty: delivered, returnedEmpty: empties, date: date } : d
+        );
+        setDeliveries(updatedDeliveries);
 
-    // Update inventory
-    setInventory(prev => ({
-      ...prev,
-      fullCans: prev.fullCans - delivered,
-      emptyCans: prev.emptyCans + empties,
-      damagedCans: prev.damagedCans + damagedQty,
-      cansInDelivery: prev.cansInDelivery - delivered
-    }));
+        // Update inventory
+        setInventory(prev => ({
+        ...prev,
+        fullCans: prev.fullCans - delivered,
+        emptyCans: prev.emptyCans + empties,
+        damagedCans: prev.damagedCans + damagedQty,
+        cansInDelivery: prev.cansInDelivery - delivered
+        }));
 
-    // Handle payment
-    let newDue = customer.due;
-    if (paymentType === 'Due') {
-      newDue += subtotal;
-    } else if (subtotal > 0) {
-      const newPayment = {
-        id: Date.now(),
-        customerId: customer.id,
-        customerName: customer.name,
-        date: date,
-        amount: subtotal,
-        mode: paymentType,
-        collectedBy: 'Staff',
-        note: `DEL-${deliveryId}`
-      };
-      setPayments(prev => [newPayment, ...prev]);
+        // Handle payment
+        let newDue = customer.due;
+        if (paymentType === 'Due') {
+        newDue += subtotal;
+        } else if (subtotal > 0) {
+        const newPayment = {
+            id: Date.now(),
+            customerId: customer.id,
+            customerName: customer.name,
+            date: date,
+            amount: subtotal,
+            mode: paymentType,
+            collectedBy: 'Staff',
+            note: `DEL-${deliveryId}`
+        };
+        setPayments(prev => [newPayment, ...prev]);
+        }
+
+        // Update customer
+        const updatedCustomers = customers.map(c => 
+        c.id === customer.id ? { ...c, due: newDue, emptyBalance: c.emptyBalance + delivered - empties - damagedQty, lastDelivery: date } : c
+        );
+        setCustomers(updatedCustomers);
+        
+        alert("Delivery Recorded Successfully!");
+        router.back();
+    } catch (e) {
+        console.error("Failed to record delivery", e);
+        alert("Failed to record delivery. Please try again.");
     }
-
-    // Update customer
-    const updatedCustomers = customers.map(c => 
-      c.id === customer.id ? { ...c, due: newDue, emptyBalance: c.emptyBalance + delivered - empties - damagedQty, lastDelivery: date } : c
-    );
-    setCustomers(updatedCustomers);
-
-    router.back();
   };
 
   return (

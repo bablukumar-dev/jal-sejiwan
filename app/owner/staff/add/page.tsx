@@ -18,24 +18,29 @@ export default function AddStaff() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!name || !phone || !pin) {
-      alert("Please fill all required fields");
-      return;
+    try {
+        if (!name || !phone || !pin) {
+        alert("Please fill all required fields");
+        return;
+        }
+
+        const newStaff = {
+        id: Date.now(),
+        name,
+        phone,
+        role,
+        route,
+        pin,
+        active: true
+        };
+
+        setStaff([...staff, newStaff]);
+        alert("Staff Added Successfully!");
+        router.push('/owner/staff');
+    } catch (err) {
+        console.error("Failed to add staff", err);
+        alert("Failed to add staff. Please try again.");
     }
-
-    const newStaff = {
-      id: Date.now(),
-      name,
-      phone,
-      role,
-      route,
-      pin,
-      active: true
-    };
-
-    setStaff([...staff, newStaff]);
-    router.push('/owner/staff');
   };
 
   return (

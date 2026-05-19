@@ -12,14 +12,24 @@ export default function RouteManagement() {
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newRoute.trim() && !routes.includes(newRoute.trim())) {
-      setRoutes([...routes, newRoute.trim()]);
-      setNewRoute('');
+    try {
+        if (newRoute.trim() && !routes.includes(newRoute.trim())) {
+        setRoutes([...routes, newRoute.trim()]);
+        setNewRoute('');
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Failed to add route.");
     }
   };
 
   const handleRemove = (route: string) => {
-    setRoutes(routes.filter(r => r !== route));
+    try {
+        setRoutes(routes.filter(r => r !== route));
+    } catch (err) {
+        console.error(err);
+        alert("Failed to remove route.");
+    }
   };
 
   return (

@@ -27,41 +27,47 @@ export default function AddCustomer() {
   const [errors, setErrors] = useState<{name?: string, phone?: string}>({});
 
   const handleSave = () => {
-    const newErrors: {name?: string, phone?: string} = {};
-    if (!name.trim()) newErrors.name = 'Name is required';
-    if (!/^\d{10}$/.test(phone)) newErrors.phone = 'Mobile must be 10 digits';
+    try {
+        const newErrors: {name?: string, phone?: string} = {};
+        if (!name.trim()) newErrors.name = 'Name is required';
+        if (!phone.trim()) newErrors.phone = 'Phone is required';
+        else if (phone.length < 10) newErrors.phone = 'Mobile must be at least 10 digits';
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+        if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        return;
+        }
 
-    const newId = Math.max(0, ...customers.map(c => c.id)) + 1;
-    const newCustomer = {
-      id: newId,
-      name,
-      phone,
-      address,
-      area,
-      route,
-      type,
-      deliveryType,
-      defaultQty,
-      rate,
-      due,
-      emptyBalance,
-      active,
-      lastDelivery: '',
-      notes
-    };
+        const newId = Math.max(0, ...customers.map(c => c.id)) + 1;
+        const newCustomer = {
+        id: newId,
+        name,
+        phone,
+        address,
+        area,
+        route,
+        type,
+        deliveryType,
+        defaultQty,
+        rate,
+        due,
+        emptyBalance,
+        active,
+        lastDelivery: '',
+        notes
+        };
 
-    setCustomers([...customers, newCustomer]);
-    alert('Customer Successfully Added');
-    const role = localStorage.getItem('userRole');
-    if (role === 'staff') {
-      router.push('/staff/dashboard');
-    } else {
-      router.push('/owner/customers');
+        setCustomers([...customers, newCustomer]);
+        alert('Customer Successfully Added');
+        const role = localStorage.getItem('userRole');
+        if (role === 'staff') {
+        router.push('/staff/dashboard');
+        } else {
+        router.push('/owner/customers');
+        }
+    } catch (e) {
+        console.error("Failed to add customer", e);
+        alert("Failed to add customer. Please try again.");
     }
   };
 

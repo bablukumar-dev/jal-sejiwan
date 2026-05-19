@@ -23,11 +23,17 @@ export default function SkipDelivery() {
   }
 
   const handleSkip = () => {
-    const updatedDeliveries = deliveries.map(d => 
-      d.id === deliveryId ? { ...d, status: 'Skipped' as const, skipReason: reason, skipRemarks: remarks } : d
-    );
-    setDeliveries(updatedDeliveries);
-    router.back();
+    try {
+        const updatedDeliveries = deliveries.map(d => 
+        d.id === deliveryId ? { ...d, status: 'Skipped' as const, skipReason: reason, skipRemarks: remarks } : d
+        );
+        setDeliveries(updatedDeliveries);
+        alert("Delivery marked as skipped.");
+        router.back();
+    } catch (e) {
+        console.error("Failed to skip delivery", e);
+        alert("Failed to skip. Please try again.");
+    }
   };
 
   return (
