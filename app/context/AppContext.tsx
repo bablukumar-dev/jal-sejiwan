@@ -85,7 +85,15 @@ export type BusinessInfo = {
   phone: string;
   address: string;
   defaultRate: number;
-  canSize: string;
+  canSize?: string;
+  whatsappConfig?: {
+    enabled: boolean;
+    useApi: boolean;
+    apiToken?: string;
+    phoneId?: string;
+    reminderDay?: number;
+    reminderTime?: string;
+  };
 };
 
 type AppContextType = {

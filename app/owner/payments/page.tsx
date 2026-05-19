@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 
 export default function PaymentsList() {
-  const { payments, customers } = useAppContext();
+  const { payments, customers, businessInfo } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('Today');
 
@@ -133,19 +133,57 @@ export default function PaymentsList() {
                 if (!customer) return null;
 
                 return (
-                  <div key={payment.id} className="bg-white rounded-2xl p-4 border border-slate-100 flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${payment.mode === 'UPI' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'}`}>
-                      {payment.mode === 'UPI' ? <QrCode className="w-6 h-6" /> : <Wallet className="w-6 h-6" />}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-slate-900">{customer.name}</h3>
-                      <div className="text-xs text-slate-500 mt-1">{payment.date}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-blue-700 text-lg">+ ₹ {payment.amount}</div>
-                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1 flex items-center justify-end gap-1">
-                        {payment.mode} <span className={`w-1.5 h-1.5 rounded-full ${payment.mode === 'UPI' ? 'bg-blue-600' : 'bg-orange-600'}`}></span>
+                  <div key={payment.id} className="bg-white rounded-2xl p-4 border border-slate-100 flex flex-col gap-3">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${payment.mode === 'UPI' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'}`}>
+                        {payment.mode === 'UPI' ? <QrCode className="w-6 h-6" /> : <Wallet className="w-6 h-6" />}
                       </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-slate-900">{customer.name}</h3>
+                        <div className="text-xs text-slate-500 mt-1">{payment.date}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-blue-700 text-lg">+ ₹ {payment.amount}</div>
+                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1 flex items-center justify-end gap-1">
+                          {payment.mode} <span className={`w-1.5 h-1.5 rounded-full ${payment.mode === 'UPI' ? 'bg-blue-600' : 'bg-orange-600'}`}></span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Add Bill Generation button here */}
+                    <div className="flex border-t border-slate-100 pt-2 gap-2 mt-1">
+                      <button 
+                         onClick={async () => {
+                           try {
+                             const { generatePaymentReceiptPDF } = await import('@/lib/pdfGenerator');
+                             const { doc, receiptNo } = generatePaymentReceiptPDF(payment, businessInfo);
+                             doc.save(`Receipt_${customer.name}_${payment.date}.pdf`);
+                           } catch (e) {
+                             console.error(e);
+                             alert('Failed to generate Receipt');
+                           }
+                         }}
+                         className="flex-1 text-[10px] font-bold uppercase py-2 bg-emerald-50 text-emerald-700 rounded-lg"
+                      >
+                        Download Receipt
+                      </button>
+                      <button
+                         onClick={async () => {
+                           try {
+                             const { generatePaymentReceiptPDF } = await import('@/lib/pdfGenerator');
+                             const { sendPaymentReceiptWhatsApp } = await import('@/lib/whatsappUtils');
+                             const { doc, receiptNo } = generatePaymentReceiptPDF(payment, businessInfo);
+                             const pdfBlob = doc.output('blob');
+                             await sendPaymentReceiptWhatsApp(payment, customer, businessInfo, receiptNo, pdfBlob);
+                           } catch (e) {
+                             console.error(e);
+                             alert('Failed to share to WhatsApp');
+                           }
+                         }}
+                         className="flex-1 text-[10px] font-bold uppercase py-2 bg-green-50 text-green-700 rounded-lg"
+                      >
+                        Share Receipt
+                      </button>
                     </div>
                   </div>
                 );

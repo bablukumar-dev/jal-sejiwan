@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Phone, Truck, Wallet, Droplet, ArrowLeftRight, AlertTriangle, ArrowRight, Edit, FileText } from 'lucide-react';
+import { Phone, Truck, Wallet, Droplet, ArrowLeftRight, AlertTriangle, ArrowRight, Edit, FileText, Share2, Bell } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
@@ -12,7 +12,7 @@ import { useAppContext } from '@/app/context/AppContext';
 export default function CustomerDetail() {
   const params = useParams();
   const router = useRouter();
-  const { customers, deliveries, payments, setCustomers } = useAppContext();
+  const { customers, deliveries, payments, setCustomers, businessInfo } = useAppContext();
   
   const customerId = parseInt(params.id as string);
   const customer = customers.find(c => c.id === customerId);
@@ -35,6 +35,47 @@ export default function CustomerDetail() {
   const handleSaveNotes = () => {
     setCustomers(customers.map(c => c.id === customerId ? { ...c, notes } : c));
     alert('Notes saved');
+  };
+
+  const handleGenerateBill = async () => {
+    try {
+      const { generateInvoicePDF } = await import('@/lib/pdfGenerator');
+      const { doc, invoiceNo } = generateInvoicePDF(customer, customerDeliveries, customerPayments, businessInfo);
+      
+      // Save locally
+      doc.save(`Invoice_${customer.name}_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.pdf`);
+      
+      alert('PDF generated successfully!');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to generate PDF');
+    }
+  };
+
+  const handleShareWhatsApp = async () => {
+    try {
+      const { generateInvoicePDF } = await import('@/lib/pdfGenerator');
+      const { shareInvoiceViaWhatsApp, sendReminderWhatsApp } = await import('@/lib/whatsappUtils');
+      const { doc, invoiceNo } = generateInvoicePDF(customer, customerDeliveries, customerPayments, businessInfo);
+      
+      // Get Blob
+      const pdfBlob = doc.output('blob');
+      
+      await shareInvoiceViaWhatsApp(customer, businessInfo, invoiceNo, pdfBlob);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to share to WhatsApp');
+    }
+  };
+  
+  const handleSendReminder = async () => {
+    try {
+      const { sendReminderWhatsApp } = await import('@/lib/whatsappUtils');
+      sendReminderWhatsApp(customer, businessInfo);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to send reminder');
+    }
   };
 
   return (
@@ -102,6 +143,22 @@ export default function CustomerDetail() {
           <div className="mt-4 pt-4 border-t border-blue-200/50 text-sm font-medium text-blue-800">
             Last Delivery: {customer.lastDelivery || 'N/A'}
           </div>
+        </div>
+
+        {/* Invoice Actions */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <button onClick={handleGenerateBill} className="bg-emerald-100 text-emerald-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-emerald-200">
+            <FileText className="w-5 h-5 text-emerald-600" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-center">PDF Bill</span>
+          </button>
+          <button onClick={handleShareWhatsApp} className="bg-green-100 text-green-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-green-200">
+            <Share2 className="w-5 h-5 text-green-600" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-center">WhatsApp</span>
+          </button>
+          <button onClick={handleSendReminder} className="bg-orange-100 text-orange-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-orange-200">
+            <Bell className="w-5 h-5 text-orange-600" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-center">Remind</span>
+          </button>
         </div>
 
         {/* Tabs */}

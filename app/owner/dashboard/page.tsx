@@ -2,12 +2,63 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Truck, Wallet, Droplet, Package, AlertTriangle, UserPlus, FileText, Users } from 'lucide-react';
+import { Truck, Wallet, Droplet, Package, AlertTriangle, UserPlus, FileText, Users, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
+import { useState, useEffect } from 'react';
 
 export default function OwnerDashboard() {
   const { customers, deliveries, payments, inventory, businessInfo } = useAppContext();
+  const [isReminding, setIsReminding] = useState(false);
+
+  const pendingCustomers = customers.filter(c => c.due > 0).length;
+
+  // Auto Monthly Reminder Check
+  useEffect(() => {
+    if (businessInfo.whatsappConfig?.enabled && businessInfo.whatsappConfig.reminderDay) {
+      const todayDate = new Date();
+      if (todayDate.getDate() === businessInfo.whatsappConfig.reminderDay) {
+        const lastSentDate = localStorage.getItem('lastAutoReminderSent');
+        const currentDateString = todayDate.toLocaleDateString();
+        
+        if (lastSentDate !== currentDateString && pendingCustomers > 0) {
+          if (confirm(`Today is your scheduled Monthly Reminder day. Would you like to automatically send WhatsApp reminders to ${pendingCustomers} pending customers?`)) {
+            handleRemindAll();
+          }
+          // Mark as checked to prevent annoying subsequent popups today
+          localStorage.setItem('lastAutoReminderSent', currentDateString);
+        }
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [businessInfo, pendingCustomers]);
+
+  const handleRemindAll = async () => {
+    if (!confirm(`Are you sure you want to send reminders to ${pendingCustomers} customers?`)) return;
+    
+    setIsReminding(true);
+    try {
+      const { sendReminderWhatsApp } = await import('@/lib/whatsappUtils');
+      let sentCount = 0;
+      
+      const dueCustomers = customers.filter(c => c.due > 0);
+      for (const customer of dueCustomers) {
+        // Since we are opening wa.me links, opening multiple links in quick succession might be blocked by browsers.
+        // For actual bulk, API is preferred. We will just attempt.
+        sendReminderWhatsApp(customer, businessInfo);
+        sentCount++;
+        // Small delay to prevent browser block
+        await new Promise(res => setTimeout(res, 500));
+      }
+      
+      alert(`Successfully sent reminders to ${sentCount} customers!`);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to send some reminders.');
+    } finally {
+      setIsReminding(false);
+    }
+  };
 
   const today = '2026-03-27';
   const todaysDeliveries = deliveries.filter(d => d.date === today);
@@ -18,7 +69,6 @@ export default function OwnerDashboard() {
   
   const cashCollected = payments.filter(p => p.date === today).reduce((sum, p) => sum + p.amount, 0);
   const totalDue = customers.reduce((sum, c) => sum + c.due, 0);
-  const pendingCustomers = customers.filter(c => c.due > 0).length;
 
   const targetDeliveries = 150; // Mock target
   const deliveryPercentage = Math.round((todayDeliveriesCount / targetDeliveries) * 100) || 0;
@@ -91,6 +141,18 @@ export default function OwnerDashboard() {
             </div>
           </Link>
         </div>
+
+        {/* Remind All Due button */}
+        {pendingCustomers > 0 && (
+          <button 
+           onClick={handleRemindAll}
+           disabled={isReminding}
+           className="w-full bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all text-sm border border-orange-300 disabled:opacity-50"
+          >
+            <Bell className="w-5 h-5 text-orange-600" />
+            {isReminding ? 'Sending Reminders...' : '🔔 Remind All Due Customers'}
+          </button>
+        )}
 
         {/* Alert */}
         {inventory.fullCans < 50 && (

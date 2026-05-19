@@ -4,13 +4,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { MapPin, Phone, Plus, AlertTriangle, ChevronRight, Navigation, XCircle } from 'lucide-react';
+import { MapPin, Phone, Plus, AlertTriangle, ChevronRight, Navigation, XCircle, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
 
 export default function MyRoute() {
-  const { deliveries, customers, staff } = useAppContext();
+  const { deliveries, customers, staff, businessInfo } = useAppContext();
   const [activeTab, setActiveTab] = useState<'Pending' | 'Completed'>('Pending');
   const [isOptimized, setIsOptimized] = useState(false);
   const [staffRoute, setStaffRoute] = useState('');
@@ -199,11 +199,23 @@ export default function MyRoute() {
                       )}
                     </div>
                   )}
-                  <a href={`tel:${customer.phone}`} className="w-12 bg-white border border-slate-200 text-slate-700 rounded-xl flex items-center justify-center active:scale-95 transition-transform">
+                  <a href={`tel:${customer.phone}`} className="w-12 bg-white border border-slate-200 text-slate-700 rounded-xl flex items-center justify-center active:scale-95 transition-transform shrink-0">
                     <Phone className="w-5 h-5" />
                   </a>
                   {delivery.status === 'Pending' && (
-                    <a href={`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`} target="_blank" rel="noopener noreferrer" className="w-12 bg-white border border-slate-200 text-slate-700 rounded-xl flex items-center justify-center active:scale-95 transition-transform">
+                     <button onClick={async () => {
+                       try {
+                         const { sendReminderWhatsApp } = await import('@/lib/whatsappUtils');
+                         sendReminderWhatsApp(customer, businessInfo);
+                       } catch (e) {
+                         alert('Failed to send reminder');
+                       }
+                     }} className="w-12 bg-green-50 border border-green-200 text-green-600 rounded-xl flex items-center justify-center active:scale-95 transition-transform shrink-0">
+                        <MessageCircle className="w-5 h-5" />
+                     </button>
+                  )}
+                  {delivery.status === 'Pending' && (
+                    <a href={`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`} target="_blank" rel="noopener noreferrer" className="w-12 bg-white border border-slate-200 text-slate-700 rounded-xl flex items-center justify-center active:scale-95 transition-transform shrink-0">
                       <MapPin className="w-5 h-5" />
                     </a>
                   )}

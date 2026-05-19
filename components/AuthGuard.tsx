@@ -7,12 +7,11 @@ import { doc, getDoc } from 'firebase/firestore';
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [loading, setLoading] = useState(true);
+  const publicPaths = ['/login', '/'];
+  const [loading, setLoading] = useState(!publicPaths.includes(pathname));
 
   useEffect(() => {
-    const publicPaths = ['/login', '/'];
     if (publicPaths.includes(pathname)) {
-      setLoading(false);
       return;
     }
 

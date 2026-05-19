@@ -72,34 +72,39 @@ export default function RecordPayment() {
   };
 
   const handleSave = () => {
-    const numAmount = parseInt(amount);
-    if (numAmount <= 0) {
-      alert('Amount must be greater than 0');
-      return;
+    try {
+      const numAmount = parseInt(amount);
+      if (numAmount <= 0) {
+        alert('Amount must be greater than 0');
+        return;
+      }
+      if (!selectedCustomerId) {
+        alert('Please select a customer');
+        return;
+      }
+
+      const newPayment = {
+        id: Math.max(0, ...payments.map(p => p.id)) + 1,
+        customerId: selectedCustomerId,
+        customerName: selectedCustomer?.name || '',
+        amount: numAmount,
+        date,
+        mode,
+        collectedBy: 'Owner', // Or whoever is logged in
+        note: ''
+      };
+
+      setPayments([...payments, newPayment]);
+      setCustomers(customers.map(c => 
+        c.id === selectedCustomerId ? { ...c, due: Math.max(0, c.due - numAmount) } : c
+      ));
+
+      alert('Payment Recorded Successfully');
+      router.back();
+    } catch (e) {
+      console.error(e);
+      alert('Failed to record payment');
     }
-    if (!selectedCustomerId) {
-      alert('Please select a customer');
-      return;
-    }
-
-    const newPayment = {
-      id: Math.max(0, ...payments.map(p => p.id)) + 1,
-      customerId: selectedCustomerId,
-      customerName: selectedCustomer?.name || '',
-      amount: numAmount,
-      date,
-      mode,
-      collectedBy: 'Owner', // Or whoever is logged in
-      note: ''
-    };
-
-    setPayments([...payments, newPayment]);
-    setCustomers(customers.map(c => 
-      c.id === selectedCustomerId ? { ...c, due: Math.max(0, c.due - numAmount) } : c
-    ));
-
-    alert('Payment Recorded Successfully');
-    router.back();
   };
 
   return (

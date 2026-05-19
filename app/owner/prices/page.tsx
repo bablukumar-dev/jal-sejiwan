@@ -11,9 +11,14 @@ export default function PriceSettings() {
   const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSave = () => {
-    setBusinessInfo({ ...businessInfo, defaultRate: Number(rate) || 0 });
-    setIsSuccess(true);
-    setTimeout(() => setIsSuccess(false), 3000);
+    try {
+        setBusinessInfo({ ...businessInfo, defaultRate: Number(rate) || 0 });
+        setIsSuccess(true);
+        setTimeout(() => setIsSuccess(false), 3000);
+    } catch(e) {
+        console.error(e);
+        alert('Failed to update price');
+    }
   };
 
   return (

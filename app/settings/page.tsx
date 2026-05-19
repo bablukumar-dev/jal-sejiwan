@@ -92,6 +92,19 @@ export default function SettingsPage() {
 
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
+  const [whatsappConf, setWhatsappConf] = useState({
+    enabled: businessInfo.whatsappConfig?.enabled || false,
+    useApi: businessInfo.whatsappConfig?.useApi || false,
+    apiToken: businessInfo.whatsappConfig?.apiToken || '',
+    phoneId: businessInfo.whatsappConfig?.phoneId || '',
+    reminderDay: businessInfo.whatsappConfig?.reminderDay || 5
+  });
+
+  const handleSaveWhatsappConf = () => {
+    setBusinessInfo({ ...businessInfo, whatsappConfig: whatsappConf });
+    setIsWhatsappModalOpen(false);
+  };
 
   const handleLogout = () => {
     router.push('/login');
@@ -259,7 +272,7 @@ export default function SettingsPage() {
             </div>
             <button 
               onClick={() => setIsLangModalOpen(true)}
-              className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group"
+              className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group border-b border-slate-50"
             >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-orange-50 group-hover:text-orange-600 transition-colors">
@@ -274,6 +287,21 @@ export default function SettingsPage() {
                 <span className="text-slate-700 text-[10px] font-bold px-3 py-1">{selectedLanguage.split(' ')[0]}</span>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400 mr-1" />
               </div>
+            </button>
+            <button 
+              onClick={() => setIsWhatsappModalOpen(true)}
+              className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center transition-colors">
+                  <MessageCircle className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <h4 className="font-bold text-slate-900">WhatsApp Automation</h4>
+                  <p className="text-xs text-slate-500">Configure API and automated reminders</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-300" />
             </button>
           </div>
         </div>
@@ -414,6 +442,81 @@ export default function SettingsPage() {
                     )}
                   </button>
                 ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Whatsapp Automation Modal */}
+      <AnimatePresence>
+        {isWhatsappModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl"
+            >
+              <div className="flex justify-between items-center mb-5">
+                <h2 className="text-xl font-bold text-slate-900">WhatsApp Automation</h2>
+                <button onClick={() => setIsWhatsappModalOpen(false)} className="p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-4 mb-6">
+                <label className="flex items-center gap-2">
+                   <input type="checkbox" className="w-4 h-4" checked={whatsappConf.enabled} onChange={e => setWhatsappConf({...whatsappConf, enabled: e.target.checked})} />
+                   <span className="font-medium text-slate-900 text-sm">Enable WhatsApp Features</span>
+                </label>
+
+                {whatsappConf.enabled && (
+                  <>
+                    <label className="flex items-center gap-2">
+                       <input type="checkbox" className="w-4 h-4" checked={whatsappConf.useApi} onChange={e => setWhatsappConf({...whatsappConf, useApi: e.target.checked})} />
+                       <span className="font-medium text-slate-900 text-sm">Use WhatsApp Business API (Advanced)</span>
+                    </label>
+
+                    {whatsappConf.useApi && (
+                      <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">API Token</label>
+                          <input type="password" value={whatsappConf.apiToken} onChange={e => setWhatsappConf({...whatsappConf, apiToken: e.target.value})} className="w-full p-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"/>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number ID</label>
+                          <input type="text" value={whatsappConf.phoneId} onChange={e => setWhatsappConf({...whatsappConf, phoneId: e.target.value})} className="w-full p-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"/>
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Auto Monthly Reminder Day</label>
+                       <select value={whatsappConf.reminderDay} onChange={e => setWhatsappConf({...whatsappConf, reminderDay: parseInt(e.target.value)})} className="w-full p-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500">
+                          {[...Array(28)].map((_, i) => (
+                             <option key={i} value={i+1}>{i+1}</option>
+                          ))}
+                       </select>
+                       <p className="text-xs text-slate-500 mt-1">Automatic reminders will be scheduled on this day of every month.</p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setIsWhatsappModalOpen(false)}
+                  className="flex-1 py-3 font-bold text-slate-600 bg-slate-100 rounded-xl active:scale-95 transition-transform"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSaveWhatsappConf}
+                  className="flex-1 py-3 font-bold text-white bg-blue-600 rounded-xl active:scale-95 transition-transform"
+                >
+                  Save Settings
+                </button>
               </div>
             </motion.div>
           </div>
