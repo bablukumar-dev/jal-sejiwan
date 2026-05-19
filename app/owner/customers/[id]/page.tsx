@@ -134,7 +134,7 @@ export default function CustomerDetail() {
         </div>
 
         {/* Empties Card */}
-        <div className="bg-blue-100 rounded-2xl p-5 border border-blue-200 mb-6">
+        <div className="bg-blue-100 rounded-2xl p-5 border border-blue-200 mb-4">
           <div className="text-xs font-bold text-blue-900 uppercase tracking-wider mb-1">Empty Cans With Customer</div>
           <div className="flex items-center gap-2">
             <span className="text-4xl font-bold text-blue-950">{customer.emptyBalance.toString().padStart(2, '0')}</span>
@@ -143,6 +143,28 @@ export default function CustomerDetail() {
           <div className="mt-4 pt-4 border-t border-blue-200/50 text-sm font-medium text-blue-800">
             Last Delivery: {customer.lastDelivery || 'N/A'}
           </div>
+        </div>
+
+        {/* Enterprise SaaS Info */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 mb-6 space-y-4">
+            <div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Security Deposit</div>
+              <div className="font-medium text-slate-900">₹{customer.deposit || 0}</div>
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Wallet Balance</div>
+               <div className="font-medium text-slate-900 line-clamp-1">{customer.walletBalance || 0}</div>
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Subscription Plan</div>
+              <div className="font-medium text-slate-900">{customer.subscriptionPlan || 'None'}</div>
+            </div>
+             <div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Risk Level</div>
+              <div className={`inline-block px-2 py-1 rounded text-xs font-bold ${customer.riskLevel === 'High' ? 'bg-red-100 text-red-700' : customer.riskLevel === 'Medium' ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                 {customer.riskLevel || 'Low'}
+              </div>
+            </div>
         </div>
 
         {/* Invoice Actions */}

@@ -27,6 +27,10 @@ export default function EditCustomer() {
   const [emptyBalance, setEmptyBalance] = useState(customer?.emptyBalance || 0);
   const [notes, setNotes] = useState(customer?.notes || '');
   const [active, setActive] = useState(customer?.active ?? true);
+  const [deposit, setDeposit] = useState(customer?.deposit || 0);
+  const [walletBalance, setWalletBalance] = useState(customer?.walletBalance || 0);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<'None' | 'Monthly' | 'Unlimited' | 'Custom'>(customer?.subscriptionPlan || 'None');
+  const [riskLevel, setRiskLevel] = useState<'Low' | 'Medium' | 'High'>(customer?.riskLevel || 'Low');
 
   const [errors, setErrors] = useState<{name?: string, phone?: string}>({});
 
@@ -60,7 +64,11 @@ export default function EditCustomer() {
         due,
         emptyBalance,
         active,
-        notes
+        notes,
+        deposit,
+        walletBalance,
+        subscriptionPlan,
+        riskLevel
         };
 
         setCustomers(customers.map(c => c.id === customerId ? updatedCustomer : c));
@@ -280,6 +288,56 @@ export default function EditCustomer() {
                   value={emptyBalance}
                   onChange={(e) => setEmptyBalance(parseInt(e.target.value) || 0)}
                 />
+              </div>
+            </div>
+
+            {/* Enterprise Fields */}
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 block">Security Deposit</label>
+                <input 
+                  type="number" 
+                  className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900"
+                  value={deposit}
+                  onChange={(e) => setDeposit(parseInt(e.target.value) || 0)}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 block">Wallet Balance</label>
+                <input 
+                  type="number" 
+                  className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900"
+                  value={walletBalance}
+                  onChange={(e) => setWalletBalance(parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 block">Subscription Map</label>
+                <select 
+                  className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 appearance-none font-medium text-slate-900"
+                  value={subscriptionPlan}
+                  onChange={(e) => setSubscriptionPlan(e.target.value as any)}
+                >
+                  <option value="None">None</option>
+                  <option value="Monthly">Monthly</option>
+                  <option value="Unlimited">Unlimited</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 block">Risk Level</label>
+                <select 
+                  className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 appearance-none font-medium text-slate-900"
+                  value={riskLevel}
+                  onChange={(e) => setRiskLevel(e.target.value as any)}
+                >
+                  <option value="Low">Low Risk</option>
+                  <option value="Medium">Medium Risk</option>
+                  <option value="High">High Risk</option>
+                </select>
               </div>
             </div>
             <div>

@@ -19,6 +19,10 @@ export type Customer = {
   active: boolean;
   lastDelivery: string;
   notes: string;
+  deposit?: number;
+  walletBalance?: number;
+  subscriptionPlan?: 'None' | 'Monthly' | 'Unlimited' | 'Custom';
+  riskLevel?: 'Low' | 'Medium' | 'High';
 };
 
 export type Delivery = {
@@ -86,6 +90,8 @@ export type BusinessInfo = {
   address: string;
   defaultRate: number;
   canSize?: string;
+  gstNumber?: string;
+  lowStockThreshold?: number;
   whatsappConfig?: {
     enabled: boolean;
     useApi: boolean;

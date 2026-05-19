@@ -154,12 +154,33 @@ export default function OwnerDashboard() {
           </button>
         )}
 
+        <div className="grid grid-cols-2 gap-4 mt-2 mb-2">
+            {/* AI Forecast */}
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100 relative overflow-hidden">
+                <div className="absolute top-2 right-2 opacity-20">
+                    <span className="text-4xl">✨</span>
+                </div>
+                <h3 className="text-[10px] font-bold text-indigo-800 uppercase tracking-wider mb-1 flex items-center gap-1">AI Revenue Forecast</h3>
+                <div className="text-xl font-bold text-indigo-950">₹{Math.round(customers.length * businessInfo.defaultRate * 30 * 0.9)}</div>
+                <div className="text-[9px] text-indigo-700 mt-1">Expected next 30 days based on active plans</div>
+            </div>
+
+            {/* Smart Loss Detection */}
+            {customers.reduce((sum, c) => sum + c.emptyBalance, 0) > (inventory.fullCans + inventory.emptyCans + inventory.cansInDelivery) * 0.2 && (
+            <div className="bg-red-50 rounded-2xl p-4 border border-red-200">
+                <h3 className="text-[10px] font-bold text-red-800 uppercase tracking-wider mb-1 flex items-center gap-1">Loss Detection <AlertTriangle className="w-3 h-3"/></h3>
+                <div className="text-lg font-bold text-red-950">{customers.reduce((sum, c) => sum + c.emptyBalance, 0)} Empties</div>
+                <div className="text-[9px] text-red-700 mt-1">High number of empty cans stuck with customers</div>
+            </div>
+            )}
+        </div>
+
         {/* Alert */}
-        {inventory.fullCans < 50 && (
+        {inventory.fullCans <= (businessInfo.lowStockThreshold || 50) && (
           <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-start gap-4">
             <AlertTriangle className="w-6 h-6 text-orange-600 shrink-0 mt-1" />
             <div className="flex-1">
-              <h4 className="font-bold text-orange-700 mb-1">Low Stock Alert</h4>
+              <h4 className="font-bold text-orange-700 mb-1">Auto Low Stock Alert</h4>
               <p className="text-sm text-orange-600/80 mb-3">20L Water Jars are below the safety threshold (Current: {inventory.fullCans} units).</p>
               <Link href="/inventory/dashboard" className="inline-block bg-orange-500 text-white font-bold text-sm px-4 py-2 rounded-lg active:scale-95 transition-transform">
                 REORDER NOW

@@ -23,6 +23,9 @@ export default function DeliveryEntry() {
   const [damagedQty, setDamagedQty] = useState(0);
   const [isOffline, setIsOffline] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -55,6 +58,20 @@ export default function DeliveryEntry() {
 
   const handleConfirm = () => {
     try {
+        if (!otpSent) {
+           const randomOtp = Math.floor(1000 + Math.random() * 9000).toString();
+           setGeneratedOtp(randomOtp);
+           setOtpSent(true);
+           setOtpInput('');
+           alert(`OTP Sent to Customer: ${randomOtp} (Simulation)`);
+           return;
+        }
+
+        if (otpInput !== generatedOtp) {
+            alert('Invalid OTP. Please try again.');
+            return;
+        }
+
         // Update delivery
         const updatedDeliveries = deliveries.map(d => 
         d.id === deliveryId ? { ...d, status: 'Delivered', deliveredQty: delivered, returnedEmpty: empties, date: date } : d
@@ -310,6 +327,22 @@ export default function DeliveryEntry() {
           </div>
         </div>
 
+        {/* OTP Verification */}
+        {otpSent && (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
+            <div className="text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-2">Delivery OTP Verification</div>
+            <input 
+              type="text" 
+              placeholder="Enter 4-digit OTP" 
+              maxLength={4}
+              value={otpInput}
+              onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+              className="w-full text-center text-2xl tracking-[0.5em] font-bold rounded-xl outline-none focus:ring-2 focus:ring-blue-600 py-3"
+            />
+            <div className="text-xs text-blue-600 text-center mt-2">Ask the customer for the OTP received on their phone</div>
+          </div>
+        )}
+
       </main>
 
       {/* Bottom Action Bar */}
@@ -327,9 +360,9 @@ export default function DeliveryEntry() {
           </div>
           <button 
             onClick={handleConfirm}
-            className="w-full bg-blue-700 text-white font-bold py-4 rounded-xl text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            className={`w-full text-white font-bold py-4 rounded-xl text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform ${otpSent ? 'bg-emerald-600' : 'bg-blue-700'}`}
           >
-            CONFIRM DELIVERY <CheckCircle2 className="w-6 h-6" />
+            {otpSent ? 'VERIFY OTP & DELIVER' : 'SEND OTP'} <CheckCircle2 className="w-6 h-6" />
           </button>
         </div>
       </div>
