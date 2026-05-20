@@ -4,14 +4,34 @@ import { useState } from 'react';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import PullToRefresh from '@/components/PullToRefresh';
-import { Search, MapPin, Phone, Plus, ChevronDown, Users } from 'lucide-react';
+import { Search, MapPin, Phone, Plus, ChevronDown, Users, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 
 export default function CustomersList() {
-  const { customers } = useAppContext();
+  const { customers, businessInfo } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('All');
+  const [isReminding, setIsReminding] = useState(false);
+
+  const handleBulkReminder = async () => {
+    if (!confirm('Send Bulk WhatsApp reminder to all due customers?')) return;
+    setIsReminding(true);
+    try {
+      const { runBulkReminder } = await import('@/lib/reminderService');
+      const result = await runBulkReminder(customers, businessInfo);
+      if (result.success) {
+        alert(`Successfully sent ${result.count} reminders!`);
+      } else {
+        alert('Failed during bulk reminder process.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error sharing bulk reminder');
+    } finally {
+      setIsReminding(false);
+    }
+  };
 
   const handleRefresh = async () => {
     // Simulate network delay for data refresh
@@ -79,6 +99,19 @@ export default function CustomersList() {
             Pending Empties
           </button>
         </div>
+
+        {filter === 'Dues Only' && filteredCustomers.length > 0 && (
+          <div className="mb-4">
+            <button 
+              onClick={handleBulkReminder}
+              disabled={isReminding}
+              className="w-full bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all text-sm border border-orange-300 disabled:opacity-50"
+            >
+              <Bell className="w-5 h-5 text-orange-600" />
+              {isReminding ? 'Sending Reminders...' : 'Bulk Reminder (Owner Only)'}
+            </button>
+          </div>
+        )}
 
         {/* Customer List */}
         <div className="space-y-4">

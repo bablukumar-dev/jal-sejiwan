@@ -15,21 +15,11 @@ export default function OwnerDashboard() {
 
   // Auto Monthly Reminder Check
   useEffect(() => {
-    if (businessInfo.whatsappConfig?.enabled && businessInfo.whatsappConfig.reminderDay) {
-      const todayDate = new Date();
-      if (todayDate.getDate() === businessInfo.whatsappConfig.reminderDay) {
-        const lastSentDate = localStorage.getItem('lastAutoReminderSent');
-        const currentDateString = todayDate.toLocaleDateString();
-        
-        if (lastSentDate !== currentDateString && pendingCustomers > 0) {
-          if (confirm(`Today is your scheduled Monthly Reminder day. Would you like to automatically send WhatsApp reminders to ${pendingCustomers} pending customers?`)) {
-            handleRemindAll();
-          }
-          // Mark as checked to prevent annoying subsequent popups today
-          localStorage.setItem('lastAutoReminderSent', currentDateString);
-        }
-      }
-    }
+    const doAutoMinder = async () => {
+      const { checkMonthlyAutoReminder } = await import('@/lib/reminderService');
+      await checkMonthlyAutoReminder(customers, businessInfo);
+    };
+    doAutoMinder();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessInfo, pendingCustomers]);
 
@@ -38,20 +28,13 @@ export default function OwnerDashboard() {
     
     setIsReminding(true);
     try {
-      const { sendReminderWhatsApp } = await import('@/lib/whatsappUtils');
-      let sentCount = 0;
-      
-      const dueCustomers = customers.filter(c => c.due > 0);
-      for (const customer of dueCustomers) {
-        // Since we are opening wa.me links, opening multiple links in quick succession might be blocked by browsers.
-        // For actual bulk, API is preferred. We will just attempt.
-        sendReminderWhatsApp(customer, businessInfo);
-        sentCount++;
-        // Small delay to prevent browser block
-        await new Promise(res => setTimeout(res, 500));
+      const { runBulkReminder } = await import('@/lib/reminderService');
+      const result = await runBulkReminder(customers, businessInfo);
+      if (result.success) {
+        alert(`Successfully sent reminders to ${result.count} customers!`);
+      } else {
+        alert('Failed to send some reminders.');
       }
-      
-      alert(`Successfully sent reminders to ${sentCount} customers!`);
     } catch (e) {
       console.error(e);
       alert('Failed to send some reminders.');

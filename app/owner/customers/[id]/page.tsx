@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Phone, Truck, Wallet, Droplet, ArrowLeftRight, AlertTriangle, ArrowRight, Edit, FileText, Share2, Bell } from 'lucide-react';
+import { Phone, Truck, Wallet, Droplet, ArrowLeftRight, AlertTriangle, ArrowRight, Edit, FileText, Share2, Bell, MessageCircle } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
@@ -35,6 +35,27 @@ export default function CustomerDetail() {
   const handleSaveNotes = () => {
     setCustomers(customers.map(c => c.id === customerId ? { ...c, notes } : c));
     alert('Notes saved');
+  };
+
+  const handleGeneratePdfSafe = async () => {
+    try {
+      const { generatePdfFromCustomer } = await import('@/lib/pdfService');
+      await generatePdfFromCustomer(customerId, customers, deliveries, payments, businessInfo);
+      alert('PDF generated safely!');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to generate PDF');
+    }
+  };
+
+  const handleSendWhatsAppSummary = async () => {
+    try {
+      alert('Opening WhatsApp...');
+      const { sendWhatsAppSummary } = await import('@/lib/reminderService');
+      sendWhatsAppSummary(customer, businessInfo);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleGenerateBill = async () => {
@@ -107,13 +128,23 @@ export default function CustomerDetail() {
             <Edit className="w-5 h-5 text-blue-600" />
             <span className="text-[10px] font-bold uppercase tracking-wider">Edit</span>
           </Link>
-          <button 
-            onClick={() => window.location.href = `tel:${customer.phone}`}
-            className="bg-slate-100 text-slate-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform"
-          >
-            <Phone className="w-5 h-5 text-blue-600" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Call</span>
-          </button>
+          <div className="flex bg-slate-100 rounded-xl col-span-1">
+            <button 
+              onClick={() => window.location.href = `tel:${customer.phone}`}
+              className="flex-1 text-slate-700 py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform"
+            >
+              <Phone className="w-5 h-5 text-blue-600" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Call</span>
+            </button>
+            <div className="w-[1px] bg-slate-200 my-2"></div>
+            <button 
+              onClick={handleSendWhatsAppSummary}
+              className="flex-1 text-slate-700 py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform"
+            >
+              <MessageCircle className="w-5 h-5 text-green-600" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">WA</span>
+            </button>
+          </div>
           <Link href={`/staff/delivery/${customer.id}`} className="bg-blue-600 text-white rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
             <Truck className="w-5 h-5" />
             <span className="text-[10px] font-bold uppercase tracking-wider">Record</span>
@@ -168,7 +199,11 @@ export default function CustomerDetail() {
         </div>
 
         {/* Invoice Actions */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          <button onClick={handleGeneratePdfSafe} className="bg-emerald-100 text-emerald-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-emerald-200">
+            <FileText className="w-5 h-5 text-emerald-600" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-center">Gen PDF</span>
+          </button>
           <button onClick={handleGenerateBill} className="bg-emerald-100 text-emerald-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-emerald-200">
             <FileText className="w-5 h-5 text-emerald-600" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-center">PDF Bill</span>
