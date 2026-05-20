@@ -166,10 +166,10 @@ export default function OwnerDashboard() {
             </div>
 
             {/* Smart Loss Detection */}
-            {customers.reduce((sum, c) => sum + c.emptyBalance, 0) > (inventory.fullCans + inventory.emptyCans + inventory.cansInDelivery) * 0.2 && (
+            {inventory.cansWithCustomers > (inventory.fullCans + inventory.emptyCans + inventory.cansInDelivery) * 0.2 && (
             <div className="bg-red-50 rounded-2xl p-4 border border-red-200">
                 <h3 className="text-[10px] font-bold text-red-800 uppercase tracking-wider mb-1 flex items-center gap-1">Loss Detection <AlertTriangle className="w-3 h-3"/></h3>
-                <div className="text-lg font-bold text-red-950">{customers.reduce((sum, c) => sum + c.emptyBalance, 0)} Empties</div>
+                <div className="text-lg font-bold text-red-950">{inventory.cansWithCustomers} Empties</div>
                 <div className="text-[9px] text-red-700 mt-1">High number of empty cans stuck with customers</div>
             </div>
             )}

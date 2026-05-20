@@ -78,13 +78,10 @@ export default function DeliveryEntry() {
         );
         setDeliveries(updatedDeliveries);
 
-        // Update inventory
+        // Update inventory. Warehouse stock is managed by Dispatch/Reconcile.
         setInventory(prev => ({
         ...prev,
-        fullCans: prev.fullCans - delivered,
-        emptyCans: prev.emptyCans + empties,
-        damagedCans: prev.damagedCans + damagedQty,
-        cansInDelivery: prev.cansInDelivery - delivered
+        cansWithCustomers: prev.cansWithCustomers + delivered - empties
         }));
 
         // Handle payment
