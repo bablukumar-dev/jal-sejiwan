@@ -13,8 +13,10 @@ export default function PaymentsList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('Today');
 
-  const today = '2026-03-27';
-  const yesterday = '2026-03-26';
+  const today = new Date().toISOString().split('T')[0];
+  const yz = new Date();
+  yz.setDate(yz.getDate() - 1);
+  const yesterday = yz.toISOString().split('T')[0];
 
   const handleRefresh = async () => {
     await new Promise(resolve => setTimeout(resolve, 800));

@@ -5,6 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
+import { hashPin } from '@/lib/authHelper';
 
 export default function AddStaff() {
   const router = useRouter();
@@ -19,9 +20,20 @@ export default function AddStaff() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     try {
+        const currentUserRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : '';
+        if (currentUserRole !== 'owner') {
+           alert("Only Owner can create users");
+           return;
+        }
+
         if (!name || !phone || !pin) {
         alert("Please fill all required fields");
         return;
+        }
+        
+        if (pin.length < 4) {
+            alert('PIN must be at least 4 digits');
+            return;
         }
 
         const newStaff = {
@@ -30,8 +42,11 @@ export default function AddStaff() {
         phone,
         role,
         route,
-        pin,
-        active: true
+        pin: 'HIDDEN', // don't expose raw PIN 
+        encryptedPin: hashPin(pin),
+        active: true,
+        createdBy: 'owner',
+        failedPinAttempts: 0
         };
 
         setStaff([...staff, newStaff]);

@@ -17,8 +17,25 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) {
-        // Not logged in and not on a public path
-        router.push('/login');
+        // Check if there is a local non-Firebase session (PIN login for staff/manager)
+        const localRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
+        const localPinLogin = typeof window !== 'undefined' ? localStorage.getItem('pinAuth') : null;
+        
+        if (localPinLogin === 'true' && (localRole === 'staff' || localRole === 'manager')) {
+           // Allowed by local PIN login
+           if (localRole === 'staff' && pathname.startsWith('/owner')) {
+             router.replace('/staff/dashboard');
+           } else if (localRole === 'manager' && pathname.startsWith('/owner')) {
+             router.replace('/inventory/dashboard');
+           } else if (localRole === 'staff' && pathname.startsWith('/inventory')) {
+             router.replace('/staff/dashboard');
+           } else {
+             setLoading(false);
+           }
+        } else {
+           // Not logged in and not on a public path
+           router.push('/login');
+        }
       } else {
         // Enforce role-based routing
         let targetRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;

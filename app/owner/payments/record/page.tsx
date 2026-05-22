@@ -13,7 +13,7 @@ export default function RecordPayment() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [mode, setMode] = useState('Cash');
-  const [date, setDate] = useState('2026-03-27');
+  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [isOffline, setIsOffline] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 

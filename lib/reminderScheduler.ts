@@ -1,4 +1,4 @@
-export const sendWhatsAppSummary = (customer, businessInfo, messagePrefix = '') => {
+export const sendWhatsAppSummary = (customer: any, businessInfo: any, messagePrefix = '') => {
   try {
     const message = `${messagePrefix}Namaste ${customer.name} 👋\n\nAapka current balance info:\n💰 Total Due: ₹${customer.due}\n🔄 Empty Cans Pending: ${customer.emptyBalance}\n\nDhanyavaad 🙏\n${businessInfo.name}`;
     const encodedMessage = encodeURIComponent(message);
@@ -15,7 +15,7 @@ export const sendWhatsAppSummary = (customer, businessInfo, messagePrefix = '') 
   }
 };
 
-export const runBulkReminder = async (customers, businessInfo) => {
+export const runBulkReminder = async (customers: any[], businessInfo: any) => {
   try {
     let sentCount = 0;
     const dueCustomers = customers.filter(c => c.due > 0);
@@ -42,7 +42,7 @@ export const runBulkReminder = async (customers, businessInfo) => {
   }
 };
 
-export const checkMonthlyAutoReminder = async (customers, businessInfo) => {
+export const checkMonthlyAutoReminder = async (customers: any[], businessInfo: any) => {
   try {
     if (businessInfo.whatsappConfig?.enabled && businessInfo.whatsappConfig.reminderDay) {
       const todayDate = new Date();

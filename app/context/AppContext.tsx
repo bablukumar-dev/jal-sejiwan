@@ -80,6 +80,10 @@ export type Staff = {
   role: string;
   route: string;
   pin: string;
+  encryptedPin?: string;
+  createdBy?: string;
+  failedPinAttempts?: number;
+  pinLockedUntil?: string;
   active: boolean;
 };
 

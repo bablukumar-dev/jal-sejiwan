@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Droplet, Store, Truck, Package, Mail, Lock, User } from 'lucide-react';
+import { Droplet, Store, Truck, Package, Mail, Lock, User, Phone } from 'lucide-react';
 import { auth, db } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification, signOut, browserPopupRedirectResolver, updateProfile } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { useAppContext } from '@/app/context/AppContext';
+import { comparePin } from '@/lib/authHelper';
 
 enum OperationType {
   CREATE = 'create',
@@ -60,17 +62,97 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 export default function Login() {
   const router = useRouter();
+  const { staff, setStaff } = useAppContext();
   const [role, setRole] = useState<'owner' | 'staff' | 'manager'>('owner');
   
-  // Email state
+  // Email state (Owner)
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
 
+  // Phone/PIN state (Staff/Manager)
+  const [phone, setPhone] = useState('');
+  const [pin, setPin] = useState('');
+
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleStaffLogin = () => {
+    setError('');
+    
+    // Normalize user entered role string
+    const normalizedRole = role === 'staff' ? 'Delivery Partner' : 'Manager';
+    
+    // Find staff member
+    let s = staff.find(st => st.phone === phone && st.role === normalizedRole);
+    // Be lenient with role matching just in case (e.g. staff trying to login as general staff)
+    if (!s) {
+       s = staff.find(st => st.phone === phone);
+    }
+
+    if (!s) {
+      setError('User not found. Please contact Owner.');
+      return;
+    }
+    
+    if (!s.active) {
+       setError('Account disabled');
+       return;
+    }
+
+    if (s.pinLockedUntil && new Date(s.pinLockedUntil) > new Date()) {
+       setError('Account temporarily locked. Contact Owner.');
+       return;
+    }
+
+    let isMatch = false;
+    if (s.encryptedPin) {
+       isMatch = comparePin(pin, s.encryptedPin);
+    } else {
+       // Fallback for mock data or legacy if needed
+       isMatch = s.pin === pin;
+    }
+
+    if (!isMatch) {
+       // Increase failed attempts
+       const failedAttempts = (s.failedPinAttempts || 0) + 1;
+       const updatedStaff = [...staff];
+       const idx = updatedStaff.findIndex(st => st.id === s!.id);
+       updatedStaff[idx] = { ...s, failedPinAttempts: failedAttempts };
+       
+       if (failedAttempts >= 5) {
+          updatedStaff[idx].pinLockedUntil = new Date(Date.now() + 15 * 60000).toISOString(); // 15 mins
+          setError('Account temporarily locked. Contact Owner.');
+       } else {
+          setError(`Wrong PIN. Attempts remaining: ${5 - failedAttempts}`);
+       }
+       setStaff(updatedStaff);
+       return;
+    }
+
+    // Success! Reset attempts.
+    const updatedStaff = [...staff];
+    const idx = updatedStaff.findIndex(st => st.id === s!.id);
+    updatedStaff[idx] = { ...s, failedPinAttempts: 0, pinLockedUntil: undefined };
+    setStaff(updatedStaff);
+
+    localStorage.setItem('pinAuth', 'true');
+    localStorage.setItem('staffUserId', String(s.id));
+    
+    // Convert normalized role back to UI role string
+    const targetRole = s.role === 'Manager' ? 'manager' : 'staff';
+    redirectBasedOnRole(targetRole);
+  };
+
+  const handleAuth = () => {
+     if (role === 'owner') {
+         handleEmailAuth();
+     } else {
+         handleStaffLogin();
+     }
+  };
 
   const handleEmailAuth = async () => {
     if (isLoading) return;
@@ -236,92 +318,138 @@ export default function Login() {
         {error && <div className="w-full mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">{error}</div>}
         {successMessage && <div className="w-full mb-4 p-3 bg-emerald-50 text-emerald-600 text-sm rounded-xl border border-emerald-100">{successMessage}</div>}
 
-        {isSignUp && (
-          <div className="w-full mb-4">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Name</label>
-            <div className="flex bg-slate-100 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-600 transition-all">
-              <span className="px-4 py-4 text-slate-500 flex items-center justify-center border-r border-slate-200">
-                <User className="w-5 h-5" />
-              </span>
-              <input 
-                type="text" 
-                placeholder="John Doe" 
-                className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleEmailAuth(); }}
-              />
+        {role === 'owner' ? (
+          <>
+            {isSignUp && (
+              <div className="w-full mb-4">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Name</label>
+                <div className="flex bg-slate-100 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-600 transition-all">
+                  <span className="px-4 py-4 text-slate-500 flex items-center justify-center border-r border-slate-200">
+                    <User className="w-5 h-5" />
+                  </span>
+                  <input 
+                    type="text" 
+                    placeholder="John Doe" 
+                    className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleAuth(); }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="w-full mb-4">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Email</label>
+              <div className="flex bg-slate-100 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-600 transition-all">
+                <span className="px-4 py-4 text-slate-500 flex items-center justify-center border-r border-slate-200">
+                  <Mail className="w-5 h-5" />
+                </span>
+                <input 
+                  type="email" 
+                  placeholder="name@example.com" 
+                  className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAuth(); }}
+                />
+              </div>
             </div>
-          </div>
+
+            <div className="w-full mb-6">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Password</label>
+              <div className="flex bg-slate-100 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-600 transition-all">
+                <span className="px-4 py-4 text-slate-500 flex items-center justify-center border-r border-slate-200">
+                  <Lock className="w-5 h-5" />
+                </span>
+                <input 
+                  type="password" 
+                  placeholder="••••••••" 
+                  className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAuth(); }}
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="w-full mb-4">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Mobile Number</label>
+              <div className="flex bg-slate-100 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-600 transition-all">
+                <span className="px-4 py-4 text-slate-500 flex items-center justify-center border-r border-slate-200">
+                  <Phone className="w-5 h-5" />
+                </span>
+                <input 
+                  type="tel" 
+                  placeholder="10-digit mobile" 
+                  className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAuth(); }}
+                />
+              </div>
+            </div>
+
+            <div className="w-full mb-6">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Login PIN</label>
+              <div className="flex bg-slate-100 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-600 transition-all">
+                <span className="px-4 py-4 text-slate-500 flex items-center justify-center border-r border-slate-200">
+                  <Lock className="w-5 h-5" />
+                </span>
+                <input 
+                  type="password" 
+                  inputMode="numeric"
+                  placeholder="••••" 
+                  maxLength={6}
+                  className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400 tracking-widest text-xl"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAuth(); }}
+                />
+              </div>
+            </div>
+          </>
         )}
 
-        <div className="w-full mb-4">
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Email</label>
-          <div className="flex bg-slate-100 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-600 transition-all">
-            <span className="px-4 py-4 text-slate-500 flex items-center justify-center border-r border-slate-200">
-              <Mail className="w-5 h-5" />
-            </span>
-            <input 
-              type="email" 
-              placeholder="name@example.com" 
-              className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleEmailAuth(); }}
-            />
-          </div>
-        </div>
-
-        <div className="w-full mb-6">
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Password</label>
-          <div className="flex bg-slate-100 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-600 transition-all">
-            <span className="px-4 py-4 text-slate-500 flex items-center justify-center border-r border-slate-200">
-              <Lock className="w-5 h-5" />
-            </span>
-            <input 
-              type="password" 
-              placeholder="••••••••" 
-              className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleEmailAuth(); }}
-            />
-          </div>
-        </div>
-
         <button 
-          onClick={handleEmailAuth}
+          onClick={handleAuth}
           disabled={isLoading}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl active:scale-95 transition-all mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Login')}
+          {isLoading ? 'Processing...' : (isSignUp ? 'Sign Up' : (role === 'owner' ? 'Login' : 'Login with PIN'))}
         </button>
 
-        <div className="w-full flex flex-col gap-3">
-          <div className="relative flex items-center py-2">
-            <div className="flex-grow border-t border-slate-200"></div>
-            <span className="flex-shrink-0 mx-4 text-slate-400 text-sm">Or</span>
-            <div className="flex-grow border-t border-slate-200"></div>
-          </div>
+        {role === 'owner' && (
+          <>
+            <div className="w-full flex flex-col gap-3">
+              <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-slate-200"></div>
+                <span className="flex-shrink-0 mx-4 text-slate-400 text-sm">Or</span>
+                <div className="flex-grow border-t border-slate-200"></div>
+              </div>
 
-          <button 
-            onClick={handleGoogleLogin}
-            disabled={isLoading}
-            className="w-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold py-4 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-            </svg>
-            Continue with Google
-          </button>
-        </div>
+              <button 
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                className="w-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold py-4 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+                Continue with Google
+              </button>
+            </div>
 
-        <p className="mt-8 text-sm text-slate-500">
-          {isSignUp ? 'Already have an account?' : "Don't have an account?"} <button onClick={() => setIsSignUp(!isSignUp)} className="text-blue-600 font-bold">{isSignUp ? 'Login' : 'Sign Up'}</button>
-        </p>
+            <p className="mt-8 text-sm text-slate-500">
+              {isSignUp ? 'Already have an account?' : "Don't have an account?"} <button onClick={() => setIsSignUp(!isSignUp)} className="text-blue-600 font-bold">{isSignUp ? 'Login' : 'Sign Up'}</button>
+            </p>
+          </>
+        )}
         
         <div className="mt-8 pt-6 border-t border-slate-100 w-full text-center">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Operational Tooling V2.4.0</span>

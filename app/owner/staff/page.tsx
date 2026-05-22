@@ -50,6 +50,8 @@ export default function StaffManagement() {
     return { total, completionRate, feedbackSummary };
   };
 
+  const currentRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : '';
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
       <TopAppBar title="Jal Sejiwan" showBack={true} />
@@ -72,14 +74,16 @@ export default function StaffManagement() {
         </div>
 
         {/* Manage Workforce Action */}
-        <div className="bg-blue-700 rounded-3xl p-6 text-white mb-6">
-          <Users className="w-8 h-8 mb-4 text-blue-300" />
-          <h2 className="text-xl font-bold mb-1">Manage Workforce</h2>
-          <p className="text-blue-200 text-sm mb-6">Add or update staff member details and assigned routes.</p>
-          <Link href="/owner/staff/add" className="w-full bg-white text-blue-700 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform">
-            <UserPlus className="w-5 h-5" /> Add New Staff
-          </Link>
-        </div>
+        {currentRole === 'owner' && (
+          <div className="bg-blue-700 rounded-3xl p-6 text-white mb-6">
+            <Users className="w-8 h-8 mb-4 text-blue-300" />
+            <h2 className="text-xl font-bold mb-1">Manage Workforce</h2>
+            <p className="text-blue-200 text-sm mb-6">Add or update staff member details and assigned routes.</p>
+            <Link href="/owner/staff/add" className="w-full bg-white text-blue-700 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform">
+              <UserPlus className="w-5 h-5" /> Add New Staff
+            </Link>
+          </div>
+        )}
 
         {/* Search & Filter */}
         <div className="mb-6 space-y-3">

@@ -42,7 +42,7 @@ export default function MyRoute() {
     fetchStaffRoute();
   }, [staff]);
 
-  const today = '2026-03-27';
+  const today = new Date().toISOString().split('T')[0];
   
   const todaysDeliveries = deliveries.filter(d => d.date === today && d.staffId === currentStaffId);
   const pendingDeliveries = todaysDeliveries.filter(d => d.status === 'Pending');

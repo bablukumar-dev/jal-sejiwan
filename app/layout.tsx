@@ -14,6 +14,7 @@ const sourceSerif = Source_Serif_4({
 });
 
 import { AuthGuard } from '@/components/AuthGuard';
+import { RoleGuard } from '@/components/RoleGuard';
 
 export const metadata: Metadata = {
   title: 'Jal Sejiwan',
@@ -26,7 +27,9 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
       <body suppressHydrationWarning className="antialiased">
         <AppProvider>
           <AuthGuard>
-            {children}
+            <RoleGuard>
+              {children}
+            </RoleGuard>
           </AuthGuard>
         </AppProvider>
       </body>

@@ -11,7 +11,7 @@ import { useAppContext } from '@/app/context/AppContext';
 export default function DeliveriesList() {
   const { deliveries, customers, routes, setDeliveries } = useAppContext();
   const [filter, setFilter] = useState('All');
-  const [date, setDate] = useState('2026-03-27');
+  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [routeFilter, setRouteFilter] = useState('All Routes');
 
   const updatePriority = (deliveryId: number, priority: 'High' | 'Medium' | 'Low') => {
@@ -21,6 +21,37 @@ export default function DeliveriesList() {
   const handleRefresh = async () => {
     await new Promise(resolve => setTimeout(resolve, 800));
     window.location.reload();
+  };
+
+  const generateRouteDeliveries = () => {
+    if (routeFilter === 'All Routes') {
+      alert("Please select a specific route to generate deliveries.");
+      return;
+    }
+    const routeCustomers = customers.filter(c => c.active && c.route === routeFilter);
+    const newDeliveries = routeCustomers.filter(c => !deliveries.some(d => d.date === date && d.customerId === c.id))
+      .map(c => ({
+        id: Date.now() + c.id,
+        customerId: c.id,
+        customerName: c.name,
+        date: date,
+        deliveredQty: 0,
+        returnedEmpty: 0,
+        status: 'Pending',
+        paymentReceived: false,
+        paymentAmount: 0,
+        paymentMode: '',
+        note: '',
+        staffId: 0, // Should be assigned staff ID based on route
+        staffName: '',
+      }));
+    
+    if (newDeliveries.length > 0) {
+      setDeliveries([...deliveries, ...newDeliveries]);
+      alert(`Generated ${newDeliveries.length} pending deliveries for ${routeFilter}`);
+    } else {
+      alert(`All active customers in ${routeFilter} already have deliveries scheduled for ${date}.`);
+    }
   };
 
   const todaysDeliveries = deliveries.filter(d => d.date === date && (routeFilter === 'All Routes' || customers.find(c => c.id === d.customerId)?.route === routeFilter));
@@ -41,7 +72,7 @@ export default function DeliveriesList() {
       <PullToRefresh onRefresh={handleRefresh}>
         <main className="max-w-md mx-auto px-4 py-6">
           {/* Filters */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-4">
           <input 
             type="date" 
             className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-600 flex-1"
@@ -57,6 +88,16 @@ export default function DeliveriesList() {
             {routes.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
+
+        {routeFilter !== 'All Routes' && (
+          <button 
+            onClick={generateRouteDeliveries}
+            className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all text-sm mb-6"
+          >
+            <Truck className="w-5 h-5 text-blue-600" />
+            Generate Pending Drops
+          </button>
+        )}
 
         {/* Header Stats */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-blue-600 mb-6">

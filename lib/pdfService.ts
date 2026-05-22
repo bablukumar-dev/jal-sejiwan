@@ -1,4 +1,4 @@
-export const generatePdfFromCustomer = async (customerId, customers, deliveries, payments, businessInfo) => {
+export const generatePdfFromCustomer = async (customerId: any, customers: any[], deliveries: any[], payments: any[], businessInfo: any) => {
   const customer = customers.find(c => c.id === customerId);
   if (!customer) throw new Error('Customer not found');
   

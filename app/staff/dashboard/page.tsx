@@ -46,7 +46,7 @@ export default function StaffDashboard() {
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   
-  const today = '2026-03-27';
+  const today = new Date().toISOString().split('T')[0];
   
   const todaysDeliveries = deliveries.filter(d => d.date === today && d.staffId === currentStaffId);
   const totalTarget = todaysDeliveries.length;

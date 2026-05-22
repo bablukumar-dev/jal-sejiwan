@@ -4,9 +4,10 @@ import { useState } from 'react';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import PullToRefresh from '@/components/PullToRefresh';
-import { Search, MapPin, Phone, Plus, ChevronDown, Users, Bell } from 'lucide-react';
+import { Search, MapPin, Phone, Plus, ChevronDown, Users, Bell, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
+import { sendReminderWhatsApp } from '@/lib/whatsappUtils';
 
 export default function CustomersList() {
   const { customers, businessInfo } = useAppContext();
@@ -141,15 +142,26 @@ export default function CustomersList() {
                       {customer.address}
                     </div>
                   </div>
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.location.href = `tel:${customer.phone}`;
-                    }}
-                    className="p-3 bg-blue-50 text-blue-600 rounded-full active:scale-90 transition-transform"
-                  >
-                    <Phone className="w-5 h-5 fill-current" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        sendReminderWhatsApp(customer, businessInfo);
+                      }}
+                      className="p-3 bg-green-50 text-green-600 rounded-full active:scale-90 transition-transform"
+                    >
+                      <MessageCircle className="w-5 h-5 fill-current" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        window.location.href = `tel:${customer.phone}`;
+                      }}
+                      className="p-3 bg-blue-50 text-blue-600 rounded-full active:scale-90 transition-transform"
+                    >
+                      <Phone className="w-5 h-5 fill-current" />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {customer.due > 0 ? (
