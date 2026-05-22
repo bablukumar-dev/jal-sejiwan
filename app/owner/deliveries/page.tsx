@@ -154,6 +154,15 @@ export default function DeliveriesList() {
               <p className="text-slate-500 mb-6 max-w-[250px]">
                 You have no deliveries scheduled for the selected date and filters.
               </p>
+              {routeFilter !== 'All Routes' && (
+                <button 
+                  onClick={generateRouteDeliveries}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all text-sm mb-6 shadow-md shadow-blue-200"
+                >
+                  <Plus className="w-5 h-5" />
+                  Generate {routeFilter} Drops
+                </button>
+              )}
             </div>
           ) : (
             filteredDeliveries.map(delivery => {

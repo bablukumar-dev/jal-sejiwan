@@ -207,7 +207,7 @@ export default function SettingsPage() {
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-300" />
                 </Link>
-                <Link href="/owner/prices" className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
+                <Link href="/owner/dashboard/prices" className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
                       <BadgeIndianRupee className="w-5 h-5" />
