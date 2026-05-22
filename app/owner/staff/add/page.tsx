@@ -32,7 +32,7 @@ export default function AddStaff() {
         }
         
         if (pin.length < 4) {
-            alert('PIN must be at least 4 digits');
+            alert('Password must be at least 4 characters');
             return;
         }
 
@@ -78,11 +78,11 @@ export default function AddStaff() {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">Phone Number *</label>
+              <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">Phone / Email *</label>
               <input 
-                type="tel" 
+                type="text" 
                 className="w-full mt-1 bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900"
-                placeholder="Enter 10-digit mobile number"
+                placeholder="Enter mobile or email"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 required
@@ -114,18 +114,16 @@ export default function AddStaff() {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">Login PIN *</label>
+              <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">Login Password *</label>
               <input 
                 type="text" 
-                inputMode="numeric"
-                className="w-full mt-1 bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900 tracking-widest text-lg"
-                placeholder="4-digit PIN"
-                maxLength={4}
+                className="w-full mt-1 bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900 text-lg"
+                placeholder="Password"
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                onChange={(e) => setPin(e.target.value)}
                 required
               />
-              <p className="text-xs text-slate-500 mt-1">Staff will use this PIN to log in</p>
+              <p className="text-xs text-slate-500 mt-1">Staff will use this password to log in</p>
             </div>
           </div>
 

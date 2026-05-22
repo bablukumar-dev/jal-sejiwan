@@ -126,7 +126,7 @@ export default function Login() {
           updatedStaff[idx].pinLockedUntil = new Date(Date.now() + 15 * 60000).toISOString(); // 15 mins
           setError('Account temporarily locked. Contact Owner.');
        } else {
-          setError(`Wrong PIN. Attempts remaining: ${5 - failedAttempts}`);
+          setError(`Wrong password. Attempts remaining: ${5 - failedAttempts}`);
        }
        setStaff(updatedStaff);
        return;
@@ -376,14 +376,14 @@ export default function Login() {
         ) : (
           <>
             <div className="w-full mb-4">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Mobile Number</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Mobile Number or Email</label>
               <div className="flex bg-slate-100 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-600 transition-all">
                 <span className="px-4 py-4 text-slate-500 flex items-center justify-center border-r border-slate-200">
-                  <Phone className="w-5 h-5" />
+                  <User className="w-5 h-5" />
                 </span>
                 <input 
-                  type="tel" 
-                  placeholder="10-digit mobile" 
+                  type="text" 
+                  placeholder="Enter mobile or email" 
                   className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -393,19 +393,17 @@ export default function Login() {
             </div>
 
             <div className="w-full mb-6">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Login PIN</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Password</label>
               <div className="flex bg-slate-100 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-600 transition-all">
                 <span className="px-4 py-4 text-slate-500 flex items-center justify-center border-r border-slate-200">
                   <Lock className="w-5 h-5" />
                 </span>
                 <input 
                   type="password" 
-                  inputMode="numeric"
-                  placeholder="••••" 
-                  maxLength={6}
-                  className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400 tracking-widest text-xl"
+                  placeholder="Password" 
+                  className="w-full bg-transparent px-4 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-400 text-lg"
                   value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setPin(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleAuth(); }}
                 />
               </div>
@@ -418,7 +416,7 @@ export default function Login() {
           disabled={isLoading}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl active:scale-95 transition-all mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'Processing...' : (isSignUp ? 'Sign Up' : (role === 'owner' ? 'Login' : 'Login with PIN'))}
+          {isLoading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Login')}
         </button>
 
         {role === 'owner' && (
