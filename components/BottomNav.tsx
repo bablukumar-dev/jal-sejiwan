@@ -26,7 +26,7 @@ export default function BottomNav({ role, activeTab }: BottomNavProps) {
   } else if (role === 'staff') {
     links = [
       { id: 'dashboard', label: 'Dash', icon: LayoutDashboard, href: '/staff/dashboard' },
-      { id: 'route', label: 'Route', icon: Truck, href: '/staff/route' },
+      { id: 'customers', label: 'Customers', icon: Users, href: '/staff/customers' },
       { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
     ];
   } else if (role === 'manager') {

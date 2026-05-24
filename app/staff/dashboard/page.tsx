@@ -106,14 +106,14 @@ export default function StaffDashboard() {
         </div>
 
         {/* Start Route Action */}
-        <Link href="/staff/route" className="block bg-blue-700 rounded-3xl p-6 text-white mb-6 active:scale-95 transition-transform">
+        <Link href="/staff/customers" className="block bg-blue-700 rounded-3xl p-6 text-white mb-6 active:scale-95 transition-transform">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-blue-600/50 rounded-2xl flex items-center justify-center shrink-0">
               <Route className="w-8 h-8" />
             </div>
             <div className="flex-1">
-              <div className="text-[10px] font-bold text-blue-200 uppercase tracking-wider mb-1">Next Stop</div>
-              <h2 className="text-xl font-bold">START MY ROUTE</h2>
+              <div className="text-[10px] font-bold text-blue-200 uppercase tracking-wider mb-1">View All</div>
+              <h2 className="text-xl font-bold">MY CUSTOMERS</h2>
             </div>
             <ArrowRight className="w-6 h-6" />
           </div>
