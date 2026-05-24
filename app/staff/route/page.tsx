@@ -6,11 +6,13 @@ import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { MapPin, Phone, Plus, AlertTriangle, ChevronRight, Navigation, XCircle, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
 
 export default function MyRoute() {
-  const { deliveries, customers, staff, businessInfo } = useAppContext();
+  const router = useRouter();
+  const { deliveries, setDeliveries, customers, staff, businessInfo } = useAppContext();
   const [activeTab, setActiveTab] = useState<'Pending' | 'Completed'>('Pending');
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
@@ -43,11 +45,80 @@ export default function MyRoute() {
 
   const today = new Date().toISOString().split('T')[0];
   
-  const todaysDeliveries = deliveries.filter(d => d.date === today && d.staffId === currentStaffId);
-  const pendingDeliveries = todaysDeliveries.filter(d => d.status === 'Pending');
-  const completedDeliveries = todaysDeliveries.filter(d => d.status === 'Delivered' || d.status === 'Skipped');
+  const routeCustomers = customers.filter(c => c.route && c.route.toLowerCase() === staffRoute.toLowerCase());
+  
+  const mappedDeliveries = routeCustomers.map(customer => {
+    // Find if there is a delivery record for today
+    const deliveryToday = deliveries.find(d => d.customerId === customer.id && d.date === today);
+    return {
+      customer,
+      delivery: deliveryToday || {
+        id: `mock_${customer.id}`, // specific known ID we can intercept, but we will not link directly to this string ID
+        customerId: customer.id,
+        date: today,
+        status: 'Pending' as const,
+        staffId: currentStaffId,
+        priority: 'Normal'
+      }
+    };
+  });
 
-  const displayDeliveries = activeTab === 'Pending' ? pendingDeliveries : completedDeliveries;
+  const pendingList = mappedDeliveries.filter(m => m.delivery.status === 'Pending');
+  const completedList = mappedDeliveries.filter(m => m.delivery.status !== 'Pending');
+
+  const displayList = activeTab === 'Pending' ? pendingList : completedList;
+
+  const handleRecordDelivery = (customerId: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    const existing = deliveries.find(d => d.customerId === customerId && d.date === today);
+    if (existing) {
+      router.push(`/staff/delivery/${existing.id}`);
+    } else {
+      const newDelivery = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        customerId: customerId,
+        customerName: customers.find(c => c.id === customerId)?.name || '',
+        date: today,
+        status: 'Pending',
+        staffId: currentStaffId || 0,
+        staffName: staff.find(s => s.id === currentStaffId)?.name || '',
+        deliveredQty: 0,
+        returnedEmpty: 0,
+        paymentReceived: false,
+        paymentAmount: 0,
+        paymentMode: 'Cash',
+        note: ''
+      };
+      setDeliveries([...deliveries, newDelivery]);
+      router.push(`/staff/delivery/${newDelivery.id}`);
+    }
+  };
+
+  const handleSkipDelivery = (customerId: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    const existing = deliveries.find(d => d.customerId === customerId && d.date === today);
+    if (existing) {
+      router.push(`/staff/skip/${existing.id}`);
+    } else {
+      const newDelivery = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        customerId: customerId,
+        customerName: customers.find(c => c.id === customerId)?.name || '',
+        date: today,
+        status: 'Pending',
+        staffId: currentStaffId || 0,
+        staffName: staff.find(s => s.id === currentStaffId)?.name || '',
+        deliveredQty: 0,
+        returnedEmpty: 0,
+        paymentReceived: false,
+        paymentAmount: 0,
+        paymentMode: 'Cash',
+        note: ''
+      };
+      setDeliveries([...deliveries, newDelivery]);
+      router.push(`/staff/skip/${newDelivery.id}`);
+    }
+  };
 
   const handleManualRouteAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -66,7 +137,7 @@ export default function MyRoute() {
         <div className="mb-6">
           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Current Task</div>
           <h1 className="text-3xl font-bold text-slate-900 mb-2">My Route: {staffRoute || 'No Route'}</h1>
-          <p className="text-sm text-slate-600">{pendingDeliveries.length} Drops Remaining • {completedDeliveries.length} Completed Today</p>
+          <p className="text-sm text-slate-600">{pendingList.length} Drops Remaining • {completedList.length} Completed Today</p>
         </div>
 
         {/* Tabs */}
@@ -105,30 +176,30 @@ export default function MyRoute() {
         </div>
 
         {/* Route List */}
-        <div className="space-y-4">
-          {displayDeliveries.length === 0 ? (
+        <div className="route-list space-y-4">
+          {displayList.length === 0 ? (
             <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-slate-100 flex flex-col items-center justify-center">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                 <MapPin className="w-8 h-8 text-slate-400" />
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-1">No Data Available</h3>
-              <p className="text-sm text-slate-500">There are no routes or deliveries mapped to you yet.</p>
+              <p className="text-sm text-slate-500">There are no customers mapped to your route.</p>
             </div>
           ) : (
             <AnimatePresence mode="popLayout">
-              {displayDeliveries.map((delivery, index) => {
-                const customer = customers.find(c => c.id === delivery.customerId);
+              {displayList.map(({ delivery, customer }, index) => {
                 if (!customer) return null;
 
               const isFirstPending = activeTab === 'Pending' && index === 0;
 
               return (
                 <motion.div 
-                  key={delivery.id}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  layout
+                  key={customer.id}
+                  initial={{ opacity: 0, x: -50 }}
+                  animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.3, delay: index * 0.05, ease: "easeOut" }}
                   className={`bg-white rounded-3xl p-5 shadow-sm border ${isFirstPending ? 'border-blue-200 border-l-4 border-l-blue-600' : 'border-slate-100 border-l-4 border-l-slate-300 opacity-70'} relative`}
                 >
                   <div className={`absolute -top-3 -left-3 w-8 h-8 rounded-lg flex items-center justify-center font-bold border-2 border-white shadow-sm ${isFirstPending ? 'bg-slate-200 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -181,12 +252,12 @@ export default function MyRoute() {
                 <div className="flex gap-2 ml-4">
                   {delivery.status === 'Pending' ? (
                     <>
-                      <Link href={`/staff/skip/${delivery.id}`} className="w-20 bg-orange-100 text-orange-700 font-bold rounded-xl flex items-center justify-center text-xs active:scale-95 transition-transform flex-col gap-0.5">
+                      <button onClick={(e) => handleSkipDelivery(customer.id, e)} className="w-20 bg-orange-100 text-orange-700 font-bold rounded-xl flex items-center justify-center text-xs active:scale-95 transition-transform flex-col gap-0.5">
                         <XCircle className="w-4 h-4" /> Skip
-                      </Link>
-                      <Link href={`/staff/delivery/${delivery.id}`} className={`flex-1 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform ${isFirstPending ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                      </button>
+                      <button onClick={(e) => handleRecordDelivery(customer.id, e)} className={`flex-1 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform ${isFirstPending ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
                         <Plus className="w-5 h-5" /> Record
-                      </Link>
+                      </button>
                     </>
                   ) : (
                     <div className="flex-1 bg-slate-100 text-slate-500 font-bold py-3 rounded-xl flex flex-col items-center justify-center text-sm leading-tight">
@@ -225,10 +296,10 @@ export default function MyRoute() {
         </div>
 
         {/* Finish Route Banner */}
-        {pendingDeliveries.length > 0 && (
+        {pendingList.length > 0 && (
           <div className="bg-slate-200 rounded-3xl p-6 mt-8 border border-slate-300 border-dashed text-center">
             <h3 className="font-bold text-slate-900 mb-1">Finish Route?</h3>
-            <p className="text-sm text-slate-600 mb-4">You have {pendingDeliveries.length} more stops to complete today&apos;s goal.</p>
+            <p className="text-sm text-slate-600 mb-4">You have {pendingList.length} more stops to complete today&apos;s goal.</p>
             <div className="flex gap-2">
               <button className="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider active:scale-95 transition-transform">
                 Complete {staffRoute || 'Route'}
@@ -243,11 +314,11 @@ export default function MyRoute() {
       </main>
 
       {/* Floating Next Stop */}
-      {pendingDeliveries.length > 0 && (
+      {pendingList.length > 0 && (
         <div className="fixed bottom-24 right-6 z-40">
-          <Link href={`/staff/delivery/${pendingDeliveries[0].id}`} className="bg-blue-600 text-white font-bold py-4 px-6 rounded-full shadow-lg shadow-blue-600/30 flex items-center gap-2 active:scale-95 transition-transform">
+          <button onClick={(e) => handleRecordDelivery(pendingList[0].customer.id, e)} className="bg-blue-600 text-white font-bold py-4 px-6 rounded-full shadow-lg shadow-blue-600/30 flex items-center gap-2 active:scale-95 transition-transform">
             NEXT STOP <ChevronRight className="w-5 h-5" />
-          </Link>
+          </button>
         </div>
       )}
 

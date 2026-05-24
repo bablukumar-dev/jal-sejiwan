@@ -4,10 +4,11 @@ import { useRouter, usePathname } from 'next/navigation';
 import { auth, db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
+const publicPaths = ['/login', '/'];
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const publicPaths = ['/login', '/'];
   const [loading, setLoading] = useState(!publicPaths.includes(pathname));
 
   useEffect(() => {
