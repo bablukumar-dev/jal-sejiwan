@@ -79,71 +79,108 @@ export default function Login() {
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleStaffLogin = () => {
+  const handleStaffLogin = async () => {
+    setIsLoading(true);
     setError('');
     
-    // Normalize user entered role string
+    const cleanPhone = phone.trim();
     const normalizedRole = role === 'staff' ? 'Delivery Partner' : 'Manager';
     
-    // Find staff member
-    let s = staff.find(st => st.phone === phone && st.role === normalizedRole);
-    // Be lenient with role matching just in case (e.g. staff trying to login as general staff)
-    if (!s) {
-       s = staff.find(st => st.phone === phone);
-    }
+    try {
+      const docRef = doc(db, 'staff_users', cleanPhone);
+      const docSnap = await getDoc(docRef);
+      
+      let s: any = null;
+      let ownerIdFromFirestore = null;
+      
+      if (docSnap.exists()) {
+        s = docSnap.data();
+        ownerIdFromFirestore = s.ownerId;
+      } else {
+        // Fallback to local storage for backward compatibility if not synced yet
+        s = staff.find(st => st.phone.trim() === cleanPhone && st.role === normalizedRole);
+        if (!s) s = staff.find(st => st.phone.trim() === cleanPhone);
+      }
 
-    if (!s) {
-      setError('User not found. Please contact Owner.');
-      return;
-    }
-    
-    if (!s.active) {
-       setError('Account disabled');
-       return;
-    }
+      if (!s) {
+        setError('User not found. Please contact Owner.');
+        setIsLoading(false);
+        return;
+      }
+      
+      if (!s.active) {
+         setError('Account disabled');
+         setIsLoading(false);
+         return;
+      }
 
-    if (s.pinLockedUntil && new Date(s.pinLockedUntil) > new Date()) {
-       setError('Account temporarily locked. Contact Owner.');
-       return;
+      if (s.pinLockedUntil && new Date(s.pinLockedUntil) > new Date()) {
+         setError('Account temporarily locked. Contact Owner.');
+         setIsLoading(false);
+         return;
+      }
+
+      let isMatch = false;
+      if (s.encryptedPin) {
+         isMatch = comparePin(pin, s.encryptedPin);
+      } else {
+         isMatch = s.pin === pin;
+      }
+
+      if (!isMatch) {
+         const failedAttempts = (s.failedPinAttempts || 0) + 1;
+         
+         // Update both Firestore and local state
+         if (docSnap.exists()) {
+           const updateData: any = { failedPinAttempts: failedAttempts };
+           if (failedAttempts >= 5) {
+             updateData.pinLockedUntil = new Date(Date.now() + 15 * 60000).toISOString();
+             setError('Account temporarily locked. Contact Owner.');
+           } else {
+             setError(`Wrong password. Attempts remaining: ${5 - failedAttempts}`);
+           }
+           await setDoc(docRef, updateData, { merge: true });
+         } else {
+           const updatedStaff = [...staff];
+           const idx = updatedStaff.findIndex(st => st.id === s!.id);
+           updatedStaff[idx] = { ...s, failedPinAttempts: failedAttempts };
+           if (failedAttempts >= 5) {
+             updatedStaff[idx].pinLockedUntil = new Date(Date.now() + 15 * 60000).toISOString();
+             setError('Account temporarily locked. Contact Owner.');
+           } else {
+             setError(`Wrong password. Attempts remaining: ${5 - failedAttempts}`);
+           }
+           setStaff(updatedStaff);
+         }
+         setIsLoading(false);
+         return;
+      }
+
+      // Success! Reset attempts.
+      if (docSnap.exists()) {
+         await setDoc(docRef, { failedPinAttempts: 0, pinLockedUntil: null }, { merge: true });
+      } else {
+        const updatedStaff = [...staff];
+        const idx = updatedStaff.findIndex(st => st.id === s!.id);
+        updatedStaff[idx] = { ...s, failedPinAttempts: 0, pinLockedUntil: undefined };
+        setStaff(updatedStaff);
+      }
+
+      localStorage.setItem('pinAuth', 'true');
+      localStorage.setItem('staffUserId', String(s.id));
+      if (ownerIdFromFirestore) {
+         localStorage.setItem('ownerId', ownerIdFromFirestore);
+      }
+      
+      const targetRole = s.role === 'Manager' ? 'manager' : 'staff';
+      redirectBasedOnRole(targetRole);
+
+    } catch (e) {
+      console.error("Login Error", e);
+      setError("Login failed. Check your network.");
+    } finally {
+      setIsLoading(false);
     }
-
-    let isMatch = false;
-    if (s.encryptedPin) {
-       isMatch = comparePin(pin, s.encryptedPin);
-    } else {
-       // Fallback for mock data or legacy if needed
-       isMatch = s.pin === pin;
-    }
-
-    if (!isMatch) {
-       // Increase failed attempts
-       const failedAttempts = (s.failedPinAttempts || 0) + 1;
-       const updatedStaff = [...staff];
-       const idx = updatedStaff.findIndex(st => st.id === s!.id);
-       updatedStaff[idx] = { ...s, failedPinAttempts: failedAttempts };
-       
-       if (failedAttempts >= 5) {
-          updatedStaff[idx].pinLockedUntil = new Date(Date.now() + 15 * 60000).toISOString(); // 15 mins
-          setError('Account temporarily locked. Contact Owner.');
-       } else {
-          setError(`Wrong password. Attempts remaining: ${5 - failedAttempts}`);
-       }
-       setStaff(updatedStaff);
-       return;
-    }
-
-    // Success! Reset attempts.
-    const updatedStaff = [...staff];
-    const idx = updatedStaff.findIndex(st => st.id === s!.id);
-    updatedStaff[idx] = { ...s, failedPinAttempts: 0, pinLockedUntil: undefined };
-    setStaff(updatedStaff);
-
-    localStorage.setItem('pinAuth', 'true');
-    localStorage.setItem('staffUserId', String(s.id));
-    
-    // Convert normalized role back to UI role string
-    const targetRole = s.role === 'Manager' ? 'manager' : 'staff';
-    redirectBasedOnRole(targetRole);
   };
 
   const handleAuth = () => {
@@ -206,6 +243,10 @@ export default function Login() {
           console.error("Could not fetch user role", firestoreErr);
         }
         
+        if (targetRole === 'owner') {
+           localStorage.setItem('ownerId', userCredential.user.uid);
+        }
+        
         redirectBasedOnRole(targetRole);
       }
     } catch (err: any) {
@@ -250,6 +291,10 @@ export default function Login() {
         }
       } catch (firestoreErr) {
         handleFirestoreError(firestoreErr, OperationType.GET, `users/${result.user.uid}`);
+      }
+      
+      if (targetRole === 'owner') {
+         localStorage.setItem('ownerId', result.user.uid);
       }
       
       redirectBasedOnRole(targetRole);

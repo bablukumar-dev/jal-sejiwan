@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { hashPin } from '@/lib/authHelper';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/firebase';
 
 export default function AddStaff() {
   const router = useRouter();
@@ -17,7 +19,7 @@ export default function AddStaff() {
   const [route, setRoute] = useState(routes[0] || '');
   const [pin, setPin] = useState('');
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
         const currentUserRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : '';
@@ -48,6 +50,13 @@ export default function AddStaff() {
         createdBy: 'owner',
         failedPinAttempts: 0
         };
+
+        const currentOwnerId = localStorage.getItem('ownerId') || 'default_owner';
+        
+        await setDoc(doc(db, 'staff_users', phone.trim()), {
+            ...newStaff,
+            ownerId: currentOwnerId
+        });
 
         setStaff([...staff, newStaff]);
         alert("Staff Added Successfully!");

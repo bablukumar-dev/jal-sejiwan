@@ -3,6 +3,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/firebase';
+
 export type Customer = {
   id: number;
   name: string;
@@ -171,55 +174,72 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(initialBusinessInfo);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage and Firestore on mount
   useEffect(() => {
-    try {
-      if (!localStorage.getItem('demo_data_cleared_v2')) {
-        localStorage.removeItem('customers');
-        localStorage.removeItem('deliveries');
-        localStorage.removeItem('payments');
-        localStorage.removeItem('inventory');
-        localStorage.removeItem('inventoryHistory');
-        localStorage.removeItem('staff');
-        localStorage.removeItem('routes');
-        localStorage.removeItem('areas');
-        localStorage.removeItem('businessInfo');
-        localStorage.setItem('demo_data_cleared_v2', 'true');
-      }
+    const loadState = async () => {
+      try {
+        if (!localStorage.getItem('demo_data_cleared_v2')) {
+          localStorage.removeItem('customers');
+          localStorage.removeItem('deliveries');
+          localStorage.removeItem('payments');
+          localStorage.removeItem('inventory');
+          localStorage.removeItem('inventoryHistory');
+          localStorage.removeItem('staff');
+          localStorage.removeItem('routes');
+          localStorage.removeItem('areas');
+          localStorage.removeItem('businessInfo');
+          localStorage.setItem('demo_data_cleared_v2', 'true');
+        }
 
-      const storedCustomers = localStorage.getItem('customers');
-      if (storedCustomers) setCustomers(JSON.parse(storedCustomers));
-      
-      const storedDeliveries = localStorage.getItem('deliveries');
-      if (storedDeliveries) setDeliveries(JSON.parse(storedDeliveries));
-      
-      const storedPayments = localStorage.getItem('payments');
-      if (storedPayments) setPayments(JSON.parse(storedPayments));
-      
-      const storedInventory = localStorage.getItem('inventory');
-      if (storedInventory) setInventory(JSON.parse(storedInventory));
-      
-      const storedHistory = localStorage.getItem('inventoryHistory');
-      if (storedHistory) setInventoryHistory(JSON.parse(storedHistory));
-      
-      const storedStaff = localStorage.getItem('staff');
-      if (storedStaff) setStaff(JSON.parse(storedStaff));
-      
-      const storedRoutes = localStorage.getItem('routes');
-      if (storedRoutes) setRoutes(JSON.parse(storedRoutes));
-      
-      const storedAreas = localStorage.getItem('areas');
-      if (storedAreas) setAreas(JSON.parse(storedAreas));
-      
-      const storedBusinessInfo = localStorage.getItem('businessInfo');
-      if (storedBusinessInfo) setBusinessInfo(JSON.parse(storedBusinessInfo));
-    } catch (e) {
-      console.error("Failed to load state from localStorage", e);
-    }
-    setIsInitialized(true);
+        const storedCustomers = localStorage.getItem('customers');
+        if (storedCustomers) setCustomers(JSON.parse(storedCustomers));
+        const storedDeliveries = localStorage.getItem('deliveries');
+        if (storedDeliveries) setDeliveries(JSON.parse(storedDeliveries));
+        const storedPayments = localStorage.getItem('payments');
+        if (storedPayments) setPayments(JSON.parse(storedPayments));
+        const storedInventory = localStorage.getItem('inventory');
+        if (storedInventory) setInventory(JSON.parse(storedInventory));
+        const storedHistory = localStorage.getItem('inventoryHistory');
+        if (storedHistory) setInventoryHistory(JSON.parse(storedHistory));
+        const storedStaff = localStorage.getItem('staff');
+        if (storedStaff) setStaff(JSON.parse(storedStaff));
+        const storedRoutes = localStorage.getItem('routes');
+        if (storedRoutes) setRoutes(JSON.parse(storedRoutes));
+        const storedAreas = localStorage.getItem('areas');
+        if (storedAreas) setAreas(JSON.parse(storedAreas));
+        const storedBusinessInfo = localStorage.getItem('businessInfo');
+        if (storedBusinessInfo) setBusinessInfo(JSON.parse(storedBusinessInfo));
+        
+        // Sync from Firestore if ownerId is present
+        const ownerId = localStorage.getItem('ownerId');
+        if (ownerId) {
+           try {
+             const workspaceDocSnap = await getDoc(doc(db, 'workspaces', ownerId));
+             if (workspaceDocSnap.exists()) {
+                 const data = workspaceDocSnap.data();
+                 if (data.customers) setCustomers(data.customers);
+                 if (data.deliveries) setDeliveries(data.deliveries);
+                 if (data.payments) setPayments(data.payments);
+                 if (data.inventory) setInventory(data.inventory);
+                 if (data.inventoryHistory) setInventoryHistory(data.inventoryHistory);
+                 if (data.staff) setStaff(data.staff);
+                 if (data.routes) setRoutes(data.routes);
+                 if (data.areas) setAreas(data.areas);
+                 if (data.businessInfo) setBusinessInfo(data.businessInfo);
+             }
+           } catch(e) {
+             console.error("Failed to load from workspace", e);
+           }
+        }
+      } catch (e) {
+        console.error("Failed to load state", e);
+      }
+      setIsInitialized(true);
+    };
+    loadState();
   }, []);
 
-  // Save to localStorage when state changes
+  // Save to localStorage and Firestore when state changes
   useEffect(() => {
     if (!isInitialized) return;
     localStorage.setItem('customers', JSON.stringify(customers));
@@ -231,6 +251,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('routes', JSON.stringify(routes));
     localStorage.setItem('areas', JSON.stringify(areas));
     localStorage.setItem('businessInfo', JSON.stringify(businessInfo));
+    
+    const saveToFirestore = async () => {
+      const ownerId = localStorage.getItem('ownerId');
+      if (!ownerId) return;
+      try {
+        await setDoc(doc(db, 'workspaces', ownerId), {
+           customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo
+        });
+      } catch(e) {
+        console.error("Failed to sync state to workspace", e);
+      }
+    };
+    
+    // De-bounce or just fire-and-forget
+    saveToFirestore();
   }, [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isInitialized]);
 
   const contextValue = React.useMemo(() => ({

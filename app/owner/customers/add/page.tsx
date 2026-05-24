@@ -13,8 +13,8 @@ export default function AddCustomer() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [area, setArea] = useState(areas[0] || '');
-  const [route, setRoute] = useState(routes[0] || '');
+  const [area, setArea] = useState((areas && areas.length > 0) ? areas[0] : '');
+  const [route, setRoute] = useState((routes && routes.length > 0) ? routes[0] : '');
   const [type, setType] = useState('Home');
   const [deliveryType, setDeliveryType] = useState('Daily');
   const [defaultQty, setDefaultQty] = useState(1);
@@ -42,11 +42,12 @@ export default function AddCustomer() {
         return;
         }
 
-        const newId = Math.max(0, ...customers.map(c => c.id)) + 1;
+        const customersArray = Array.isArray(customers) ? customers : [];
+        const newId = Math.max(0, ...customersArray.map(c => c.id || 0), 0) + 1;
         const newCustomer = {
         id: newId,
         name,
-        phone,
+        phone: phone.trim(),
         address,
         area,
         route,
@@ -65,7 +66,7 @@ export default function AddCustomer() {
         riskLevel
         };
 
-        setCustomers([...customers, newCustomer]);
+        setCustomers([...customersArray, newCustomer]);
         alert('Customer Successfully Added');
         const role = localStorage.getItem('userRole');
         if (role === 'staff') {
@@ -142,7 +143,7 @@ export default function AddCustomer() {
                   onChange={(e) => setArea(e.target.value)}
                 >
                   <option value="">Select Area...</option>
-                  {areas.map(a => <option key={a} value={a}>{a}</option>)}
+                  {Array.isArray(areas) && areas.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
                 <button
                   type="button"
@@ -150,8 +151,9 @@ export default function AddCustomer() {
                     const newAreaPrompt = prompt('Enter new Area / Ilaaka name:');
                     if (newAreaPrompt && newAreaPrompt.trim() !== '') {
                       const newAreaName = newAreaPrompt.trim();
-                      if (!areas.includes(newAreaName)) {
-                        setAreas([...areas, newAreaName]);
+                      const areasArr = Array.isArray(areas) ? areas : [];
+                      if (!areasArr.includes(newAreaName)) {
+                        setAreas([...areasArr, newAreaName]);
                       }
                       setArea(newAreaName);
                     }
@@ -171,7 +173,7 @@ export default function AddCustomer() {
                   onChange={(e) => setRoute(e.target.value)}
                 >
                   <option value="">Select Route...</option>
-                  {routes.map(r => <option key={r} value={r}>{r}</option>)}
+                  {Array.isArray(routes) && routes.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
                 <button
                   type="button"
@@ -179,8 +181,9 @@ export default function AddCustomer() {
                     const newRoutePrompt = prompt('Enter new Route name:');
                     if (newRoutePrompt && newRoutePrompt.trim() !== '') {
                       const newRouteName = newRoutePrompt.trim();
-                      if (!routes.includes(newRouteName)) {
-                        setRoutes([...routes, newRouteName]);
+                      const routesArr = Array.isArray(routes) ? routes : [];
+                      if (!routesArr.includes(newRouteName)) {
+                        setRoutes([...routesArr, newRouteName]);
                       }
                       setRoute(newRouteName);
                     }
@@ -367,7 +370,8 @@ export default function AddCustomer() {
 
       <div className="fixed bottom-0 left-0 w-full p-4 bg-white border-t border-slate-200 z-50">
         <div className="max-w-md mx-auto">
-          <button 
+          <button
+            type="button"
             onClick={handleSave}
             className="w-full bg-blue-600 text-white rounded-xl py-4 flex items-center justify-center gap-2 active:scale-95 transition-transform"
           >

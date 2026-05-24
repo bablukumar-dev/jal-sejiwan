@@ -12,7 +12,6 @@ import { useState, useEffect } from 'react';
 export default function MyRoute() {
   const { deliveries, customers, staff, businessInfo } = useAppContext();
   const [activeTab, setActiveTab] = useState<'Pending' | 'Completed'>('Pending');
-  const [isOptimized, setIsOptimized] = useState(false);
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
   const [mapZoom, setMapZoom] = useState(1);
@@ -48,17 +47,15 @@ export default function MyRoute() {
   const pendingDeliveries = todaysDeliveries.filter(d => d.status === 'Pending');
   const completedDeliveries = todaysDeliveries.filter(d => d.status === 'Delivered' || d.status === 'Skipped');
 
-  if (isOptimized) {
-    // Mock optimization by reversing the list or sorting by ID
-    pendingDeliveries.sort((a, b) => b.id - a.id); 
-  }
-
   const displayDeliveries = activeTab === 'Pending' ? pendingDeliveries : completedDeliveries;
 
-  const handleOptimize = (e: React.MouseEvent) => {
+  const handleManualRouteAdd = (e: React.MouseEvent) => {
     e.preventDefault();
-    setIsOptimized(!isOptimized);
-    alert(isOptimized ? 'Reverted to original route' : 'Route optimally sorted based on proximity!');
+    const newRoute = prompt('Enter your route name manually:');
+    if (newRoute && newRoute.trim()) {
+      setStaffRoute(newRoute.trim());
+      alert(`Route changed to: ${newRoute}`);
+    }
   };
 
   return (
@@ -93,8 +90,8 @@ export default function MyRoute() {
           <Image src="https://picsum.photos/seed/map/800/400" alt="Map" fill className="object-cover opacity-50 grayscale transition-transform duration-300" style={{ transform: `scale(${mapZoom})` }} />
           <div className="absolute inset-0 flex items-end p-3">
             <div className="flex gap-2 w-full">
-              <button onClick={handleOptimize} className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
-                <Navigation className="w-4 h-4" /> {isOptimized ? 'REVERT ROUTE' : 'OPTIMIZED ROUTE'}
+              <button onClick={handleManualRouteAdd} className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+                <Plus className="w-4 h-4" /> MANUAL ROUTE ADD
               </button>
               <div className="flex-1 bg-white text-slate-900 font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-1 shadow-lg">
                 <MapPin className="w-3 h-3 text-blue-600" /> {staffRoute || 'No Route'}
