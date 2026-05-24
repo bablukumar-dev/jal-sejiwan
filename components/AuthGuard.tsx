@@ -23,7 +23,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         
         if (localPinLogin === 'true' && (localRole === 'staff' || localRole === 'manager')) {
            // Allowed by local PIN login
-           if (localRole === 'staff' && pathname.startsWith('/owner')) {
+           if (localRole === 'staff' && pathname.startsWith('/owner') && !pathname.includes('/owner/customers/add')) {
              router.replace('/staff/dashboard');
            } else if (localRole === 'manager' && pathname.startsWith('/owner')) {
              router.replace('/inventory/dashboard');
@@ -50,7 +50,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           console.error("Could not verify role", e);
         }
 
-        if (targetRole === 'staff' && pathname.startsWith('/owner')) {
+        if (targetRole === 'staff' && pathname.startsWith('/owner') && !pathname.includes('/owner/customers/add')) {
           router.replace('/staff/dashboard');
         } else if (targetRole === 'manager' && pathname.startsWith('/owner')) {
           router.replace('/inventory/dashboard');
