@@ -12,12 +12,18 @@ export default function StaffManagement() {
   const { staff, deliveries } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedStaffId, setExpandedStaffId] = useState<number | null>(null);
+  const [filter, setFilter] = useState<'All' | 'Active' | 'Inactive'>('All');
 
   const filteredStaff = staff.filter(s => {
     const query = searchQuery.toLowerCase();
-    return s.name?.toLowerCase().includes(query) ||
-           s.phone?.includes(searchQuery) ||
-           s.route?.toLowerCase().includes(query);
+    const matchSearch = s.name?.toLowerCase().includes(query) ||
+                        s.phone?.includes(searchQuery) ||
+                        s.route?.toLowerCase().includes(query);
+    if (!matchSearch) return false;
+
+    if (filter === 'Active' && !s.active) return false;
+    if (filter === 'Inactive' && s.active) return false;
+    return true;
   });
 
   const totalDeliveriesMTD = deliveries.filter(d => {
@@ -97,9 +103,19 @@ export default function StaffManagement() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <button className="w-full bg-slate-100 text-slate-700 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform border border-slate-200">
-            <Filter className="w-4 h-4" /> FILTER
-          </button>
+          {/* Dynamic Filter Chips */}
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide font-sans">
+            {['All', 'Active', 'Inactive'].map(f => (
+              <button 
+                type="button"
+                key={f}
+                onClick={() => setFilter(f as any)}
+                className={`px-5 py-2 rounded-full font-sans font-bold text-xs whitespace-nowrap transition-all active:scale-95 ${filter === f ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
+              >
+                {f} Staff
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Staff List */}

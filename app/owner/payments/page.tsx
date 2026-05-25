@@ -7,7 +7,6 @@ import { Search, Calendar, Download, Plus, Wallet, QrCode, SlidersHorizontal, X 
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
-import { motion, AnimatePresence } from 'motion/react';
 
 export default function PaymentsList() {
   const { payments, customers, businessInfo } = useAppContext();
@@ -82,6 +81,29 @@ export default function PaymentsList() {
   const cashInHand = filteredPayments.filter(p => p.mode === 'Cash').reduce((sum, p) => sum + p.amount, 0);
   const pendingDues = customers.reduce((sum, c) => sum + c.due, 0);
 
+  const handleExportCSV = () => {
+    if (sortedPayments.length === 0) {
+      alert("No collections available to export.");
+      return;
+    }
+    const headers = ["Payment ID", "Customer Name", "Date", "Amount (Rs)", "Mode"];
+    const rows = sortedPayments.map(p => {
+      const customerName = customers.find(c => c.id === p.customerId)?.name || "Unknown";
+      return [p.id, `"${customerName.replace(/"/g, '""')}"`, p.date, p.amount, p.mode];
+    });
+    
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+      
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Recent_Collections_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
       <TopAppBar title="Jal Sejiwan" showBack={true} />
@@ -113,16 +135,16 @@ export default function PaymentsList() {
         </form>
 
         {/* Date Filter */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 font-sans">
           <button 
             type="button"
             onClick={() => {
               setShowCustomDateRange(!showCustomDateRange);
               setShowFilterPanel(false);
             }}
-            className={`flex-1 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform ${showCustomDateRange || filter === 'Custom Range' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}
+            className={`flex-1 font-sans font-bold py-3 text-sm rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all ${showCustomDateRange || filter === 'Custom Range' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
           >
-            <Calendar className="w-5 h-5 animate-pulse" />
+            <Calendar className="w-5 h-5" />
             <span className="text-sm uppercase tracking-wider text-ellipsis overflow-hidden whitespace-nowrap max-w-[200px]">
               {filter === 'Custom Range' && startDate && endDate 
                 ? `${startDate} to ${endDate}` 
@@ -135,121 +157,107 @@ export default function PaymentsList() {
               setShowFilterPanel(!showFilterPanel);
               setShowCustomDateRange(false);
             }}
-            className={`w-12 rounded-xl flex items-center justify-center active:scale-95 transition-transform ${showFilterPanel ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}
+            className={`w-12 rounded-xl flex items-center justify-center active:scale-95 transition-all ${showFilterPanel ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
           >
             <SlidersHorizontal className="w-5 h-5" />
           </button>
         </div>
 
         {/* Custom Date Range Picker Component */}
-        <AnimatePresence>
-          {showCustomDateRange && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden mb-6"
-            >
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
-                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Custom Date Range</div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">From</label>
-                    <input 
-                      type="date"
-                      className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent font-medium"
-                      value={startDate}
-                      onChange={(e) => {
-                        setStartDate(e.target.value);
-                        setFilter('Custom Range');
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">To</label>
-                    <input 
-                      type="date"
-                      className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent font-medium"
-                      value={endDate}
-                      onChange={(e) => {
-                        setEndDate(e.target.value);
-                        setFilter('Custom Range');
-                      }}
-                    />
-                  </div>
+        {showCustomDateRange && (
+          <div className="overflow-hidden mb-6 transition-all duration-300 animate-in fade-in slide-in-from-top-4 font-sans">
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Custom Date Range</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">From</label>
+                  <input 
+                    type="date"
+                    className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent font-medium"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setFilter('Custom Range');
+                    }}
+                  />
                 </div>
-                <div className="flex justify-between items-center pt-1 border-t border-slate-100 mt-2">
-                  {(startDate || endDate) && (
-                    <button 
-                      onClick={() => {
-                        setStartDate('');
-                        setEndDate('');
-                        setFilter('Today');
-                      }}
-                      className="text-xs text-red-600 font-bold hover:underline"
-                    >
-                      Clear Dates
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => setShowCustomDateRange(false)}
-                    className="ml-auto bg-slate-900 text-white font-bold py-1.5 px-4 rounded-lg text-xs hover:bg-slate-800 transition-colors"
-                  >
-                    Done
-                  </button>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">To</label>
+                  <input 
+                    type="date"
+                    className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent font-medium"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setFilter('Custom Range');
+                    }}
+                  />
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <div className="flex justify-between items-center pt-1 border-t border-slate-100 mt-2">
+                {(startDate || endDate) && (
+                  <button 
+                    onClick={() => {
+                      setStartDate('');
+                      setEndDate('');
+                      setFilter('Today');
+                    }}
+                    className="text-xs text-red-600 font-bold hover:underline"
+                  >
+                    Clear Dates
+                  </button>
+                )}
+                <button 
+                  onClick={() => setShowCustomDateRange(false)}
+                  className="ml-auto bg-slate-900 text-white font-bold py-1.5 px-4 rounded-lg text-xs hover:bg-slate-800 transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Sort Panel */}
-        <AnimatePresence>
-          {showFilterPanel && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden mb-6"
-            >
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
-                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sort & Extra Options</div>
-                <div className="space-y-2">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase">Sort Collections By</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { id: 'newest', label: 'Newest First' },
-                      { id: 'oldest', label: 'Oldest First' },
-                      { id: 'amt-high', label: 'Amount: High to Low' },
-                      { id: 'amt-low', label: 'Amount: Low to High' },
-                    ].map(opt => (
-                      <button
-                        type="button"
-                        key={opt.id}
-                        onClick={() => setSortBy(opt.id || 'newest')}
-                        className={`px-3 py-2 rounded-lg text-left text-xs font-bold border transition-colors ${sortBy === opt.id ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-100'}`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex justify-end pt-1 border-t border-slate-100 mt-2">
-                  <button 
-                    type="button"
-                    onClick={() => setShowFilterPanel(false)}
-                    className="bg-slate-900 text-white font-bold py-1.5 px-4 rounded-lg text-xs hover:bg-slate-800 transition-colors"
-                  >
-                    Close
-                  </button>
+        {showFilterPanel && (
+          <div className="overflow-hidden mb-6 transition-all duration-300 animate-in fade-in slide-in-from-top-4 font-sans">
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sort & Extra Options</div>
+              <div className="space-y-2">
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Sort Collections By</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'newest', label: 'Newest First' },
+                    { id: 'oldest', label: 'Oldest First' },
+                    { id: 'amt-high', label: 'Amount: High to Low' },
+                    { id: 'amt-low', label: 'Amount: Low to High' },
+                  ].map(opt => (
+                    <button
+                      type="button"
+                      key={opt.id}
+                      onClick={() => setSortBy(opt.id || 'newest')}
+                      className={`px-3 py-2 rounded-lg text-left text-xs font-bold border transition-colors ${sortBy === opt.id ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-100'}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <div className="flex justify-end pt-1 border-t border-slate-100 mt-2">
+                <button 
+                  type="button"
+                  onClick={() => setShowFilterPanel(false)}
+                  className="bg-slate-900 text-white font-bold py-1.5 px-4 rounded-lg text-xs hover:bg-slate-800 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Quick Filters */}
-        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-2">
+        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-2 font-sans">
           {['Today', 'Yesterday', 'Cash Only', 'UPI Only', 'All', ...(filter === 'Custom Range' ? ['Custom Range'] : [])].map(f => (
             <button 
               key={f}
@@ -260,7 +268,7 @@ export default function PaymentsList() {
                   setEndDate('');
                 }
               }}
-              className={`px-6 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-colors ${filter === f ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
+              className={`px-6 py-2 rounded-full font-sans font-bold text-sm whitespace-nowrap transition-colors ${filter === f ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
             >
               {f}
             </button>
@@ -291,7 +299,11 @@ export default function PaymentsList() {
         <div>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold text-slate-900">Recent Collections</h2>
-            <button className="text-[10px] font-bold text-blue-600 uppercase tracking-wider flex items-center gap-1">
+            <button 
+              type="button"
+              onClick={handleExportCSV}
+              className="text-[10px] font-bold text-blue-600 uppercase tracking-wider flex items-center gap-1 active:scale-95 transition-transform"
+            >
               Export CSV
             </button>
           </div>

@@ -5,6 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import { Calendar, Filter, AlertTriangle, Settings, Plus, Truck, User } from 'lucide-react';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function InventoryHistory() {
   const { inventoryHistory } = useAppContext();
@@ -105,16 +106,20 @@ export default function InventoryHistory() {
           ))}
         </div>
 
-        <button className="w-full mt-6 py-4 border-2 border-dashed border-slate-300 rounded-2xl text-xs font-bold text-slate-600 uppercase tracking-wider active:scale-95 transition-transform">
+        <button 
+          type="button"
+          onClick={() => alert("All logs loaded: no older logs found in localized storage.")}
+          className="w-full mt-6 py-4 border-2 border-dashed border-slate-300 rounded-2xl text-xs font-bold text-slate-600 uppercase tracking-wider active:scale-95 transition-transform"
+        >
           Load Older Logs
         </button>
 
       </main>
 
       {/* FAB */}
-      <button className="fixed bottom-24 right-6 bg-blue-600 text-white w-14 h-14 rounded-2xl shadow-lg shadow-blue-600/30 z-40 active:scale-90 duration-200 flex items-center justify-center">
+      <Link href="/inventory/reconciliation" className="fixed bottom-24 right-6 bg-blue-600 text-white w-14 h-14 rounded-2xl shadow-lg shadow-blue-600/30 z-40 active:scale-90 duration-200 flex items-center justify-center">
         <Plus className="w-6 h-6" />
-      </button>
+      </Link>
 
       <BottomNav role="owner" activeTab="more" />
     </div>
