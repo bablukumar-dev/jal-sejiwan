@@ -4,7 +4,7 @@ import { useState } from 'react';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import PullToRefresh from '@/components/PullToRefresh';
-import { Search, MapPin, Phone, Plus, ChevronDown, Users, Bell, MessageCircle } from 'lucide-react';
+import { Search, MapPin, Phone, Plus, ChevronDown, Users, Bell, MessageCircle, X } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { sendReminderWhatsApp } from '@/lib/whatsappUtils';
@@ -66,18 +66,28 @@ export default function CustomersList() {
       <PullToRefresh onRefresh={handleRefresh}>
         <main className="max-w-md mx-auto px-4 py-6">
           {/* Search Bar */}
-        <div className="mb-6">
+        <form onSubmit={(e) => { e.preventDefault(); }} className="mb-6">
           <div className="relative flex items-center">
-            <Search className="absolute left-4 text-slate-400 w-5 h-5" />
+            <Search className="absolute left-4 text-slate-400 w-5 h-5 pointer-events-none" />
             <input 
               type="text" 
               placeholder="Search name, phone, area, route" 
-              className="w-full pl-12 pr-4 py-4 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-blue-600 text-slate-900 placeholder:text-slate-500"
+              className="w-full pl-12 pr-12 py-4 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-blue-600 text-slate-900 placeholder:text-slate-500 font-medium font-sans"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button 
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 p-1 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 active:scale-95 transition-all"
+                aria-label="Clear search"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
-        </div>
+        </form>
 
         {/* Filter Chips */}
         <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-2">

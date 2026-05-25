@@ -3,15 +3,21 @@
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import PullToRefresh from '@/components/PullToRefresh';
-import { Search, Calendar, Download, Plus, Wallet, QrCode, SlidersHorizontal } from 'lucide-react';
+import { Search, Calendar, Download, Plus, Wallet, QrCode, SlidersHorizontal, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function PaymentsList() {
   const { payments, customers, businessInfo } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('Today');
+  const [showCustomDateRange, setShowCustomDateRange] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [sortBy, setSortBy] = useState('newest');
 
   const today = new Date().toISOString().split('T')[0];
   const yz = new Date();
@@ -25,19 +31,50 @@ export default function PaymentsList() {
 
   const filteredPayments = payments.filter(p => {
     const customer = customers.find(c => c.id === p.customerId);
-    if (searchQuery && customer) {
+    
+    if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      const matchName = customer.name?.toLowerCase().includes(query);
-      const matchPhone = customer.phone?.includes(searchQuery);
-      if (!matchName && !matchPhone) return false;
+      const matchMode = p.mode?.toLowerCase().includes(query);
+      const matchAmount = p.amount?.toString().includes(query);
+      
+      let matchCustomer = false;
+      if (customer) {
+        const matchName = customer.name?.toLowerCase().includes(query);
+        const matchPhone = customer.phone?.toLowerCase().includes(query);
+        const matchArea = customer.area?.toLowerCase().includes(query);
+        const matchRoute = customer.route?.toLowerCase().includes(query);
+        matchCustomer = !!(matchName || matchPhone || matchArea || matchRoute);
+      }
+      
+      if (!matchMode && !matchAmount && !matchCustomer) return false;
     }
     
     if (filter === 'Today' && p.date !== today) return false;
     if (filter === 'Yesterday' && p.date !== yesterday) return false;
     if (filter === 'Cash Only' && p.mode !== 'Cash') return false;
     if (filter === 'UPI Only' && p.mode !== 'UPI') return false;
+    if (filter === 'Custom Range') {
+      if (startDate && p.date < startDate) return false;
+      if (endDate && p.date > endDate) return false;
+    }
     
     return true;
+  });
+
+  const sortedPayments = [...filteredPayments].sort((a, b) => {
+    if (sortBy === 'newest') {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }
+    if (sortBy === 'oldest') {
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    }
+    if (sortBy === 'amt-high') {
+      return b.amount - a.amount;
+    }
+    if (sortBy === 'amt-low') {
+      return a.amount - b.amount;
+    }
+    return 0;
   });
 
   const totalCollected = filteredPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -52,36 +89,177 @@ export default function PaymentsList() {
       <PullToRefresh onRefresh={handleRefresh}>
         <main className="max-w-md mx-auto px-4 py-6">
           {/* Search Bar */}
-        <div className="mb-6">
+        <form onSubmit={(e) => { e.preventDefault(); }} className="mb-6">
           <div className="relative flex items-center">
-            <Search className="absolute left-4 text-slate-400 w-5 h-5" />
+            <Search className="absolute left-4 text-slate-400 w-5 h-5 pointer-events-none" />
             <input 
               type="text" 
               placeholder="Search by customer..." 
-              className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 text-slate-900 placeholder:text-slate-500"
+              className="w-full pl-12 pr-12 py-4 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 text-slate-900 placeholder:text-slate-500 font-medium"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button 
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 p-1 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 active:scale-95 transition-all"
+                aria-label="Clear search"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
-        </div>
+        </form>
 
         {/* Date Filter */}
         <div className="flex gap-2 mb-6">
-          <button className="flex-1 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform">
-            <Calendar className="w-5 h-5" />
-            <span className="text-sm uppercase tracking-wider">Date Range</span>
+          <button 
+            type="button"
+            onClick={() => {
+              setShowCustomDateRange(!showCustomDateRange);
+              setShowFilterPanel(false);
+            }}
+            className={`flex-1 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform ${showCustomDateRange || filter === 'Custom Range' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}
+          >
+            <Calendar className="w-5 h-5 animate-pulse" />
+            <span className="text-sm uppercase tracking-wider text-ellipsis overflow-hidden whitespace-nowrap max-w-[200px]">
+              {filter === 'Custom Range' && startDate && endDate 
+                ? `${startDate} to ${endDate}` 
+                : 'Date Range'}
+            </span>
           </button>
-          <button className="w-12 bg-slate-200 text-slate-700 rounded-xl flex items-center justify-center active:scale-95 transition-transform">
+          <button 
+            type="button"
+            onClick={() => {
+              setShowFilterPanel(!showFilterPanel);
+              setShowCustomDateRange(false);
+            }}
+            className={`w-12 rounded-xl flex items-center justify-center active:scale-95 transition-transform ${showFilterPanel ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}
+          >
             <SlidersHorizontal className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Custom Date Range Picker Component */}
+        <AnimatePresence>
+          {showCustomDateRange && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden mb-6"
+            >
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
+                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Custom Date Range</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">From</label>
+                    <input 
+                      type="date"
+                      className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent font-medium"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        setFilter('Custom Range');
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">To</label>
+                    <input 
+                      type="date"
+                      className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent font-medium"
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        setFilter('Custom Range');
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-slate-100 mt-2">
+                  {(startDate || endDate) && (
+                    <button 
+                      onClick={() => {
+                        setStartDate('');
+                        setEndDate('');
+                        setFilter('Today');
+                      }}
+                      className="text-xs text-red-600 font-bold hover:underline"
+                    >
+                      Clear Dates
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => setShowCustomDateRange(false)}
+                    className="ml-auto bg-slate-900 text-white font-bold py-1.5 px-4 rounded-lg text-xs hover:bg-slate-800 transition-colors"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Sort Panel */}
+        <AnimatePresence>
+          {showFilterPanel && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden mb-6"
+            >
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
+                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sort & Extra Options</div>
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Sort Collections By</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: 'newest', label: 'Newest First' },
+                      { id: 'oldest', label: 'Oldest First' },
+                      { id: 'amt-high', label: 'Amount: High to Low' },
+                      { id: 'amt-low', label: 'Amount: Low to High' },
+                    ].map(opt => (
+                      <button
+                        type="button"
+                        key={opt.id}
+                        onClick={() => setSortBy(opt.id || 'newest')}
+                        className={`px-3 py-2 rounded-lg text-left text-xs font-bold border transition-colors ${sortBy === opt.id ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-100'}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex justify-end pt-1 border-t border-slate-100 mt-2">
+                  <button 
+                    type="button"
+                    onClick={() => setShowFilterPanel(false)}
+                    className="bg-slate-900 text-white font-bold py-1.5 px-4 rounded-lg text-xs hover:bg-slate-800 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Quick Filters */}
         <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-2">
-          {['Today', 'Yesterday', 'Cash Only', 'UPI Only', 'All'].map(f => (
+          {['Today', 'Yesterday', 'Cash Only', 'UPI Only', 'All', ...(filter === 'Custom Range' ? ['Custom Range'] : [])].map(f => (
             <button 
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => {
+                setFilter(f);
+                if (f !== 'Custom Range') {
+                  setStartDate('');
+                  setEndDate('');
+                }
+              }}
               className={`px-6 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-colors ${filter === f ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
             >
               {f}
@@ -119,7 +297,7 @@ export default function PaymentsList() {
           </div>
 
           <div className="space-y-3">
-            {filteredPayments.length === 0 ? (
+            {sortedPayments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-2xl border border-slate-100">
                 <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mb-4">
                   <Wallet className="w-10 h-10 text-slate-300" />
@@ -130,7 +308,7 @@ export default function PaymentsList() {
                 </p>
               </div>
             ) : (
-              filteredPayments.map(payment => {
+              sortedPayments.map(payment => {
                 const customer = customers.find(c => c.id === payment.customerId);
                 if (!customer) return null;
 
