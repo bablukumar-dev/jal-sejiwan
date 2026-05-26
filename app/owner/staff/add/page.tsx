@@ -11,7 +11,7 @@ import { db } from '@/firebase';
 
 export default function AddStaff() {
   const router = useRouter();
-  const { staff, setStaff, routes } = useAppContext();
+  const { staff, setStaff, routes, setRoutes, customers, setCustomers } = useAppContext();
   
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -112,14 +112,64 @@ export default function AddStaff() {
 
             <div>
               <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">Assigned Route</label>
-              <select 
-                className="w-full mt-1 bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 appearance-none font-medium text-slate-900"
-                value={route}
-                onChange={(e) => setRoute(e.target.value)}
-              >
-                <option value="">Select Route...</option>
-                {routes.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
+              <div className="flex gap-2 mt-1">
+                <select 
+                  className="flex-1 bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 appearance-none font-medium text-slate-900"
+                  value={route}
+                  onChange={(e) => setRoute(e.target.value)}
+                >
+                  <option value="">Select Route...</option>
+                  {routes.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newRoutePrompt = prompt('Enter new Route name:');
+                    if (newRoutePrompt && newRoutePrompt.trim() !== '') {
+                      const newRouteName = newRoutePrompt.trim();
+                      if (!routes.includes(newRouteName)) {
+                        setRoutes([...routes, newRouteName]);
+                      }
+                      setRoute(newRouteName);
+                    }
+                  }}
+                  className="bg-slate-200 hover:bg-slate-300 text-blue-700 font-bold px-4 rounded-xl text-xs whitespace-nowrap active:scale-95 transition-all shrink-0"
+                >
+                  + Add
+                </button>
+                {route && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const oldRoute = route;
+                      const updatedRoutePrompt = prompt(`Rename route "${oldRoute}" to:`, oldRoute);
+                      if (updatedRoutePrompt && updatedRoutePrompt.trim() !== '' && updatedRoutePrompt.trim() !== oldRoute) {
+                        const newRouteName = updatedRoutePrompt.trim();
+                        
+                        // 1. Update routes list
+                        const updatedRoutes = routes.map(r => r === oldRoute ? newRouteName : r);
+                        setRoutes(updatedRoutes);
+                        
+                        // 2. Update current dropdown selection
+                        setRoute(newRouteName);
+                        
+                        // 3. Update all customers
+                        if (customers && setCustomers) {
+                          setCustomers(customers.map(c => c.route === oldRoute ? { ...c, route: newRouteName } : c));
+                        }
+                        
+                        // 4. Update all other staff members
+                        if (staff && setStaff) {
+                          setStaff(staff.map(s => s.route === oldRoute ? { ...s, route: newRouteName } : s));
+                        }
+                      }
+                    }}
+                    className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-bold px-4 rounded-xl text-xs whitespace-nowrap active:scale-95 transition-all shrink-0"
+                  >
+                    ✏️ Edit
+                  </button>
+                )}
+              </div>
             </div>
 
             <div>

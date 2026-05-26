@@ -9,7 +9,7 @@ import { useAppContext } from '@/app/context/AppContext';
 export default function EditCustomer() {
   const router = useRouter();
   const params = useParams();
-  const { areas, setAreas, routes, setRoutes, setCustomers, customers } = useAppContext();
+  const { areas, setAreas, routes, setRoutes, setCustomers, customers, staff, setStaff } = useAppContext();
 
   const customerId = parseInt(params.id as string);
   const customer = customers.find(c => c.id === customerId);
@@ -166,26 +166,63 @@ export default function EditCustomer() {
               </div>
               <div className="flex gap-2">
                 <select 
-                  className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 appearance-none font-medium text-slate-900"
+                  className="flex-1 bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 appearance-none font-medium text-slate-900"
                   value={route}
-                  onChange={(e) => {
-                    if (e.target.value === 'add_new') {
-                      const newRoutePrompt = prompt('Enter new Route name:');
-                      if (newRoutePrompt && newRoutePrompt.trim() !== '') {
-                        const newRouteName = newRoutePrompt.trim();
-                        if (!routes.includes(newRouteName)) {
-                          setRoutes([...routes, newRouteName]);
-                        }
-                        setRoute(newRouteName);
+                  onChange={(e) => setRoute(e.target.value)}
+                >
+                  <option value="">Select Route...</option>
+                  {Array.isArray(routes) && routes.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newRoutePrompt = prompt('Enter new Route name:');
+                    if (newRoutePrompt && newRoutePrompt.trim() !== '') {
+                      const newRouteName = newRoutePrompt.trim();
+                      const routesArr = Array.isArray(routes) ? routes : [];
+                      if (!routesArr.includes(newRouteName)) {
+                        setRoutes([...routesArr, newRouteName]);
                       }
-                    } else {
-                      setRoute(e.target.value);
+                      setRoute(newRouteName);
                     }
                   }}
+                  className="bg-slate-200 hover:bg-slate-300 text-blue-700 font-bold px-4 rounded-xl text-xs whitespace-nowrap active:scale-95 transition-all shrink-0"
                 >
-                  {routes.map(r => <option key={r} value={r}>{r}</option>)}
-                  <option value="add_new" className="text-blue-600 font-bold">+ Add New Route</option>
-                </select>
+                  + Add
+                </button>
+                {route && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const oldRoute = route;
+                      const updatedRoutePrompt = prompt(`Rename route "${oldRoute}" to:`, oldRoute);
+                      if (updatedRoutePrompt && updatedRoutePrompt.trim() !== '' && updatedRoutePrompt.trim() !== oldRoute) {
+                        const newRouteName = updatedRoutePrompt.trim();
+                        
+                        // 1. Update routes list
+                        const routesArr = Array.isArray(routes) ? routes : [];
+                        const updatedRoutes = routesArr.map(r => r === oldRoute ? newRouteName : r);
+                        setRoutes(updatedRoutes);
+                        
+                        // 2. Update dropdown selected value
+                        setRoute(newRouteName);
+                        
+                        // 3. Update all customers
+                        if (customers && setCustomers) {
+                          setCustomers(customers.map(c => c.route === oldRoute ? { ...c, route: newRouteName } : c));
+                        }
+                        
+                        // 4. Update all other staff members
+                        if (staff && setStaff) {
+                          setStaff(staff.map(s => s.route === oldRoute ? { ...s, route: newRouteName } : s));
+                        }
+                      }
+                    }}
+                    className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-bold px-4 rounded-xl text-xs whitespace-nowrap active:scale-95 transition-all shrink-0"
+                  >
+                    ✏️ Edit
+                  </button>
+                )}
               </div>
             </div>
             <div>
