@@ -123,7 +123,7 @@ export default function CustomerDetail() {
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           <Link href={`/owner/customers/edit/${customer.id}`} className="bg-slate-100 text-slate-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
             <Edit className="w-5 h-5 text-blue-600" />
             <span className="text-[10px] font-bold uppercase tracking-wider">Edit</span>
@@ -145,10 +145,6 @@ export default function CustomerDetail() {
               <span className="text-[10px] font-bold uppercase tracking-wider">WA</span>
             </button>
           </div>
-          <Link href={`/staff/delivery/${customer.id}`} className="bg-blue-600 text-white rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
-            <Truck className="w-5 h-5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Record</span>
-          </Link>
           <Link href="/owner/payments/record" className="bg-orange-700 text-white rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
             <Wallet className="w-5 h-5" />
             <span className="text-[10px] font-bold uppercase tracking-wider">Pay</span>
