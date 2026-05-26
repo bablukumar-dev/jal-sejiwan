@@ -1,9 +1,9 @@
  
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase';
 
 export type Customer = {
@@ -173,10 +173,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [areas, setAreas] = useState<string[]>(initialAreas);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(initialBusinessInfo);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
 
-  // Load from localStorage and Firestore on mount
+  const lastRemoteData = useRef<string | null>(null);
+  const snapshotReceivedRef = useRef(false);
+
+  // Poll localStorage for ownerId changes to detect logins/logouts dynamically
   useEffect(() => {
-    const loadState = async () => {
+    const checkOwner = () => {
+      if (typeof window !== 'undefined') {
+        const id = localStorage.getItem('ownerId');
+        if (id !== ownerId) {
+          setOwnerId(id);
+        }
+      }
+    };
+    checkOwner();
+    const timer = setInterval(checkOwner, 1000);
+    return () => clearInterval(timer);
+  }, [ownerId]);
+
+  // Load cache from localStorage on mount
+  useEffect(() => {
+    const loadCache = () => {
       try {
         if (!localStorage.getItem('demo_data_cleared_v2')) {
           localStorage.removeItem('customers');
@@ -209,39 +228,92 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (storedAreas) setAreas(JSON.parse(storedAreas));
         const storedBusinessInfo = localStorage.getItem('businessInfo');
         if (storedBusinessInfo) setBusinessInfo(JSON.parse(storedBusinessInfo));
-        
-        // Sync from Firestore if ownerId is present
-        const ownerId = localStorage.getItem('ownerId');
-        if (ownerId) {
-           try {
-             const workspaceDocSnap = await getDoc(doc(db, 'workspaces', ownerId));
-             if (workspaceDocSnap.exists()) {
-                 const data = workspaceDocSnap.data();
-                 if (data.customers) setCustomers(data.customers);
-                 if (data.deliveries) setDeliveries(data.deliveries);
-                 if (data.payments) setPayments(data.payments);
-                 if (data.inventory) setInventory(data.inventory);
-                 if (data.inventoryHistory) setInventoryHistory(data.inventoryHistory);
-                 if (data.staff) setStaff(data.staff);
-                 if (data.routes) setRoutes(data.routes);
-                 if (data.areas) setAreas(data.areas);
-                 if (data.businessInfo) setBusinessInfo(data.businessInfo);
-             }
-           } catch(e) {
-             console.error("Failed to load from workspace", e);
-           }
-        }
       } catch (e) {
-        console.error("Failed to load state", e);
+        console.error("Failed to load local storage cache", e);
       }
       setIsInitialized(true);
     };
-    loadState();
+    loadCache();
   }, []);
 
-  // Save to localStorage and Firestore when state changes
+  // Set up Firebase onSnapshot listener when ownerId is active
+  useEffect(() => {
+    if (!ownerId) {
+      snapshotReceivedRef.current = false;
+      return;
+    }
+
+    snapshotReceivedRef.current = false;
+    const docRef = doc(db, 'workspaces', ownerId);
+
+    const unsubscribe = onSnapshot(docRef, (snapshot) => {
+      snapshotReceivedRef.current = true;
+      if (!snapshot.exists()) return;
+
+      const data = snapshot.data();
+      const stringified = JSON.stringify({
+        customers: data.customers || [],
+        deliveries: data.deliveries || [],
+        payments: data.payments || [],
+        inventory: data.inventory || initialInventory,
+        inventoryHistory: data.inventoryHistory || [],
+        staff: data.staff || [],
+        routes: data.routes || [],
+        areas: data.areas || [],
+        businessInfo: data.businessInfo || initialBusinessInfo
+      });
+
+      // Avoid trigger loop: do not trigger re-render if database contents match exactly what we have
+      if (stringified === lastRemoteData.current) return;
+
+      lastRemoteData.current = stringified;
+
+      if (data.customers) setCustomers(data.customers);
+      if (data.deliveries) setDeliveries(data.deliveries);
+      if (data.payments) setPayments(data.payments);
+      if (data.inventory) setInventory(data.inventory);
+      if (data.inventoryHistory) setInventoryHistory(data.inventoryHistory);
+      if (data.staff) setStaff(data.staff);
+      if (data.routes) setRoutes(data.routes);
+      if (data.areas) setAreas(data.areas);
+      if (data.businessInfo) setBusinessInfo(data.businessInfo);
+
+      // Save to localStorage too so it's fresh for next page load/reload
+      localStorage.setItem('customers', JSON.stringify(data.customers || []));
+      localStorage.setItem('deliveries', JSON.stringify(data.deliveries || []));
+      localStorage.setItem('payments', JSON.stringify(data.payments || []));
+      localStorage.setItem('inventory', JSON.stringify(data.inventory || initialInventory));
+      localStorage.setItem('inventoryHistory', JSON.stringify(data.inventoryHistory || []));
+      localStorage.setItem('staff', JSON.stringify(data.staff || []));
+      localStorage.setItem('routes', JSON.stringify(data.routes || []));
+      localStorage.setItem('areas', JSON.stringify(data.areas || []));
+      localStorage.setItem('businessInfo', JSON.stringify(data.businessInfo || initialBusinessInfo));
+    }, (error) => {
+      console.error("Firestore real-time sync error:", error);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [ownerId]);
+
+  // Push local modifications to Firestore and update cache
   useEffect(() => {
     if (!isInitialized) return;
+    if (ownerId && !snapshotReceivedRef.current) return; // Wait for server fetch to prevent overwriting with old cache
+
+    const currentLocalStr = JSON.stringify({
+      customers,
+      deliveries,
+      payments,
+      inventory,
+      inventoryHistory,
+      staff,
+      routes,
+      areas,
+      businessInfo
+    });
+
     localStorage.setItem('customers', JSON.stringify(customers));
     localStorage.setItem('deliveries', JSON.stringify(deliveries));
     localStorage.setItem('payments', JSON.stringify(payments));
@@ -251,22 +323,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('routes', JSON.stringify(routes));
     localStorage.setItem('areas', JSON.stringify(areas));
     localStorage.setItem('businessInfo', JSON.stringify(businessInfo));
-    
+
+    // If local state exactly matches the remote data, skip writing
+    if (currentLocalStr === lastRemoteData.current) return;
+
+    lastRemoteData.current = currentLocalStr;
+
     const saveToFirestore = async () => {
-      const ownerId = localStorage.getItem('ownerId');
       if (!ownerId) return;
       try {
         await setDoc(doc(db, 'workspaces', ownerId), {
-           customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo
+          customers,
+          deliveries,
+          payments,
+          inventory,
+          inventoryHistory,
+          staff,
+          routes,
+          areas,
+          businessInfo
         });
-      } catch(e) {
+      } catch (e) {
         console.error("Failed to sync state to workspace", e);
       }
     };
-    
-    // De-bounce or just fire-and-forget
+
     saveToFirestore();
-  }, [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isInitialized]);
+  }, [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isInitialized, ownerId]);
 
   const contextValue = React.useMemo(() => ({
     customers, setCustomers,
