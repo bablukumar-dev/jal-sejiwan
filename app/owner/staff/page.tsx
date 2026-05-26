@@ -7,6 +7,9 @@ import BottomNav from '@/components/BottomNav';
 import { Users, UserPlus, Search, Phone, Route, Filter, TrendingUp, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Key } from 'lucide-react';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState } from 'react';
+import { db } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { hashPin } from '@/lib/authHelper';
 
 export default function StaffManagement() {
   const { staff, setStaff, deliveries } = useAppContext();
@@ -167,15 +170,37 @@ export default function StaffManagement() {
                   </a>
                   <button 
                     type="button"
-                    onClick={() => {
-                      const newPin = prompt(`Enter new Login Password for ${s.name}:`, s.pin || '');
+                    onClick={async () => {
+                      const newPin = prompt(`Enter new Login Password for ${s.name}:`);
                       if (newPin !== null) {
                         const trimmed = newPin.trim();
                         if (trimmed === '') {
                           alert('Password cannot be empty!');
                         } else {
-                          setStaff(staff.map(item => item.id === s.id ? { ...item, pin: trimmed } : item));
-                          alert(`Password updated successfully for ${s.name}!`);
+                          const encrypted = hashPin(trimmed);
+                          
+                          // Update AppContext state & reset locks
+                          setStaff(staff.map(item => item.id === s.id ? { 
+                            ...item, 
+                            pin: 'HIDDEN', 
+                            encryptedPin: encrypted,
+                            failedPinAttempts: 0,
+                            pinLockedUntil: undefined 
+                          } : item));
+                          
+                          // Update Firestore staff_users doc & reset locks
+                          try {
+                            const cleanPhone = s.phone.trim();
+                            await setDoc(doc(db, 'staff_users', cleanPhone), {
+                              encryptedPin: encrypted,
+                              failedPinAttempts: 0,
+                              pinLockedUntil: null
+                            }, { merge: true });
+                            alert(`Password updated and account unlocked successfully for ${s.name}!`);
+                          } catch (err) {
+                            console.error("Failed to sync password to Firestore", err);
+                            alert(`Password updated locally, but failed to sync with the database.`);
+                          }
                         }
                       }
                     }}

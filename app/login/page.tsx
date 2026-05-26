@@ -114,7 +114,10 @@ export default function Login() {
          return;
       }
 
-      if (s.pinLockedUntil && new Date(s.pinLockedUntil) > new Date()) {
+      const isLocked = s.pinLockedUntil && 
+                       s.failedPinAttempts >= 5 && 
+                       new Date(s.pinLockedUntil) > new Date();
+      if (isLocked) {
          setError('Account temporarily locked. Contact Owner.');
          setIsLoading(false);
          return;
@@ -159,11 +162,21 @@ export default function Login() {
       // Success! Reset attempts.
       if (docSnap.exists()) {
          await setDoc(docRef, { failedPinAttempts: 0, pinLockedUntil: null }, { merge: true });
+         
+         // Also update local staff arrays in state if found
+         const updatedStaff = [...staff];
+         const idx = updatedStaff.findIndex(st => st.phone.trim() === cleanPhone);
+         if (idx !== -1) {
+           updatedStaff[idx] = { ...updatedStaff[idx], failedPinAttempts: 0, pinLockedUntil: undefined };
+           setStaff(updatedStaff);
+         }
       } else {
         const updatedStaff = [...staff];
         const idx = updatedStaff.findIndex(st => st.id === s!.id);
-        updatedStaff[idx] = { ...s, failedPinAttempts: 0, pinLockedUntil: undefined };
-        setStaff(updatedStaff);
+        if (idx !== -1) {
+          updatedStaff[idx] = { ...s, failedPinAttempts: 0, pinLockedUntil: undefined };
+          setStaff(updatedStaff);
+        }
       }
 
       localStorage.setItem('pinAuth', 'true');
