@@ -5,7 +5,8 @@ import {
   Truck, 
   Package, 
   BarChart3,
-  Settings
+  Settings,
+  LifeBuoy
 } from 'lucide-react';
 
 interface BottomNavProps {
@@ -27,6 +28,7 @@ export default function BottomNav({ role, activeTab }: BottomNavProps) {
     links = [
       { id: 'dashboard', label: 'Dash', icon: LayoutDashboard, href: '/staff/dashboard' },
       { id: 'customers', label: 'Customers', icon: Users, href: '/staff/customers' },
+      { id: 'service', label: 'Service', icon: LifeBuoy, href: '/staff/service' },
       { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
     ];
   } else if (role === 'manager') {

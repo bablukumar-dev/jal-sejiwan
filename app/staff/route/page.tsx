@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
+import RouteMap from '@/components/RouteMap';
 import { MapPin, Phone, Plus, AlertTriangle, ChevronRight, Navigation, XCircle, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -16,7 +17,7 @@ export default function MyRoute() {
   const [activeTab, setActiveTab] = useState<'Pending' | 'Completed'>('Pending');
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
-  const [mapZoom, setMapZoom] = useState(1);
+  const [mapZoom, setMapZoom] = useState(13); // Changed default zoom to a reasonable city zoom level
   
   useEffect(() => {
     const fetchStaffRoute = async () => {
@@ -68,8 +69,8 @@ export default function MyRoute() {
 
   const displayList = activeTab === 'Pending' ? pendingList : completedList;
 
-  const handleRecordDelivery = (customerId: number, e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleRecordDelivery = (customerId: number, e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     const existing = deliveries.find(d => d.customerId === customerId && d.date === today);
     if (existing) {
       router.push(`/staff/delivery/${existing.id}`);
@@ -94,8 +95,8 @@ export default function MyRoute() {
     }
   };
 
-  const handleSkipDelivery = (customerId: number, e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleSkipDelivery = (customerId: number, e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     const existing = deliveries.find(d => d.customerId === customerId && d.date === today);
     if (existing) {
       router.push(`/staff/skip/${existing.id}`);
@@ -156,22 +157,29 @@ export default function MyRoute() {
           </button>
         </div>
 
-        {/* Map Placeholder */}
-        <div className="bg-slate-300 rounded-3xl h-48 mb-6 relative overflow-hidden border-2 border-slate-200">
-          <Image src="https://picsum.photos/seed/map/800/400" alt="Map" fill className="object-cover opacity-50 grayscale transition-transform duration-300" style={{ transform: `scale(${mapZoom})` }} />
-          <div className="absolute inset-0 flex items-end p-3">
-            <div className="flex gap-2 w-full">
-              <button onClick={handleManualRouteAdd} className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
-                <Plus className="w-4 h-4" /> MANUAL ROUTE ADD
-              </button>
-              <div className="flex-1 bg-white text-slate-900 font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-1 shadow-lg">
-                <MapPin className="w-3 h-3 text-blue-600" /> {staffRoute || 'No Route'}
-              </div>
-            </div>
-          </div>
-          <div className="absolute top-3 right-3 flex flex-col gap-2">
-            <button onClick={() => setMapZoom(z => Math.min(z + 0.5, 3))} className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center font-bold text-xl active:scale-95 transition-transform">+</button>
-            <button onClick={() => setMapZoom(z => Math.max(z - 0.5, 1))} className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center font-bold text-xl active:scale-95 transition-transform">-</button>
+        {/* Interactive Google Map */}
+        <div className="bg-slate-200 rounded-3xl h-80 mb-4 relative overflow-hidden border border-slate-200 shadow-sm">
+          <RouteMap
+            customers={routeCustomers}
+            deliveries={deliveries}
+            onRecord={(id) => handleRecordDelivery(id)}
+            onSkip={(id) => handleSkipDelivery(id)}
+            zoom={mapZoom}
+            setZoom={setMapZoom}
+          />
+        </div>
+
+        {/* Route Info & Controls Bar */}
+        <div className="flex gap-2 w-full mb-6">
+          <button 
+            type="button"
+            onClick={handleManualRouteAdd} 
+            className="flex-1 bg-slate-800 text-white font-bold py-3.5 rounded-2xl text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all text-center"
+          >
+            <Plus className="w-4 h-4" /> MANUAL ROUTE
+          </button>
+          <div className="flex-1 bg-white text-slate-800 font-bold py-3.5 rounded-2xl text-xs flex items-center justify-center gap-1.5 border border-slate-100 shadow-sm">
+            <MapPin className="w-3.5 h-3.5 text-blue-600" /> {staffRoute || 'No Route'}
           </div>
         </div>
 

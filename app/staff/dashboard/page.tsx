@@ -2,7 +2,7 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Route, FileText, Plus, Wallet, Droplet, ArrowRight, ChevronRight, X } from 'lucide-react';
+import { Route, FileText, Plus, Wallet, Droplet, ArrowRight, ChevronRight, X, LifeBuoy } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
@@ -55,6 +55,7 @@ export default function StaffDashboard() {
 
   const cashCollected = payments.filter(p => p.date === today).reduce((sum, p) => sum + p.amount, 0);
   const emptyReturned = todaysDeliveries.reduce((sum, d) => sum + d.returnedEmpty, 0);
+  const skippedCount = deliveries.filter(d => d.status === 'Skipped').length;
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
@@ -116,6 +117,27 @@ export default function StaffDashboard() {
               <h2 className="text-xl font-bold">MY CUSTOMERS</h2>
             </div>
             <ArrowRight className="w-6 h-6" />
+          </div>
+        </Link>
+
+        {/* Customer Service Action */}
+        <Link href="/staff/service" className="block bg-orange-600 rounded-3xl p-6 text-white mb-6 active:scale-95 transition-transform relative overflow-hidden shadow-md shadow-orange-600/10">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-orange-500/50 rounded-2xl flex items-center justify-center shrink-0">
+              <LifeBuoy className="w-8 h-8 animate-spin-slow" />
+            </div>
+            <div className="flex-1">
+              <div className="text-[10px] font-bold text-orange-200 uppercase tracking-wider mb-1">Re-attempts & Skip Resolve</div>
+              <h2 className="text-xl font-bold">CUSTOMER SERVICE</h2>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {skippedCount > 0 && (
+                <span className="bg-white text-orange-700 font-bold text-xs px-2.5 py-1 rounded-full shadow-sm">
+                  {skippedCount}
+                </span>
+              )}
+              <ArrowRight className="w-6 h-6" />
+            </div>
           </div>
         </Link>
 
