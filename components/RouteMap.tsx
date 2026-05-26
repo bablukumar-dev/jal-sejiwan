@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow, useAdvancedMarkerRef, useMap } from '@vis.gl/react-google-maps';
+import { Filter } from 'lucide-react';
 
 // Module level cache to reduce redundant Geocoding API usage (safer & cheaper)
 const geocodeCache: Record<string, google.maps.LatLngLiteral> = {
@@ -286,6 +287,17 @@ export default function RouteMap({
 }) {
   const API_KEY = process.env.GOOGLE_MAPS_PLATFORM_KEY || '';
   const hasValidKey = Boolean(API_KEY) && API_KEY !== 'YOUR_API_KEY';
+  const [showPendingOnly, setShowPendingOnly] = useState(false);
+
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  const displayCustomers = useMemo(() => {
+    if (!showPendingOnly) return customers;
+    return customers.filter(c => {
+      const d = deliveries.find(del => del.customerId === c.id && del.date === today);
+      return !d || d.status === 'Pending';
+    });
+  }, [customers, deliveries, showPendingOnly, today]);
 
   if (!hasValidKey) {
     return (
@@ -308,7 +320,7 @@ export default function RouteMap({
     <div className="w-full h-full relative">
       <APIProvider apiKey={API_KEY} version="weekly">
         <GeocodedMapContent
-          customers={customers}
+          customers={displayCustomers}
           deliveries={deliveries}
           onRecord={onRecord}
           onSkip={onSkip}
@@ -316,6 +328,18 @@ export default function RouteMap({
           setZoom={setZoom}
         />
       </APIProvider>
+      <button
+        type="button"
+        onClick={() => setShowPendingOnly(!showPendingOnly)}
+        className={`absolute top-3 left-3 z-10 flex items-center gap-1.5 shadow-lg px-3.5 py-2.5 rounded-2xl text-[11px] font-bold tracking-wider transition-all border outline-none active:scale-95 ${
+          showPendingOnly 
+            ? 'bg-blue-600 text-white border-blue-500 hover:bg-blue-700' 
+            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+        }`}
+      >
+        <Filter className={`w-3.5 h-3.5 ${showPendingOnly ? 'animate-pulse' : ''}`} />
+        {showPendingOnly ? 'PENDING ONLY' : 'ALL CUSTOMERS'}
+      </button>
     </div>
   );
 }

@@ -4,12 +4,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Users, UserPlus, Search, Phone, Route, Filter, TrendingUp, CheckCircle, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { Users, UserPlus, Search, Phone, Route, Filter, TrendingUp, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Key } from 'lucide-react';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState } from 'react';
 
 export default function StaffManagement() {
-  const { staff, deliveries } = useAppContext();
+  const { staff, setStaff, deliveries } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedStaffId, setExpandedStaffId] = useState<number | null>(null);
   const [filter, setFilter] = useState<'All' | 'Active' | 'Inactive'>('All');
@@ -142,17 +142,47 @@ export default function StaffManagement() {
                 </div>
 
                 <div className="bg-slate-50 rounded-2xl p-4 space-y-3 mb-4">
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-4 h-4 text-blue-600" />
-                    <span className="font-medium text-slate-700 text-sm">{s.phone}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Phone className="w-4 h-4 text-blue-600" />
+                      <span className="font-medium text-slate-700 text-sm">{s.phone}</span>
+                    </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <Route className="w-4 h-4 text-blue-600 mt-0.5" />
                     <div>
                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assigned Route</div>
-                      <div className="font-medium text-slate-900 text-sm">{s.route}</div>
+                      <div className="font-medium text-slate-900 text-sm">{s.route || 'Not Assigned'}</div>
                     </div>
                   </div>
+                </div>
+
+                {/* Call and Reset Password Options */}
+                <div className="flex gap-2 mb-4">
+                  <a 
+                    href={`tel:${s.phone}`}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                  >
+                    <Phone className="w-3.5 h-3.5 text-blue-600" /> Call Staff
+                  </a>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const newPin = prompt(`Enter new Login Password for ${s.name}:`, s.pin || '');
+                      if (newPin !== null) {
+                        const trimmed = newPin.trim();
+                        if (trimmed === '') {
+                          alert('Password cannot be empty!');
+                        } else {
+                          setStaff(staff.map(item => item.id === s.id ? { ...item, pin: trimmed } : item));
+                          alert(`Password updated successfully for ${s.name}!`);
+                        }
+                      }
+                    }}
+                    className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 active:scale-95 transition-transform border border-blue-100"
+                  >
+                    <Key className="w-3.5 h-3.5 text-blue-600" /> Reset Password
+                  </button>
                 </div>
 
                 {isExpanded && (
