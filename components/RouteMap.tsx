@@ -430,9 +430,36 @@ export default function RouteMap({
   zoom: number;
   setZoom: (zoom: number) => void;
 }) {
-  const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_PLATFORM_KEY || process.env.GOOGLE_MAPS_PLATFORM_KEY || '';
-  const hasValidKey = Boolean(API_KEY) && API_KEY !== 'YOUR_API_KEY';
+  const [apiKey, setApiKey] = useState<string>(() => {
+    return process.env.NEXT_PUBLIC_GOOGLE_MAPS_PLATFORM_KEY || process.env.GOOGLE_MAPS_PLATFORM_KEY || '';
+  });
+  const [isLoadingKey, setIsLoadingKey] = useState<boolean>(!apiKey);
   const [showPendingOnly, setShowPendingOnly] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const fetchKey = async () => {
+      try {
+        const res = await fetch('/api/maps-key');
+        const data = await res.json();
+        if (active && data.apiKey) {
+          setApiKey(data.apiKey);
+        }
+      } catch (err) {
+        console.error('Error loading Google Maps API Key:', err);
+      } finally {
+        if (active) {
+          setIsLoadingKey(false);
+        }
+      }
+    };
+    fetchKey();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const hasValidKey = Boolean(apiKey) && apiKey !== 'YOUR_API_KEY';
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
@@ -443,6 +470,15 @@ export default function RouteMap({
       return !d || d.status === 'Pending';
     });
   }, [customers, deliveries, showPendingOnly, today]);
+
+  if (isLoadingKey) {
+    return (
+      <div className="bg-slate-900 text-white rounded-3xl h-full w-full p-6 flex flex-col justify-center items-center text-center">
+        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-[11px] text-slate-300">Checking credentials...</p>
+      </div>
+    );
+  }
 
   if (!hasValidKey) {
     return (
@@ -463,7 +499,7 @@ export default function RouteMap({
 
   return (
     <div className="w-full h-full relative">
-      <APIProvider apiKey={API_KEY} version="weekly">
+      <APIProvider apiKey={apiKey} version="weekly">
         <GeocodedMapContent
           customers={displayCustomers}
           deliveries={deliveries}
