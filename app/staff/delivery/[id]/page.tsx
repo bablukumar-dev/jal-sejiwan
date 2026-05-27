@@ -10,7 +10,7 @@ export default function DeliveryEntry() {
   const router = useRouter();
   const params = useParams();
   const deliveryId = Number(params.id);
-  const { deliveries, customers, setDeliveries, setCustomers, setInventory, setPayments } = useAppContext();
+  const { deliveries, customers, setDeliveries, setCustomers, setInventory, setPayments, businessInfo } = useAppContext();
 
   const delivery = deliveries.find(d => d.id === deliveryId);
   const customer = customers.find(c => c.id === delivery?.customerId);
@@ -29,6 +29,19 @@ export default function DeliveryEntry() {
 
   const [customCollectedStr, setCustomCollectedStr] = useState<string | null>(null);
 
+  const [userRole, setUserRole] = useState<'owner' | 'manager' | 'staff'>(() => {
+    if (typeof window !== 'undefined') {
+      const storedRole = localStorage.getItem('userRole');
+      if (storedRole === 'owner' || storedRole === 'manager' || storedRole === 'staff') {
+        return storedRole;
+      }
+    }
+    return 'staff';
+  });
+
+  const [hasInitializedRate, setHasInitializedRate] = useState(false);
+  const [currentRate, setCurrentRate] = useState<number>(45);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsOffline(typeof navigator !== 'undefined' ? !navigator.onLine : false);
@@ -45,18 +58,46 @@ export default function DeliveryEntry() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Fetch up-to-date role from Firestore
+    const checkRole = async () => {
+      try {
+        const { auth, db } = await import('@/firebase');
+        const { doc, getDoc } = await import('firebase/firestore');
+        const user = auth.currentUser;
+        if (user) {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const role = userDoc.data().role;
+            if (role === 'owner' || role === 'manager' || role === 'staff') {
+              setUserRole(role);
+              localStorage.setItem('userRole', role);
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    checkRole();
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
+  useEffect(() => {
+    if (customer && !hasInitializedRate) {
+      setCurrentRate(customer.rate || businessInfo?.defaultRate || 45);
+      setHasInitializedRate(true);
+    }
+  }, [customer, businessInfo, hasInitializedRate]);
+
   if (!delivery || !customer) {
     return <div className="p-4">Loading...</div>;
   }
 
-  const rate = 45; // Mock rate
-  const subtotal = delivered * rate;
+  const subtotal = delivered * currentRate;
 
   const amountToDisplayStr = customCollectedStr !== null 
     ? customCollectedStr 
@@ -214,7 +255,27 @@ export default function DeliveryEntry() {
               </div>
               <div>
                 <h3 className="font-bold text-slate-900">20L Jar (Chilled)</h3>
-                <div className="text-xs text-slate-500">Rate: ₹{rate} / unit</div>
+                <div className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+                  <span>Rate:</span>
+                  {(userRole === 'owner' || userRole === 'manager') ? (
+                    <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 font-bold text-slate-800 focus-within:ring-1 focus-within:ring-blue-600 transition-all select-all">
+                      <span className="text-blue-700">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        className="w-12 bg-transparent border-none font-bold text-slate-950 outline-none text-xs p-0 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        value={currentRate || ''}
+                        onChange={(e) => {
+                          const val = Math.max(0, parseFloat(e.target.value) || 0);
+                          setCurrentRate(val);
+                        }}
+                      />
+                      <span className="text-slate-400 font-normal">/ unit</span>
+                    </div>
+                  ) : (
+                    <span className="font-bold text-slate-800">₹{currentRate} / unit</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="text-right">

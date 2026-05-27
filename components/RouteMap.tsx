@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { APIProvider, Map, AdvancedMarker, InfoWindow, useAdvancedMarkerRef, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
-import { Filter, Calendar, MapPin, Navigation } from 'lucide-react';
+import { Filter, Calendar, MapPin, Navigation, Route, Eye } from 'lucide-react';
 
 // Module level NCR (Gurgaon) cache for default mock addresses to guarantee instantaneous loading
 const geocodeCache: Record<string, google.maps.LatLngLiteral> = {
@@ -289,6 +289,7 @@ function CustomMarkerWithInfoWindow({
 function GeocodedMapContent({ 
   customers, 
   deliveries, 
+  allCustomers = [],
   onRecord, 
   onSkip,
   zoom,
@@ -296,6 +297,7 @@ function GeocodedMapContent({
 }: { 
   customers: any[]; 
   deliveries: any[]; 
+  allCustomers?: any[];
   onRecord: (customerId: number) => void; 
   onSkip: (customerId: number) => void;
   zoom: number;
@@ -396,13 +398,16 @@ function GeocodedMapContent({
           const d = deliveries.find(del => del.customerId === c.id);
           const pos = coords[c.id];
           if (!pos) return null;
+          const originalIdx = allCustomers.length > 0 
+            ? allCustomers.findIndex(allC => allC.id === c.id) 
+            : idx;
           return (
             <CustomMarkerWithInfoWindow
               key={c.id}
               customer={c}
               delivery={d}
               position={pos}
-              index={idx}
+              index={originalIdx !== -1 ? originalIdx : idx}
               onRecord={onRecord}
               onSkip={onSkip}
             />
@@ -435,6 +440,7 @@ export default function RouteMap({
   });
   const [isLoadingKey, setIsLoadingKey] = useState<boolean>(!apiKey);
   const [showPendingOnly, setShowPendingOnly] = useState(false);
+  const [viewMode, setViewMode] = useState<'route' | 'focus'>('route');
 
   useEffect(() => {
     let active = true;
@@ -464,12 +470,20 @@ export default function RouteMap({
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   const displayCustomers = useMemo(() => {
+    if (viewMode === 'focus') {
+      const pendingList = customers.filter(c => {
+        const d = deliveries.find(del => del.customerId === c.id && del.date === today);
+        return !d || d.status === 'Pending';
+      });
+      return pendingList.slice(0, 3);
+    }
+
     if (!showPendingOnly) return customers;
     return customers.filter(c => {
       const d = deliveries.find(del => del.customerId === c.id && del.date === today);
       return !d || d.status === 'Pending';
     });
-  }, [customers, deliveries, showPendingOnly, today]);
+  }, [customers, deliveries, showPendingOnly, viewMode, today]);
 
   if (isLoadingKey) {
     return (
@@ -503,24 +517,63 @@ export default function RouteMap({
         <GeocodedMapContent
           customers={displayCustomers}
           deliveries={deliveries}
+          allCustomers={customers}
           onRecord={onRecord}
           onSkip={onSkip}
           zoom={zoom}
           setZoom={setZoom}
         />
       </APIProvider>
-      <button
-        type="button"
-        onClick={() => setShowPendingOnly(!showPendingOnly)}
-        className={`absolute bottom-3 left-3 z-10 flex items-center gap-1.5 shadow-lg px-3.5 py-2.5 rounded-2xl text-[11px] font-bold tracking-wider transition-all border outline-none active:scale-95 ${
-          showPendingOnly 
-            ? 'bg-blue-600 text-white border-blue-500 hover:bg-blue-700' 
-            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-        }`}
-      >
-        <Filter className={`w-3.5 h-3.5 ${showPendingOnly ? 'animate-pulse' : ''}`} />
-        {showPendingOnly ? 'PENDING ONLY' : 'ALL CUSTOMERS'}
-      </button>
+
+      {/* Segmented View Mode Toggle Control */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-white/95 backdrop-blur shadow-lg p-1 rounded-2xl border border-slate-100 flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setViewMode('route')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider font-extrabold transition-all duration-150 active:scale-95 whitespace-nowrap outline-none ${
+            viewMode === 'route'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <Route className="w-3.5 h-3.5" />
+          Route View
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode('focus')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider font-extrabold transition-all duration-150 active:scale-95 whitespace-nowrap outline-none ${
+            viewMode === 'focus'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <Eye className="w-3.5 h-3.5" />
+          Focus View
+        </button>
+      </div>
+
+      {viewMode === 'focus' && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 bg-blue-600/95 text-white shadow-md text-[9px] font-bold px-3 py-1.5 rounded-full border border-blue-500/50 flex items-center gap-1.5 whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping mr-0.5" />
+          Focus Activated: Next 3 Pending Stops Loaded
+        </div>
+      )}
+
+      {viewMode === 'route' && (
+        <button
+          type="button"
+          onClick={() => setShowPendingOnly(!showPendingOnly)}
+          className={`absolute bottom-3 left-3 z-10 flex items-center gap-1.5 shadow-lg px-3.5 py-2.5 rounded-2xl text-[11px] font-bold tracking-wider transition-all border outline-none active:scale-95 ${
+            showPendingOnly 
+              ? 'bg-blue-600 text-white border-blue-500 hover:bg-blue-700' 
+              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          <Filter className={`w-3.5 h-3.5 ${showPendingOnly ? 'animate-pulse' : ''}`} />
+          {showPendingOnly ? 'PENDING ONLY' : 'ALL CUSTOMERS'}
+        </button>
+      )}
     </div>
   );
 }
