@@ -2,7 +2,7 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle, Trash2, AlertTriangle, CheckCircle2, Loader } from 'lucide-react';
+import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { auth } from '@/firebase';
@@ -38,10 +38,7 @@ export default function SettingsPage() {
   } = useAppContext();
   
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
-  const [purgeConfirmText, setPurgeConfirmText] = useState('');
-  const [isPurging, setIsPurging] = useState(false);
-  const [purgeSuccess, setPurgeSuccess] = useState(false);
+
   const [newName, setNewName] = useState(businessInfo.ownerName);
   const [profileImage, setProfileImage] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
@@ -137,60 +134,7 @@ export default function SettingsPage() {
     setIsEditingProfile(false);
   };
 
-  const handlePurgeAllData = async () => {
-    if (purgeConfirmText.trim().toUpperCase() !== 'RESET') return;
-    setIsPurging(true);
-    
-    try {
-      // 1. Delete all staff users from Firestore credentials collection ('staff_users')
-      const { doc, deleteDoc } = await import('firebase/firestore');
-      const { db } = await import('@/firebase');
-      
-      for (const st of staff) {
-        if (st.phone) {
-          try {
-            await deleteDoc(doc(db, 'staff_users', st.phone.trim()));
-          } catch (e) {
-            console.error("Purging staff document error:", e);
-          }
-        }
-      }
-      
-      // 2. Clear out client-side state to update both React and Firestore
-      setCustomers([]);
-      setDeliveries([]);
-      setPayments([]);
-      setInventory({
-        fullCans: 0,
-        emptyCans: 0,
-        damagedCans: 0,
-        cansWithCustomers: 0,
-        cansInDelivery: 0,
-        refillInProcess: 0
-      });
-      setInventoryHistory([]);
-      setStaff([]);
-      setRoutes([]);
-      setAreas([]);
-      
-      // 3. Wiping standard localStorage items to prevent cache loads on hot re-route
-      localStorage.removeItem('customers');
-      localStorage.removeItem('deliveries');
-      localStorage.removeItem('payments');
-      localStorage.removeItem('inventory');
-      localStorage.removeItem('inventoryHistory');
-      localStorage.removeItem('staff');
-      localStorage.removeItem('routes');
-      localStorage.removeItem('areas');
-      
-      setPurgeSuccess(true);
-    } catch (err) {
-      console.error("Failed to purge workspace:", err);
-      alert("Error during reset. Please try again.");
-    } finally {
-      setIsPurging(false);
-    }
-  };
+
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 relative">
@@ -309,32 +253,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Production Launch Controls */}
-            <div className="mb-8">
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">Production Launch</h3>
-              <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setPurgeConfirmText('');
-                    setPurgeSuccess(false);
-                    setIsPurgeModalOpen(true);
-                  }}
-                  className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group text-left outline-none"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
-                      <Trash2 className="w-5 h-5" />
-                    </div>
-                    <div className="text-left">
-                      <h4 className="font-bold text-slate-900 text-rose-600">Purge All Demo Data</h4>
-                      <p className="text-xs text-slate-500">Wipe all test records & go live</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300" />
-                </button>
-              </div>
-            </div>
+
           </>
         )}
 
@@ -522,127 +441,7 @@ export default function SettingsPage() {
         )}
       </AnimatePresence>
 
-      {/* Database Purge / Go-Live Confirmation Modal */}
-      <AnimatePresence>
-        {isPurgeModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl relative overflow-hidden"
-            >
-              {!purgeSuccess ? (
-                <>
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-2 text-rose-600">
-                      <AlertTriangle className="w-5 h-5 animate-pulse" />
-                      <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Purge Demo Data</h2>
-                    </div>
-                    <button 
-                      type="button" 
-                      disabled={isPurging}
-                      onClick={() => setIsPurgeModalOpen(false)} 
-                      className="p-1.5 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 disabled:opacity-50"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
 
-                  <div className="bg-rose-50 border border-rose-100 p-3.5 rounded-2xl text-[11px] text-rose-800 font-medium mb-5 leading-normal">
-                    This action is <strong className="font-extrabold text-rose-900">irreversible</strong>. It will permanently clear all development and test records in Firestore and local storage. Your owner account remains unaffected.
-                  </div>
-
-                  <div className="mb-5 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs text-slate-700 leading-normal space-y-1.5 font-bold">
-                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">To be permanently erased:</div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500 font-medium">📋 Customers</span>
-                      <span className="bg-slate-200/60 px-2 py-0.5 rounded text-[10px] text-slate-800">{customers.length} records</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500 font-medium">🚚 Deliveries</span>
-                      <span className="bg-slate-200/60 px-2 py-0.5 rounded text-[10px] text-slate-800">{deliveries.length} entries</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500 font-medium">💳 Payments</span>
-                      <span className="bg-slate-200/60 px-2 py-0.5 rounded text-[10px] text-slate-800">{payments.length} receipts</span>
-                    </div>
-                    <div className="flex justify-between items-center flex-wrap">
-                      <span className="text-slate-500 font-medium">🔑 Staff accounts</span>
-                      <span className="bg-slate-200/60 px-2 py-0.5 rounded text-[10px] text-slate-800">{staff.length} credentials</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500 font-medium">🗺️ Sector Routes</span>
-                      <span className="bg-slate-200/60 px-2 py-0.5 rounded text-[10px] text-slate-800">{routes.length} configured</span>
-                    </div>
-                    <div className="border-t border-slate-200/60 pt-1.5 flex justify-between items-center text-slate-500 font-medium">
-                      <span>🧪 Inventory balances</span>
-                      <span className="text-[10px] text-slate-800 font-bold">Resets to 0.</span>
-                    </div>
-                  </div>
-
-                  <div className="mb-6">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Type <strong className="text-rose-600 font-black">RESET</strong> in box to verify</label>
-                    <input 
-                      type="text" 
-                      placeholder="Type RESET in uppercase..."
-                      value={purgeConfirmText}
-                      disabled={isPurging}
-                      onChange={(e) => setPurgeConfirmText(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 font-extrabold text-slate-900 placeholder:font-medium text-center tracking-widest uppercase transition-all"
-                    />
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button 
-                      type="button"
-                      disabled={isPurging}
-                      onClick={() => setIsPurgeModalOpen(false)}
-                      className="flex-1 py-3 font-extrabold text-slate-600 bg-slate-100 rounded-xl active:scale-95 transition-all text-xs border border-slate-200/40 disabled:opacity-50"
-                    >
-                      Cancel Purge
-                    </button>
-                    <button 
-                      type="button"
-                      disabled={purgeConfirmText.trim().toUpperCase() !== 'RESET' || isPurging}
-                      onClick={handlePurgeAllData}
-                      className="flex-1 py-3 font-extrabold text-white bg-rose-600 rounded-xl active:scale-95 hover:bg-rose-700 transition-all text-xs disabled:opacity-45 disabled:cursor-not-allowed shadow-lg shadow-rose-200/50 flex justify-center items-center gap-1.5"
-                    >
-                      {isPurging ? (
-                        <>
-                          <Loader className="w-3.5 h-3.5 animate-spin" /> Purging...
-                        </>
-                      ) : (
-                        'Wipe All Data'
-                      )}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center text-center py-4">
-                  <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4 border border-emerald-150 animate-bounce">
-                    <CheckCircle2 className="w-10 h-10 stroke-[2.5]" />
-                  </div>
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight mb-2">System Purged Clean!</h2>
-                  <p className="text-xs text-slate-500 max-w-xs leading-normal font-medium mb-6">
-                    All demo customers, routes, staff files, activity records, and balances have been successfully purged from Firestore and your local workspace caching. Your database has been reset and is fully ready for operational launch!
-                  </p>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setIsPurgeModalOpen(false);
-                      router.push('/owner/dashboard');
-                    }}
-                    className="w-full py-3.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl active:scale-95 transition-transform text-xs shadow-md shadow-emerald-200"
-                  >
-                    CONTINUE TO DASHBOARD
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
     </div>
   );

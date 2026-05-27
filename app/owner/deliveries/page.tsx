@@ -5,7 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import PullToRefresh from '@/components/PullToRefresh';
 import { Search, MapPin, CheckCircle2, Droplet, Plus, Truck, Wallet, Phone, Navigation, XCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import { useRouter } from 'next/navigation';
 import RouteMap from '@/components/RouteMap';
@@ -18,6 +18,29 @@ export default function DeliveriesList() {
   const [routeFilter, setRouteFilter] = useState('All Routes');
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [mapZoom, setMapZoom] = useState(12);
+  const [userRole, setUserRole] = useState<'owner' | 'manager'>('owner');
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const { auth, db } = await import('@/firebase');
+        const { doc, getDoc } = await import('firebase/firestore');
+        const user = auth.currentUser;
+        if (user) {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const role = userDoc.data().role;
+            if (role === 'owner' || role === 'manager') {
+              setUserRole(role);
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchUserRole();
+  }, []);
 
   const updatePriority = (deliveryId: number, priority: 'High' | 'Medium' | 'Low') => {
     setDeliveries(deliveries.map(d => d.id === deliveryId ? { ...d, priority } : d));
@@ -316,7 +339,7 @@ export default function DeliveriesList() {
       </main>
       </PullToRefresh>
 
-      <BottomNav role="owner" activeTab="deliveries" />
+      <BottomNav role={userRole} activeTab="deliveries" />
     </div>
   );
 }

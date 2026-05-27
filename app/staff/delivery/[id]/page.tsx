@@ -27,6 +27,8 @@ export default function DeliveryEntry() {
   const [otpInput, setOtpInput] = useState('');
   const [generatedOtp, setGeneratedOtp] = useState('');
 
+  const [customCollectedStr, setCustomCollectedStr] = useState<string | null>(null);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsOffline(typeof navigator !== 'undefined' ? !navigator.onLine : false);
@@ -56,6 +58,10 @@ export default function DeliveryEntry() {
   const rate = 45; // Mock rate
   const subtotal = delivered * rate;
 
+  const amountToDisplayStr = customCollectedStr !== null 
+    ? customCollectedStr 
+    : (paymentType === 'Due' ? '0' : subtotal.toString());
+
   const handleConfirm = () => {
     try {
         if (!otpSent) {
@@ -72,9 +78,20 @@ export default function DeliveryEntry() {
             return;
         }
 
+        const parsedAmount = parseFloat(amountToDisplayStr) || 0;
+
         // Update delivery
         const updatedDeliveries = deliveries.map(d => 
-        d.id === deliveryId ? { ...d, status: 'Delivered', deliveredQty: delivered, returnedEmpty: empties, date: date } : d
+        d.id === deliveryId ? { 
+          ...d, 
+          status: 'Delivered', 
+          deliveredQty: delivered, 
+          returnedEmpty: empties, 
+          date: date,
+          paymentReceived: parsedAmount > 0,
+          paymentAmount: parsedAmount,
+          paymentMode: paymentType
+        } : d
         );
         setDeliveries(updatedDeliveries);
 
@@ -86,20 +103,26 @@ export default function DeliveryEntry() {
 
         // Handle payment
         let newDue = customer.due;
+
         if (paymentType === 'Due') {
-        newDue += subtotal;
-        } else if (subtotal > 0) {
-        const newPayment = {
-            id: Date.now(),
-            customerId: customer.id,
-            customerName: customer.name,
-            date: date,
-            amount: subtotal,
-            mode: paymentType,
-            collectedBy: 'Staff',
-            note: `DEL-${deliveryId}`
-        };
-        setPayments(prev => [newPayment, ...prev]);
+          newDue += subtotal;
+        } else {
+          // Unpaid difference gets added to customer due balance, or extra payment gets subtracted
+          newDue += (subtotal - parsedAmount);
+
+          if (parsedAmount > 0) {
+            const newPayment = {
+              id: Date.now(),
+              customerId: customer.id,
+              customerName: customer.name,
+              date: date,
+              amount: parsedAmount,
+              mode: paymentType,
+              collectedBy: 'Staff',
+              note: `DEL-${deliveryId}`
+            };
+            setPayments(prev => [newPayment, ...prev]);
+          }
         }
 
         // Update customer
@@ -304,25 +327,72 @@ export default function DeliveryEntry() {
           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Payment Type</div>
           <div className="flex gap-2">
             <button 
-              onClick={() => setPaymentType('Cash')}
+              onClick={() => {
+                setPaymentType('Cash');
+                // Automatically reset editing if switched
+                setCustomCollectedStr(null);
+              }}
               className={`flex-1 font-bold py-3 rounded-xl text-sm ${paymentType === 'Cash' ? 'bg-white border-2 border-blue-600 text-blue-700' : 'bg-white border-2 border-transparent text-slate-600'}`}
             >
               Cash
             </button>
             <button 
-              onClick={() => setPaymentType('UPI')}
+              onClick={() => {
+                setPaymentType('UPI');
+                setCustomCollectedStr(null);
+              }}
               className={`flex-1 font-bold py-3 rounded-xl text-sm ${paymentType === 'UPI' ? 'bg-white border-2 border-blue-600 text-blue-700' : 'bg-white border-2 border-transparent text-slate-600'}`}
             >
               UPI
             </button>
             <button 
-              onClick={() => setPaymentType('Due')}
+              onClick={() => {
+                setPaymentType('Due');
+                setCustomCollectedStr(null);
+              }}
               className={`flex-1 font-bold py-3 rounded-xl text-sm ${paymentType === 'Due' ? 'bg-white border-2 border-blue-600 text-blue-700' : 'bg-white border-2 border-transparent text-slate-600'}`}
             >
               Due
             </button>
           </div>
         </div>
+
+        {/* Amount Received / Cash Collected */}
+        {paymentType !== 'Due' && (
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-sm font-bold text-slate-900 uppercase tracking-wide">Amount Received / Cash Collected (₹)</span>
+            </div>
+            <div className="relative">
+              <input 
+                id="amountReceivedInput"
+                type="number" 
+                pattern="[0-9]*"
+                inputMode="decimal"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-extrabold text-lg text-slate-900 placeholder:font-medium transition-all"
+                value={amountToDisplayStr}
+                onChange={(e) => {
+                  setCustomCollectedStr(e.target.value);
+                }}
+                placeholder="Enter collected amount..."
+              />
+              {customCollectedStr !== null && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomCollectedStr(null);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100"
+                >
+                  Reset (₹{subtotal})
+                </button>
+              )}
+            </div>
+            <div className="text-[10px] text-slate-400 font-medium leading-normal mt-2.5">
+              Enter the actual amount received from the customer. If partial cash is received, we will automatically set the remainder to the customer&apos;s pending overall due.
+            </div>
+          </div>
+        )}
 
         {/* OTP Verification */}
         {otpSent && (
@@ -348,7 +418,7 @@ export default function DeliveryEntry() {
           <div className="flex justify-between items-end mb-4">
             <div>
               <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Total Collected</div>
-              <div className="text-3xl font-bold text-slate-900">₹{paymentType === 'Due' ? '0.00' : subtotal.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-slate-900">₹{paymentType === 'Due' ? '0.00' : (parseFloat(amountToDisplayStr) || 0).toFixed(2)}</div>
             </div>
             <div className="text-right">
               <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Summary</div>

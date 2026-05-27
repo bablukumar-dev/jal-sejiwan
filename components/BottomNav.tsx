@@ -34,7 +34,8 @@ export default function BottomNav({ role, activeTab }: BottomNavProps) {
   } else if (role === 'manager') {
     links = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/inventory/dashboard' },
-      { id: 'dispatch', label: 'Dispatch', icon: Truck, href: '/inventory/dispatch' },
+      { id: 'deliveries', label: 'Deliveries', icon: Truck, href: '/owner/deliveries' },
+      { id: 'dispatch', label: 'Dispatch', icon: Package, href: '/inventory/dispatch' },
       { id: 'history', label: 'History', icon: BarChart3, href: '/inventory/history' },
       { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
     ];

@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect, useMemo } from 'react';
+import RouteMap from '@/components/RouteMap';
 
 export default function StaffCustomers() {
   const router = useRouter();
@@ -17,6 +18,8 @@ export default function StaffCustomers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [mapZoom, setMapZoom] = useState(13);
   
   useEffect(() => {
     const fetchStaffRoute = async () => {
@@ -132,49 +135,128 @@ export default function StaffCustomers() {
       <TopAppBar title="Jal Sejiwan" showBack={true} />
 
       <main className="max-w-md mx-auto px-4 py-6">
-        <div className="mb-4">
-          <h1 className="text-3xl font-bold text-slate-900 mb-1">Customers</h1>
-          <p className="text-sm text-slate-600">Track & Deliver</p>
-        </div>
-
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative flex items-center">
-            <Search className="absolute left-4 text-slate-400 w-5 h-5" />
-            <input 
-              type="text" 
-              placeholder="Search name, phone, or route..." 
-              className="w-full pl-12 pr-4 py-4 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-blue-600 text-slate-900 placeholder:text-slate-500 font-medium"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+        <div className="mb-4 flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 mb-1">Customers</h1>
+            <p className="text-sm text-slate-600">Track & Deliver</p>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
+        {/* Toggle between List View and Map View */}
+        <div className="flex bg-slate-100 p-1 rounded-xl mb-6 text-center">
           <button 
-            onClick={() => setActiveTab('All')}
-            className={`flex-1 font-bold py-2 rounded-lg text-sm transition-colors ${activeTab === 'All' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+            type="button"
+            onClick={() => setViewMode('list')}
+            className={`flex-1 font-bold py-2.5 rounded-lg text-xs transition-all uppercase tracking-wide flex items-center justify-center gap-1.5 ${viewMode === 'list' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            All
+            📋 List View
           </button>
           <button 
-            onClick={() => setActiveTab('Pending')}
-            className={`flex-1 font-bold py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-1 ${activeTab === 'Pending' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+            type="button"
+            onClick={() => setViewMode('map')}
+            className={`flex-1 font-bold py-2.5 rounded-lg text-xs transition-all uppercase tracking-wide flex items-center justify-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            Pending <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded-full">{pendingCount}</span>
-          </button>
-          <button 
-            onClick={() => setActiveTab('Completed')}
-            className={`flex-1 font-bold py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-1 ${activeTab === 'Completed' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
-          >
-            Done <span className="bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.5 rounded-full">{completedCount}</span>
+            🗺️ Map View
           </button>
         </div>
 
-        {/* Customer List */}
-        <div className="route-list space-y-4">
+        {viewMode === 'map' ? (
+          <div className="bg-slate-200 rounded-3xl h-96 mb-6 relative overflow-hidden border border-slate-200 shadow-sm">
+            <RouteMap
+              customers={searchedCustomers}
+              deliveries={deliveries}
+              onRecord={(id) => {
+                const existing = deliveries.find(d => d.customerId === id && d.date === today);
+                if (existing) {
+                  router.push(`/staff/delivery/${existing.id}`);
+                } else {
+                  const newDelivery = {
+                    id: Date.now() + Math.floor(Math.random() * 1000),
+                    customerId: id,
+                    customerName: customers.find(c => c.id === id)?.name || '',
+                    date: today,
+                    status: 'Pending',
+                    staffId: currentStaffId || 0,
+                    staffName: staff.find(s => s.id === currentStaffId)?.name || '',
+                    deliveredQty: 0,
+                    returnedEmpty: 0,
+                    paymentReceived: false,
+                    paymentAmount: 0,
+                    paymentMode: 'Cash',
+                    note: ''
+                  };
+                  setDeliveries([...deliveries, newDelivery]);
+                  router.push(`/staff/delivery/${newDelivery.id}`);
+                }
+              }}
+              onSkip={(id) => {
+                const existing = deliveries.find(d => d.customerId === id && d.date === today);
+                if (existing) {
+                  router.push(`/staff/skip/${existing.id}`);
+                } else {
+                  const newDelivery = {
+                    id: Date.now() + Math.floor(Math.random() * 1000),
+                    customerId: id,
+                    customerName: customers.find(c => c.id === id)?.name || '',
+                    date: today,
+                    status: 'Pending',
+                    staffId: currentStaffId || 0,
+                    staffName: staff.find(s => s.id === currentStaffId)?.name || '',
+                    deliveredQty: 0,
+                    returnedEmpty: 0,
+                    paymentReceived: false,
+                    paymentAmount: 0,
+                    paymentMode: 'Cash',
+                    note: ''
+                  };
+                  setDeliveries([...deliveries, newDelivery]);
+                  router.push(`/staff/skip/${newDelivery.id}`);
+                }
+              }}
+              zoom={mapZoom}
+              setZoom={setMapZoom}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Search Bar */}
+            <div className="mb-6">
+              <div className="relative flex items-center">
+                <Search className="absolute left-4 text-slate-400 w-5 h-5" />
+                <input 
+                  type="text" 
+                  placeholder="Search name, phone, or route..." 
+                  className="w-full pl-12 pr-4 py-4 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-blue-600 text-slate-900 placeholder:text-slate-500 font-medium"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
+              <button 
+                onClick={() => setActiveTab('All')}
+                className={`flex-1 font-bold py-2 rounded-lg text-sm transition-colors ${activeTab === 'All' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+              >
+                All
+              </button>
+              <button 
+                onClick={() => setActiveTab('Pending')}
+                className={`flex-1 font-bold py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-1 ${activeTab === 'Pending' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+              >
+                Pending <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded-full">{pendingCount}</span>
+              </button>
+              <button 
+                onClick={() => setActiveTab('Completed')}
+                className={`flex-1 font-bold py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-1 ${activeTab === 'Completed' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+              >
+                Done <span className="bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.5 rounded-full">{completedCount}</span>
+              </button>
+            </div>
+
+            {/* Customer List */}
+            <div className="route-list space-y-4">
           {displayList.length === 0 ? (
             <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-slate-100 flex flex-col items-center justify-center">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
@@ -278,18 +360,16 @@ export default function StaffCustomers() {
                   <a href={`tel:${customer.phone}`} className="w-12 bg-white border border-slate-200 text-slate-700 rounded-xl flex items-center justify-center active:scale-95 transition-transform shrink-0">
                     <Phone className="w-5 h-5" />
                   </a>
-                  {delivery.status === 'Pending' && (
-                     <button onClick={async () => {
-                       try {
-                         const { sendReminderWhatsApp } = await import('@/lib/whatsappUtils');
-                         sendReminderWhatsApp(customer, businessInfo);
-                       } catch (e) {
-                         alert('Failed to send reminder');
-                       }
-                     }} className="w-12 bg-green-50 border border-green-200 text-green-600 rounded-xl flex items-center justify-center active:scale-95 transition-transform shrink-0">
-                        <MessageCircle className="w-5 h-5" />
-                     </button>
-                  )}
+                  <button onClick={async () => {
+                    try {
+                      const { sendReminderWhatsApp } = await import('@/lib/whatsappUtils');
+                      sendReminderWhatsApp(customer, businessInfo);
+                    } catch (e) {
+                      alert('Failed to send reminder');
+                    }
+                  }} className="w-12 bg-green-50 border border-green-200 text-green-600 rounded-xl flex items-center justify-center active:scale-95 transition-transform shrink-0">
+                     <MessageCircle className="w-5 h-5" />
+                  </button>
                 </div>
               </motion.div>
             );
@@ -297,7 +377,8 @@ export default function StaffCustomers() {
           </AnimatePresence>
           )}
         </div>
-
+          </>
+        )}
       </main>
 
       {/* Floating Next Stop */}
