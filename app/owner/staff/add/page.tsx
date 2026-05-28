@@ -18,11 +18,17 @@ export default function AddStaff() {
   const [role, setRole] = useState('Delivery Partner');
   const [route, setRoute] = useState(routes[0] || '');
   const [pin, setPin] = useState('');
+  const [currentUserRole, setCurrentUserRole] = useState<'owner' | 'manager'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('userRole');
+      if (stored === 'owner' || stored === 'manager') return stored as 'owner' | 'manager';
+    }
+    return 'owner';
+  });
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-        const currentUserRole = (typeof window !== 'undefined' ? localStorage.getItem('userRole') : '')?.toLowerCase() || '';
         if (currentUserRole !== 'owner' && currentUserRole !== 'manager') {
            alert("Only Owner can create users");
            return;
@@ -195,7 +201,7 @@ export default function AddStaff() {
         </form>
       </main>
       
-      <BottomNav role="owner" activeTab="reports" />
+      <BottomNav role={currentUserRole === 'manager' ? 'manager' : 'owner'} activeTab="settings" />
     </div>
   );
 }

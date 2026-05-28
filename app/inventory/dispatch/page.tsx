@@ -2,8 +2,9 @@
 
 import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
+import BottomNav from '@/components/BottomNav';
 import { CheckCircle2, Droplet, Plus, Minus, RefreshCcw } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 
@@ -13,6 +14,13 @@ export default function DispatchScreen() {
   const [dispatched, setDispatched] = useState(45);
   const [selectedStaffId, setSelectedStaffId] = useState<number | null>(staff.length > 0 ? staff[0].id : null);
   const [emptyReceived, setEmptyReceived] = useState(false);
+  const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('userRole');
+      if (stored === 'owner' || stored === 'manager') return stored;
+    }
+    return 'owner';
+  });
 
   const selectedStaff = staff.find(s => s.id === selectedStaffId);
 
@@ -141,6 +149,8 @@ export default function DispatchScreen() {
         </button>
 
       </main>
+
+      <BottomNav role={userRole} activeTab="dispatch" />
     </div>
   );
 }

@@ -4,12 +4,19 @@ import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { Calendar, Filter, AlertTriangle, Settings, Plus, Truck, User } from 'lucide-react';
 import { useAppContext } from '@/app/context/AppContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function InventoryHistory() {
   const { inventoryHistory } = useAppContext();
   const [filter, setFilter] = useState<'ALL' | 'IN' | 'OUT' | 'DAMAGE'>('ALL');
+  const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('userRole');
+      if (stored === 'owner' || stored === 'manager') return stored;
+    }
+    return 'owner';
+  });
 
   const filteredHistory = inventoryHistory.filter(item => {
     if (filter === 'ALL') return true;
@@ -121,7 +128,7 @@ export default function InventoryHistory() {
         <Plus className="w-6 h-6" />
       </Link>
 
-      <BottomNav role="owner" activeTab="more" />
+      <BottomNav role={userRole} activeTab="history" />
     </div>
   );
 }

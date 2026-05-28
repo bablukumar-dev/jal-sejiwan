@@ -267,7 +267,7 @@ export default function StaffManagement() {
 
       </main>
 
-      <BottomNav role="owner" activeTab="reports" />
+      <BottomNav role={currentRole === 'manager' ? 'manager' : 'owner'} activeTab="settings" />
     </div>
   );
 }

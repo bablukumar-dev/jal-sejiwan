@@ -175,7 +175,7 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        {userRole === 'owner' && (
+        {(userRole === 'owner' || userRole === 'manager') && (
           <>
             <div className="flex justify-between bg-white p-5 rounded-3xl border border-slate-100 mb-8 shadow-sm px-6">
               <div className="text-center flex-1">

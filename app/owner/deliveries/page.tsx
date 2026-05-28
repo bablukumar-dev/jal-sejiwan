@@ -18,29 +18,13 @@ export default function DeliveriesList() {
   const [routeFilter, setRouteFilter] = useState('All Routes');
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [mapZoom, setMapZoom] = useState(12);
-  const [userRole, setUserRole] = useState<'owner' | 'manager'>('owner');
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const { auth, db } = await import('@/firebase');
-        const { doc, getDoc } = await import('firebase/firestore');
-        const user = auth.currentUser;
-        if (user) {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const role = userDoc.data().role;
-            if (role === 'owner' || role === 'manager') {
-              setUserRole(role);
-            }
-          }
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchUserRole();
-  }, []);
+  const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('userRole');
+      if (stored === 'owner' || stored === 'manager') return stored;
+    }
+    return 'owner';
+  });
 
   const updatePriority = (deliveryId: number, priority: 'High' | 'Medium' | 'Low') => {
     setDeliveries(deliveries.map(d => d.id === deliveryId ? { ...d, priority } : d));

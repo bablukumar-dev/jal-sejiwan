@@ -14,6 +14,13 @@ export default function CustomersList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('All');
   const [isReminding, setIsReminding] = useState(false);
+  const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('userRole');
+      if (stored === 'owner' || stored === 'manager') return stored;
+    }
+    return 'owner';
+  });
 
   const handleBulkReminder = async () => {
     if (!confirm('Send Bulk WhatsApp reminder to all due customers?')) return;
@@ -203,7 +210,7 @@ export default function CustomersList() {
         <span className="font-bold text-sm uppercase pr-2">Add New Customer</span>
       </Link>
 
-      <BottomNav role="owner" activeTab="customers" />
+      <BottomNav role={userRole} activeTab="customers" />
     </div>
   );
 }

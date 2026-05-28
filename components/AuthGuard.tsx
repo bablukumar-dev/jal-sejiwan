@@ -26,8 +26,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
            // Allowed by local PIN login
            if (localRole === 'staff' && pathname.startsWith('/owner') && !pathname.includes('/owner/customers/add')) {
              router.replace('/staff/dashboard');
-           } else if (localRole === 'manager' && pathname.startsWith('/owner')) {
-             router.replace('/inventory/dashboard');
            } else if (localRole === 'staff' && pathname.startsWith('/inventory')) {
              router.replace('/staff/dashboard');
            } else {
@@ -53,8 +51,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
         if (targetRole === 'staff' && pathname.startsWith('/owner') && !pathname.includes('/owner/customers/add')) {
           router.replace('/staff/dashboard');
-        } else if (targetRole === 'manager' && pathname.startsWith('/owner')) {
-          router.replace('/inventory/dashboard');
         } else if (targetRole === 'staff' && pathname.startsWith('/inventory')) {
           router.replace('/staff/dashboard');
         } else {

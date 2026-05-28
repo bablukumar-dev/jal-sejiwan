@@ -131,7 +131,8 @@ export default function DeliveryEntry() {
           date: date,
           paymentReceived: parsedAmount > 0,
           paymentAmount: parsedAmount,
-          paymentMode: paymentType
+          paymentMode: paymentType,
+          rate: currentRate
         } : d
         );
         setDeliveries(updatedDeliveries);
@@ -168,7 +169,13 @@ export default function DeliveryEntry() {
 
         // Update customer
         const updatedCustomers = customers.map(c => 
-        c.id === customer.id ? { ...c, due: newDue, emptyBalance: c.emptyBalance + delivered - empties - damagedQty, lastDelivery: date } : c
+        c.id === customer.id ? { 
+            ...c, 
+            due: newDue, 
+            emptyBalance: c.emptyBalance + delivered - empties - damagedQty, 
+            lastDelivery: date,
+            rate: currentRate 
+        } : c
         );
         setCustomers(updatedCustomers);
         

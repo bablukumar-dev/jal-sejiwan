@@ -5,9 +5,17 @@ import BottomNav from '@/components/BottomNav';
 import { Package, ArrowUpRight, ArrowDownLeft, AlertTriangle, CheckCircle2, Droplet, MapPin, Calendar, Factory, Truck, Wrench, ArrowRightLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
+import { useState, useEffect } from 'react';
 
 export default function InventoryDashboard() {
   const { inventory, inventoryHistory } = useAppContext();
+  const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('userRole');
+      if (stored === 'owner' || stored === 'manager') return stored;
+    }
+    return 'owner';
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
@@ -160,7 +168,7 @@ export default function InventoryDashboard() {
 
       </main>
 
-      <BottomNav role="owner" activeTab="inventory" />
+      <BottomNav role={userRole} activeTab="inventory" />
     </div>
   );
 }
