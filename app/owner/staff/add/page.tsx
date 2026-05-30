@@ -30,7 +30,7 @@ export default function AddStaff() {
     e.preventDefault();
     try {
         if (currentUserRole !== 'owner' && currentUserRole !== 'manager') {
-           alert("Only Owner can create users");
+           alert("Only Owner or Manager can create users");
            return;
         }
 

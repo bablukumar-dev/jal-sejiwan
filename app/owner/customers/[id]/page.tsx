@@ -19,6 +19,13 @@ export default function CustomerDetail() {
   
   const [activeTab, setActiveTab] = useState('Ledger');
   const [notes, setNotes] = useState(customer?.notes || '');
+  const [userRole, setUserRole] = useState<'owner' | 'manager' | 'staff'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('userRole');
+      if (stored === 'owner' || stored === 'manager' || stored === 'staff') return stored;
+    }
+    return 'owner';
+  });
 
   if (!customer) {
     return <div className="min-h-screen bg-slate-50 flex items-center justify-center">Customer not found</div>;
@@ -306,7 +313,7 @@ export default function CustomerDetail() {
 
       </main>
 
-      <BottomNav role="owner" activeTab="customers" />
+      <BottomNav role={userRole} activeTab="customers" />
     </div>
   );
 }

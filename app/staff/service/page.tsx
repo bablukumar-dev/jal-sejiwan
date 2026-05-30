@@ -35,6 +35,15 @@ export default function CustomerService() {
   useEffect(() => {
     const fetchStaffId = async () => {
       try {
+        const pinAuth = typeof window !== 'undefined' ? localStorage.getItem('pinAuth') : null;
+        const localStaffId = typeof window !== 'undefined' ? localStorage.getItem('staffUserId') : null;
+        if (pinAuth === 'true' && localStaffId) {
+          const currentStaff = staff.find(s => String(s.id) === localStaffId);
+          if (currentStaff) {
+            setCurrentStaffId(currentStaff.id);
+          }
+          return;
+        }
         const { auth, db } = await import('@/firebase');
         const { doc, getDoc } = await import('firebase/firestore');
         const user = auth.currentUser;

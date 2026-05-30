@@ -1,5 +1,5 @@
 'use client';
-
+import { useState } from 'react';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { Calendar, Download, FileText, BarChart3, AlertTriangle, Package, Users, Truck, Wallet } from 'lucide-react';
@@ -7,6 +7,13 @@ import { useAppContext } from '@/app/context/AppContext';
 
 export default function Reports() {
   const { customers, deliveries, payments, businessInfo } = useAppContext();
+  const [userRole, setUserRole] = useState<'owner' | 'manager' | 'staff'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('userRole');
+      if (stored === 'owner' || stored === 'manager' || stored === 'staff') return stored;
+    }
+    return 'owner';
+  });
 
   const pendingTasks = customers.filter(c => c.due > 0).length;
 
@@ -222,7 +229,7 @@ export default function Reports() {
         <Download className="w-6 h-6" />
       </button>
 
-      <BottomNav role="owner" activeTab="reports" />
+      <BottomNav role={userRole} activeTab="reports" />
     </div>
   );
 }

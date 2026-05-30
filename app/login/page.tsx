@@ -181,6 +181,7 @@ export default function Login() {
 
       localStorage.setItem('pinAuth', 'true');
       localStorage.setItem('staffUserId', String(s.id));
+      localStorage.setItem('staffUserName', s.name);
       if (ownerIdFromFirestore) {
          localStorage.setItem('ownerId', ownerIdFromFirestore);
       }

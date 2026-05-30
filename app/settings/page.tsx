@@ -2,7 +2,7 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle, CheckCircle2 } from 'lucide-react';
+import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle, CheckCircle2, Search, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { auth } from '@/firebase';
@@ -15,6 +15,59 @@ const INDIAN_LANGUAGES = [
   'मराठी (Marathi)', 'தமிழ் (Tamil)', 'اردو (Urdu)', 
   'ગુજરાતી (Gujarati)', 'ಕನ್ನಡ (Kannada)', 'ଓଡ଼ିଆ (Odia)', 
   'മലയാളം (Malayalam)', 'ਪੰਜਾਬੀ (Punjabi)', 'অসমীয়া (Assamese)'
+];
+
+const FAQS = [
+  {
+    id: 1,
+    q: "What is Water Delivery Management Software?",
+    a: "Water Delivery Management Software is a smart digital solution that helps water suppliers manage customer billing, delivery tracking, empty can return, payment collection, and inventory in one place. It replaces manual registers and simplifies daily operations."
+  },
+  {
+    id: 2,
+    q: "How does this water can delivery app work?",
+    a: "This water can delivery app allows owners, managers, and staff to add and manage customers, track 20 litre water jar deliveries, monitor empty can returns, record payments and dues, generate invoices, and manage inventory in real-time."
+  },
+  {
+    id: 3,
+    q: "Is this software suitable for 20 litre water jar delivery businesses?",
+    a: "Yes. This software is specially designed for 20 litre water jar delivery and RO water supply businesses. It helps track jar movement, pending empty cans, and customer billing automatically."
+  },
+  {
+    id: 4,
+    q: "Can I track pending payments and dues?",
+    a: "Yes. The system automatically calculates customer dues after every delivery and payment. You can view total outstanding amount, customer-wise due, daily collection, and monthly reports."
+  },
+  {
+    id: 5,
+    q: "Does this water supplier software support inventory tracking?",
+    a: "Yes. It includes a complete water jar inventory tracking system where you can track full cans, empty cans, damaged cans, and manage dispatch and returns."
+  },
+  {
+    id: 6,
+    q: "Can I send bills or reminders through WhatsApp?",
+    a: "Yes. You can generate PDF bills and send payment reminders directly via WhatsApp. You can also send bulk reminders to customers with pending dues."
+  },
+  {
+    id: 7,
+    q: "Is this app suitable for small and medium water supply businesses?",
+    a: "Yes. This water delivery business management app is perfect for small local water suppliers, RO water plant operators, multi-route delivery businesses, and growing water distribution companies."
+  },
+  {
+    id: 8,
+    q: "Can staff use this water delivery app?",
+    a: "Yes. Owners can create staff accounts and assign roles. Staff can update delivery entries, collect payments, and view assigned routes. Managers have higher access while staff access is limited."
+  },
+  {
+    id: 9,
+    q: "Is my data secure in this water supply management system?",
+    a: "Yes. The system includes secure login, PIN-based authentication, role-based access control, and encrypted data handling to ensure safety."
+  },
+  {
+    id: 10,
+    q: "Can I use this water billing software on mobile?",
+    a: "Yes. This web-based water billing and delivery software works smoothly on mobile, tablet, and desktop devices."
+  }
 ];
 
 export default function SettingsPage() {
@@ -63,6 +116,15 @@ export default function SettingsPage() {
   useEffect(() => {
     let unmounted = false;
 
+    // Check if PIN auth is active and load username from local storage
+    if (typeof window !== 'undefined') {
+      const pinAuth = localStorage.getItem('pinAuth');
+      const storedName = localStorage.getItem('staffUserName');
+      if (pinAuth === 'true' && storedName) {
+        setUserName(storedName);
+      }
+    }
+
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         if (!unmounted) setUserName(user.displayName || user.email?.split('@')[0] || 'User');
@@ -108,7 +170,15 @@ export default function SettingsPage() {
   };
 
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
+  const [isFaqOpen, setIsFaqOpen] = useState(false);
+  const [faqSearchQuery, setFaqSearchQuery] = useState('');
+  const [expandedFaqId, setExpandedFaqId] = useState<number | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState('English');
+
+  const filteredFaqs = FAQS.filter(faq => 
+    faq.q.toLowerCase().includes(faqSearchQuery.toLowerCase()) || 
+    faq.a.toLowerCase().includes(faqSearchQuery.toLowerCase())
+  );
 
   const handleLogout = () => {
     router.push('/login');
@@ -315,7 +385,7 @@ export default function SettingsPage() {
               </div>
               <ChevronRight className="w-5 h-5 text-slate-300" />
             </a>
-            <button onClick={() => alert("FAQs section is coming soon!")} className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group">
+            <button onClick={() => setIsFaqOpen(true)} className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-slate-100 transition-colors">
                   <HelpCircle className="w-5 h-5" />
@@ -435,6 +505,108 @@ export default function SettingsPage() {
                     )}
                   </button>
                 ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Help & FAQs Modal */}
+      <AnimatePresence>
+        {isFaqOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm"
+               onClick={() => {
+                 setIsFaqOpen(false);
+                 setFaqSearchQuery('');
+                 setExpandedFaqId(null);
+               }}>
+            <motion.div 
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-lg shadow-xl max-h-[85vh] flex flex-col"
+            >
+              <div className="flex justify-between items-center mb-2 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <HelpCircle className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900">Help & FAQs</h2>
+                </div>
+                <button 
+                  onClick={() => {
+                    setIsFaqOpen(false);
+                    setFaqSearchQuery('');
+                    setExpandedFaqId(null);
+                  }} 
+                  className="p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mb-4 shrink-0">
+                Guides, troubleshooting, and frequently asked questions for Water Delivery Management Software.
+              </p>
+
+              {/* Search Bar */}
+              <div className="relative mb-4 shrink-0">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
+                <input
+                  type="text"
+                  placeholder="Search questions or keywords..."
+                  value={faqSearchQuery}
+                  onChange={(e) => setFaqSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-12 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-800 text-sm"
+                />
+                {faqSearchQuery && (
+                  <button 
+                    onClick={() => setFaqSearchQuery('')}
+                    className="absolute right-3 top-3 text-xs font-bold text-blue-600 hover:text-blue-800"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              
+              {/* FAQs List */}
+              <div className="flex-1 overflow-y-auto pr-1 space-y-3 overscroll-contain pb-6">
+                {filteredFaqs.length > 0 ? (
+                  filteredFaqs.map((faq) => {
+                    const isOpen = expandedFaqId === faq.id;
+                    return (
+                      <div 
+                        key={faq.id} 
+                        className={`border rounded-xl transition-all duration-200 overflow-hidden ${
+                          isOpen 
+                            ? 'border-blue-200 bg-blue-50/20' 
+                            : 'border-slate-100 bg-white hover:bg-slate-50/50'
+                        }`}
+                      >
+                        <button
+                          onClick={() => setExpandedFaqId(isOpen ? null : faq.id)}
+                          className="w-full flex items-start justify-between p-4 text-left transition-colors font-semibold text-slate-800 text-sm gap-2"
+                        >
+                          <span className="flex-1">{faq.id}. {faq.q}</span>
+                          <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 mt-0.5 transition-transform duration-200 ${isOpen ? 'rotate-180 text-blue-500' : ''}`} />
+                        </button>
+                        
+                        {isOpen && (
+                          <div className="px-4 pb-4 text-xs text-slate-600 leading-relaxed border-t border-slate-100/50 pt-2 bg-white">
+                            {faq.a}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-8 text-slate-500">
+                    <HelpCircle className="w-8 h-8 text-slate-300 mx-auto mb-2 animate-bounce" />
+                    <p className="text-sm font-semibold">No results found</p>
+                    <p className="text-xs text-slate-400 mt-1">{"Try searching with other terms like 'reminders', 'dues', or 'water'."}</p>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>

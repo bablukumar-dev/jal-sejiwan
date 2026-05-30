@@ -168,7 +168,7 @@ export default function InventoryDashboard() {
 
       </main>
 
-      <BottomNav role={userRole} activeTab="inventory" />
+      <BottomNav role={userRole} activeTab={userRole === 'manager' ? 'dashboard' : 'inventory'} />
     </div>
   );
 }

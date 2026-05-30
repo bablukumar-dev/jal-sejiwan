@@ -11,6 +11,13 @@ import { useAppContext } from '@/app/context/AppContext';
 export default function PaymentsList() {
   const { payments, customers, businessInfo } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
+  const [userRole, setUserRole] = useState<'owner' | 'manager' | 'staff'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('userRole');
+      if (stored === 'owner' || stored === 'manager' || stored === 'staff') return stored;
+    }
+    return 'owner';
+  });
   const [filter, setFilter] = useState('Today');
   const [showCustomDateRange, setShowCustomDateRange] = useState(false);
   const [startDate, setStartDate] = useState('');
@@ -392,7 +399,7 @@ export default function PaymentsList() {
         <span className="font-bold text-sm uppercase pr-2">New Collection</span>
       </Link>
 
-      <BottomNav role="owner" activeTab="payments" />
+      <BottomNav role={userRole} activeTab="payments" />
     </div>
   );
 }

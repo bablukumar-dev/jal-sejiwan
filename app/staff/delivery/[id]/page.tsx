@@ -43,7 +43,6 @@ export default function DeliveryEntry() {
   const [currentRate, setCurrentRate] = useState<number>(45);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsOffline(typeof navigator !== 'undefined' ? !navigator.onLine : false);
     
     const handleOnline = () => {

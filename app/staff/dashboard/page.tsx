@@ -16,6 +16,22 @@ export default function StaffDashboard() {
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
   
   useEffect(() => {
+    // Check PIN-based authentication first
+    const pinAuth = typeof window !== 'undefined' ? localStorage.getItem('pinAuth') : null;
+    const localStaffId = typeof window !== 'undefined' ? localStorage.getItem('staffUserId') : null;
+
+    if (pinAuth === 'true' && localStaffId) {
+      const currentStaff = staff.find(s => String(s.id) === localStaffId);
+      if (currentStaff) {
+        setUserName(currentStaff.name);
+        if (currentStaff.route) {
+          setStaffRoute(currentStaff.route);
+        }
+        setCurrentStaffId(currentStaff.id);
+      }
+      return;
+    }
+
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setUserName(user.displayName || user.email?.split('@')[0] || 'User');
