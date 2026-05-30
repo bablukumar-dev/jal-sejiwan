@@ -12,7 +12,10 @@ export default function ReturnReconciliation() {
   const [emptyReturned, setEmptyReturned] = useState(105);
   const [fullReturned, setFullReturned] = useState(12);
   const [damaged, setDamaged] = useState(0);
-  const [selectedStaffId, setSelectedStaffId] = useState<number | null>(staff.length > 0 ? staff[0].id : null);
+  const [localSelectedStaffId, setLocalSelectedStaffId] = useState<number | null>(null);
+
+  const selectedStaffId = localSelectedStaffId ?? (staff.find(s => s.active)?.id || staff[0]?.id || null);
+  const setSelectedStaffId = setLocalSelectedStaffId;
 
   const selectedStaff = staff.find(s => s.id === selectedStaffId);
 

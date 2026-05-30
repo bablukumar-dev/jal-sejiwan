@@ -4,7 +4,7 @@ import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { CheckCircle2, Droplet, Plus, Minus, RefreshCcw } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 
@@ -12,7 +12,7 @@ export default function DispatchScreen() {
   const router = useRouter();
   const { staff, setInventory } = useAppContext();
   const [dispatched, setDispatched] = useState(45);
-  const [selectedStaffId, setSelectedStaffId] = useState<number | null>(staff.length > 0 ? staff[0].id : null);
+  const [localSelectedStaffId, setLocalSelectedStaffId] = useState<number | null>(null);
   const [emptyReceived, setEmptyReceived] = useState(false);
   const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
     if (typeof window !== 'undefined') {
@@ -21,6 +21,9 @@ export default function DispatchScreen() {
     }
     return 'owner';
   });
+
+  const selectedStaffId = localSelectedStaffId ?? (staff.find(s => s.active)?.id || staff[0]?.id || null);
+  const setSelectedStaffId = setLocalSelectedStaffId;
 
   const selectedStaff = staff.find(s => s.id === selectedStaffId);
 
