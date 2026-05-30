@@ -17,6 +17,10 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { RoleGuard } from '@/components/RoleGuard';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.APP_URL || 'https://jalsejiwan.in'),
+  alternates: {
+    canonical: '/',
+  },
   title: 'Jal Sejiwan',
   description: 'Smart Water Management Application',
 };
