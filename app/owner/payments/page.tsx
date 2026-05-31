@@ -7,8 +7,9 @@ import { Search, Calendar, Download, Plus, Wallet, QrCode, SlidersHorizontal, X 
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
+import { wrapRoute } from '@/lib/permissionGuard';
 
-export default function PaymentsList() {
+function PaymentsList() {
   const { payments, customers, businessInfo } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [userRole, setUserRole] = useState<'owner' | 'manager' | 'staff'>(() => {
@@ -403,3 +404,5 @@ export default function PaymentsList() {
     </div>
   );
 }
+
+export default wrapRoute(PaymentsList, { requiredRole: 'manager' });

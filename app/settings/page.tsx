@@ -265,20 +265,22 @@ export default function SettingsPage() {
             </div>
 
             {/* Premium Banner */}
-            <div className="bg-gradient-to-r from-blue-700 to-indigo-700 rounded-3xl p-6 text-white mb-8 text-center relative overflow-hidden shadow-lg shadow-blue-900/20">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -mr-10 -mt-10 opacity-10 blur-2xl"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full -ml-8 -mb-8 opacity-10 blur-xl"></div>
-              <div className="relative z-10">
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
-                  <BadgeCheck className="w-6 h-6 text-white" />
+            {userRole === 'owner' && (
+              <div className="bg-gradient-to-r from-blue-700 to-indigo-700 rounded-3xl p-6 text-white mb-8 text-center relative overflow-hidden shadow-lg shadow-blue-900/20">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -mr-10 -mt-10 opacity-10 blur-2xl"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full -ml-8 -mb-8 opacity-10 blur-xl"></div>
+                <div className="relative z-10">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
+                    <BadgeCheck className="w-6 h-6 text-white" />
+                  </div>
+                  <h2 className="text-lg font-bold mb-1">Premium Partner</h2>
+                  <p className="text-blue-100 text-sm mb-4">Status active until Oct 2025</p>
+                  <button className="bg-white text-blue-700 font-bold px-6 py-2.5 rounded-full text-sm active:scale-95 transition-transform hover:bg-slate-50">
+                    RENEW NOW
+                  </button>
                 </div>
-                <h2 className="text-lg font-bold mb-1">Premium Partner</h2>
-                <p className="text-blue-100 text-sm mb-4">Status active until Oct 2025</p>
-                <button className="bg-white text-blue-700 font-bold px-6 py-2.5 rounded-full text-sm active:scale-95 transition-transform hover:bg-slate-50">
-                  RENEW NOW
-                </button>
               </div>
-            </div>
+            )}
 
             {/* Operational Control */}
             <div className="mb-8">
@@ -296,30 +298,34 @@ export default function SettingsPage() {
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-300" />
                 </Link>
-                <Link href="/owner/dashboard/prices" className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
-                      <BadgeIndianRupee className="w-5 h-5" />
-                    </div>
-                    <div className="text-left">
-                      <h4 className="font-bold text-slate-900">Price Settings</h4>
-                      <p className="text-xs text-slate-500">Update bottle rates and discounts</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300" />
-                </Link>
-                <Link href="/owner/staff" className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-purple-50 group-hover:text-purple-600 transition-colors">
-                      <Users className="w-5 h-5" />
-                    </div>
-                    <div className="text-left">
-                      <h4 className="font-bold text-slate-900">Staff Accounts</h4>
-                      <p className="text-xs text-slate-500">{staff.length} Active delivery partners</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300" />
-                </Link>
+                {userRole === 'owner' && (
+                  <>
+                    <Link href="/owner/dashboard/prices" className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
+                          <BadgeIndianRupee className="w-5 h-5" />
+                        </div>
+                        <div className="text-left">
+                          <h4 className="font-bold text-slate-900">Price Settings</h4>
+                          <p className="text-xs text-slate-500">Update bottle rates and discounts</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300" />
+                    </Link>
+                    <Link href="/owner/staff" className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-purple-50 group-hover:text-purple-600 transition-colors">
+                          <Users className="w-5 h-5" />
+                        </div>
+                        <div className="text-left">
+                          <h4 className="font-bold text-slate-900">Staff Accounts</h4>
+                          <p className="text-xs text-slate-500">{staff.length} Active delivery partners</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300" />
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
 

@@ -6,8 +6,9 @@ import { Truck, Wallet, Droplet, Package, AlertTriangle, UserPlus, FileText, Use
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
+import { wrapRoute } from '@/lib/permissionGuard';
 
-export default function OwnerDashboard() {
+function OwnerDashboard() {
   const { customers, deliveries, payments, inventory, businessInfo } = useAppContext();
   const [isReminding, setIsReminding] = useState(false);
 
@@ -257,3 +258,5 @@ export default function OwnerDashboard() {
     </div>
   );
 }
+
+export default wrapRoute(OwnerDashboard, { requiredRole: 'owner' });

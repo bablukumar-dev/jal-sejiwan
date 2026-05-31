@@ -67,8 +67,8 @@ export default function CustomerService() {
   // It's helpful if staff can resolve skipped deliveries from today, 
   // but let's include all skipped deliveries (or today's skipped deliveries) to be safe.
   const skippedDeliveries = useMemo(() => {
-    return deliveries.filter(d => d.status === 'Skipped');
-  }, [deliveries]);
+    return deliveries.filter(d => d.status === 'Skipped' && (currentStaffId === null || d.staffId === currentStaffId));
+  }, [deliveries, currentStaffId]);
 
   const mappedSkips = useMemo(() => {
     return skippedDeliveries.map(delivery => {

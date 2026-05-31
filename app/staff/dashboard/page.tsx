@@ -69,9 +69,9 @@ export default function StaffDashboard() {
   const completedDeliveries = todaysDeliveries.filter(d => d.status === 'Delivered').length;
   const completionPercentage = totalTarget > 0 ? Math.round((completedDeliveries / totalTarget) * 100) : 0;
 
-  const cashCollected = payments.filter(p => p.date === today).reduce((sum, p) => sum + p.amount, 0);
+  const cashCollected = payments.filter(p => p.date === today && p.collectedBy === userName).reduce((sum, p) => sum + p.amount, 0);
   const emptyReturned = todaysDeliveries.reduce((sum, d) => sum + d.returnedEmpty, 0);
-  const skippedCount = deliveries.filter(d => d.status === 'Skipped').length;
+  const skippedCount = deliveries.filter(d => d.status === 'Skipped' && d.staffId === currentStaffId).length;
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">

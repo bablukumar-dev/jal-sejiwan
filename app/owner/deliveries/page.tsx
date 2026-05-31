@@ -9,8 +9,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import { useRouter } from 'next/navigation';
 import RouteMap from '@/components/RouteMap';
+import { wrapRoute } from '@/lib/permissionGuard';
 
-export default function DeliveriesList() {
+function DeliveriesList() {
   const router = useRouter();
   const { deliveries, customers, routes, setDeliveries } = useAppContext();
   const [filter, setFilter] = useState('All');
@@ -327,3 +328,5 @@ export default function DeliveriesList() {
     </div>
   );
 }
+
+export default wrapRoute(DeliveriesList, { requiredRole: 'manager' });

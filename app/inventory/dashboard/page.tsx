@@ -6,8 +6,9 @@ import { Package, ArrowUpRight, ArrowDownLeft, AlertTriangle, CheckCircle2, Drop
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
+import { wrapRoute } from '@/lib/permissionGuard';
 
-export default function InventoryDashboard() {
+function InventoryDashboard() {
   const { inventory, inventoryHistory } = useAppContext();
   const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
     if (typeof window !== 'undefined') {
@@ -188,3 +189,5 @@ export default function InventoryDashboard() {
     </div>
   );
 }
+
+export default wrapRoute(InventoryDashboard, { requiredRole: 'manager' });

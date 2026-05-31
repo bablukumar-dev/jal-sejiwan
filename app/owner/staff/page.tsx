@@ -10,8 +10,9 @@ import { useState } from 'react';
 import { db } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { hashPin } from '@/lib/authHelper';
+import { wrapRoute } from '@/lib/permissionGuard';
 
-export default function StaffManagement() {
+function StaffManagement() {
   const { staff, setStaff, deliveries } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedStaffId, setExpandedStaffId] = useState<number | null>(null);
@@ -271,3 +272,5 @@ export default function StaffManagement() {
     </div>
   );
 }
+
+export default wrapRoute(StaffManagement, { requiredRole: 'owner' });

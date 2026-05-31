@@ -9,8 +9,9 @@ import { hashPin } from '@/lib/authHelper';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { logActivity } from '@/lib/activityLogger';
+import { wrapRoute } from '@/lib/permissionGuard';
 
-export default function AddStaff() {
+function AddStaff() {
   const router = useRouter();
   const { staff, setStaff, routes, setRoutes, customers, setCustomers } = useAppContext();
   
@@ -215,3 +216,5 @@ export default function AddStaff() {
     </div>
   );
 }
+
+export default wrapRoute(AddStaff, { requiredRole: 'owner' });

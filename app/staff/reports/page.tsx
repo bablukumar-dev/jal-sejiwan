@@ -4,8 +4,9 @@ import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { Calendar, Download, FileText, BarChart3, AlertTriangle, Package, Users, Truck, Wallet } from 'lucide-react';
 import { useAppContext } from '@/app/context/AppContext';
+import { wrapRoute } from '@/lib/permissionGuard';
 
-export default function Reports() {
+function Reports() {
   const { customers, deliveries, payments, businessInfo } = useAppContext();
   const [userRole, setUserRole] = useState<'owner' | 'manager' | 'staff'>(() => {
     if (typeof window !== 'undefined') {
@@ -62,59 +63,63 @@ export default function Reports() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
-              <Wallet className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-slate-900 text-lg mb-1">Daily Collection</h3>
-            <p className="text-sm text-slate-500 mb-4">Summary of all cash and digital payments received during the current operational shift.</p>
-            <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">XLSX • 840 KB</span>
-              <button onClick={() => handleExport('Daily Collection')} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 active:scale-95 transition-transform">
-                <Download className="w-4 h-4" /> EXPORT
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
-            <div className="absolute top-4 right-4 bg-red-50 text-red-600 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Action Required</div>
-            <div className="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center mb-3">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-slate-900 text-lg mb-1">Due Report</h3>
-            <p className="text-sm text-slate-500 mb-4">List of all customers with outstanding balances, sorted by age and amount for collection priority.</p>
-            <div className="flex flex-col gap-2 border-t border-slate-100 pt-4 mt-2">
-              <button 
-                 onClick={async () => {
-                    if (!confirm(`Generate PDF bills for all ${customers.filter(c => c.due > 0).length} customers?`)) return;
-                     try {
-                      const { generateInvoicePDF } = await import('@/lib/pdfGenerator');
-                      const dueCustomers = customers.filter(c => c.due > 0);
-                      for (const cust of dueCustomers) {
-                         const custDeliveries = deliveries.filter(d => d.customerId === cust.id);
-                         const custPayments = payments.filter(p => p.customerId === cust.id);
-                         const { doc } = generateInvoicePDF(cust, custDeliveries, custPayments, businessInfo);
-                         doc.save(`Invoice_${cust.name}_${new Date().toLocaleDateString('en-GB')}.pdf`);
-                      }
-                      alert('Bulk PDFs generated successfully!');
-                    } catch (e) {
-                      console.error(e);
-                      alert('Failed to generate bulk PDFs');
-                    }
-                 }}
-                 className="w-full bg-slate-100 text-slate-700 px-4 py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
-              >
-                <FileText className="w-4 h-4" /> BATCH EXPORT DUE INVOICES
-              </button>
-              
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PDF • 2.1 MB</span>
-                <button onClick={() => handleExport('Due Report')} className="bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 active:scale-95 transition-transform">
-                  <Download className="w-4 h-4" /> REPORT
+          {userRole === 'owner' && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-lg mb-1">Daily Collection</h3>
+              <p className="text-sm text-slate-500 mb-4">Summary of all cash and digital payments received during the current operational shift.</p>
+              <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">XLSX • 840 KB</span>
+                <button onClick={() => handleExport('Daily Collection')} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 active:scale-95 transition-transform">
+                  <Download className="w-4 h-4" /> EXPORT
                 </button>
               </div>
             </div>
-          </div>
+          )}
+
+          {userRole === 'owner' && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
+              <div className="absolute top-4 right-4 bg-red-50 text-red-600 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Action Required</div>
+              <div className="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center mb-3">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-lg mb-1">Due Report</h3>
+              <p className="text-sm text-slate-500 mb-4">List of all customers with outstanding balances, sorted by age and amount for collection priority.</p>
+              <div className="flex flex-col gap-2 border-t border-slate-100 pt-4 mt-2">
+                <button 
+                   onClick={async () => {
+                      if (!confirm(`Generate PDF bills for all ${customers.filter(c => c.due > 0).length} customers?`)) return;
+                       try {
+                        const { generateInvoicePDF } = await import('@/lib/pdfGenerator');
+                        const dueCustomers = customers.filter(c => c.due > 0);
+                        for (const cust of dueCustomers) {
+                           const custDeliveries = deliveries.filter(d => d.customerId === cust.id);
+                           const custPayments = payments.filter(p => p.customerId === cust.id);
+                           const { doc } = generateInvoicePDF(cust, custDeliveries, custPayments, businessInfo);
+                           doc.save(`Invoice_${cust.name}_${new Date().toLocaleDateString('en-GB')}.pdf`);
+                        }
+                        alert('Bulk PDFs generated successfully!');
+                      } catch (e) {
+                        console.error(e);
+                        alert('Failed to generate bulk PDFs');
+                      }
+                   }}
+                   className="w-full bg-slate-100 text-slate-700 px-4 py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                >
+                  <FileText className="w-4 h-4" /> BATCH EXPORT DUE INVOICES
+                </button>
+                
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PDF • 2.1 MB</span>
+                  <button onClick={() => handleExport('Due Report')} className="bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 active:scale-95 transition-transform">
+                    <Download className="w-4 h-4" /> REPORT
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
             <div className="w-10 h-10 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center mb-3">
@@ -130,57 +135,59 @@ export default function Reports() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
-              <BarChart3 className="w-5 h-5" />
+          {userRole === 'owner' && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+                <BarChart3 className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-lg mb-1">Monthly Sales</h3>
+              <p className="text-sm text-slate-500 mb-4">Comprehensive monthly growth analysis, comparing sales volume and revenue targets for the current period.</p>
+              <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PDF • Auto-generated</span>
+                <button 
+                  onClick={async () => {
+                     try {
+                       const { jsPDF } = await import('jspdf');
+                       await import('jspdf-autotable');
+                       const doc = new jsPDF();
+                       doc.setFontSize(20);
+                       doc.text("Monthly Sales Report", 14, 22);
+                       doc.setFontSize(12);
+                       doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
+                       
+                       let totalCans = deliveries.reduce((sum, d) => sum + d.deliveredQty, 0);
+                       let totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
+                       let currentDue = customers.reduce((sum, c) => sum + c.due, 0);
+
+                       const tableData = [
+                          ['Total Deliveries (Cans)', totalCans.toString()],
+                          ['Total Revenue Collected', `Rs ${totalRevenue}`],
+                          ['Total Outstanding Due', `Rs ${currentDue}`],
+                       ];
+
+                       // @ts-ignore
+                       doc.autoTable({
+                         startY: 40,
+                         head: [['Metric', 'Value']],
+                         body: tableData,
+                         theme: 'grid',
+                         headStyles: { fillColor: [41, 128, 185] }
+                       });
+
+                       doc.save(`Monthly_Report_${new Date().toLocaleDateString('en-GB')}.pdf`);
+                       alert('PDF Generated Successfully');
+                     } catch (e) {
+                       console.error(e);
+                       alert('Failed to generate PDF');
+                     }
+                  }} 
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 active:scale-95 transition-transform"
+                >
+                  <FileText className="w-4 h-4" /> GENERATE PDF
+                </button>
+              </div>
             </div>
-            <h3 className="font-bold text-slate-900 text-lg mb-1">Monthly Sales</h3>
-            <p className="text-sm text-slate-500 mb-4">Comprehensive monthly growth analysis, comparing sales volume and revenue targets for the current period.</p>
-            <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PDF • Auto-generated</span>
-              <button 
-                onClick={async () => {
-                   try {
-                     const { jsPDF } = await import('jspdf');
-                     await import('jspdf-autotable');
-                     const doc = new jsPDF();
-                     doc.setFontSize(20);
-                     doc.text("Monthly Sales Report", 14, 22);
-                     doc.setFontSize(12);
-                     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
-                     
-                     let totalCans = deliveries.reduce((sum, d) => sum + d.deliveredQty, 0);
-                     let totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
-                     let currentDue = customers.reduce((sum, c) => sum + c.due, 0);
-
-                     const tableData = [
-                        ['Total Deliveries (Cans)', totalCans.toString()],
-                        ['Total Revenue Collected', `Rs ${totalRevenue}`],
-                        ['Total Outstanding Due', `Rs ${currentDue}`],
-                     ];
-
-                     // @ts-ignore
-                     doc.autoTable({
-                       startY: 40,
-                       head: [['Metric', 'Value']],
-                       body: tableData,
-                       theme: 'grid',
-                       headStyles: { fillColor: [41, 128, 185] }
-                     });
-
-                     doc.save(`Monthly_Report_${new Date().toLocaleDateString('en-GB')}.pdf`);
-                     alert('PDF Generated Successfully');
-                   } catch (e) {
-                     console.error(e);
-                     alert('Failed to generate PDF');
-                   }
-                }} 
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 active:scale-95 transition-transform"
-              >
-                <FileText className="w-4 h-4" /> GENERATE PDF
-              </button>
-            </div>
-          </div>
+          )}
 
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
             <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
@@ -233,3 +240,5 @@ export default function Reports() {
     </div>
   );
 }
+
+export default wrapRoute(Reports, { requiredRole: 'manager' });

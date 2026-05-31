@@ -8,8 +8,9 @@ import { Search, MapPin, Phone, Plus, ChevronDown, Users, Bell, MessageCircle, X
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { sendReminderWhatsApp } from '@/lib/whatsappUtils';
+import { wrapRoute } from '@/lib/permissionGuard';
 
-export default function CustomersList() {
+function CustomersList() {
   const { customers, businessInfo } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('All');
@@ -118,7 +119,7 @@ export default function CustomersList() {
           </button>
         </div>
 
-        {filter === 'Dues Only' && filteredCustomers.length > 0 && (
+        {filter === 'Dues Only' && filteredCustomers.length > 0 && userRole === 'owner' && (
           <div className="mb-4">
             <button 
               onClick={handleBulkReminder}
@@ -126,7 +127,7 @@ export default function CustomersList() {
               className="w-full bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all text-sm border border-orange-300 disabled:opacity-50"
             >
               <Bell className="w-5 h-5 text-orange-600" />
-              {isReminding ? 'Sending Reminders...' : 'Bulk Reminder (Owner Only)'}
+              {isReminding ? 'Sending Reminders...' : '🔔 Remind All Due Customers'}
             </button>
           </div>
         )}
@@ -214,3 +215,5 @@ export default function CustomersList() {
     </div>
   );
 }
+
+export default wrapRoute(CustomersList, { requiredRole: 'manager' });

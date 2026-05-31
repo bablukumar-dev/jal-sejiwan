@@ -11,11 +11,18 @@ import {
 } from 'lucide-react';
 
 interface BottomNavProps {
-  role: 'owner' | 'staff' | 'manager';
+  role?: 'owner' | 'staff' | 'manager' | string | null;
   activeTab: string;
 }
 
-export default function BottomNav({ role, activeTab }: BottomNavProps) {
+export default function BottomNav({ role: propRole, activeTab }: BottomNavProps) {
+  let role = propRole || (typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'staff');
+  if (role) {
+    role = role.toLowerCase();
+  }
+  if (role !== 'owner' && role !== 'manager' && role !== 'staff') {
+    role = 'staff';
+  }
   let links: Array<{ id: string, label: string, icon: any, href: string }> = [];
 
   if (role === 'owner') {

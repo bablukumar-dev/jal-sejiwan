@@ -5,8 +5,9 @@ import BottomNav from '@/components/BottomNav';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { wrapRoute } from '@/lib/permissionGuard';
 
-export default function RouteManagement() {
+function RouteManagement() {
   const { routes, setRoutes } = useAppContext();
   const [newRoute, setNewRoute] = useState('');
 
@@ -81,3 +82,5 @@ export default function RouteManagement() {
     </div>
   );
 }
+
+export default wrapRoute(RouteManagement, { requiredRole: 'manager' });
