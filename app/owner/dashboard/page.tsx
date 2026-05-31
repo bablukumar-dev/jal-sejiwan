@@ -172,6 +172,24 @@ export default function OwnerDashboard() {
           </div>
         )}
 
+        {/* Live Command Station */}
+        <Link href="/owner/activity" className="block bg-gradient-to-r from-blue-700 to-indigo-800 text-white rounded-3xl p-5 shadow-md shadow-blue-700/10 hover:shadow-lg transition-all active:scale-95">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] bg-blue-600 px-2.5 py-1 rounded-full font-bold uppercase tracking-widest text-blue-100 flex items-center gap-1">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              Live Feed
+            </span>
+            <span className="text-xs text-blue-200 font-bold uppercase tracking-wider flex items-center gap-1">
+              Control Room ➔
+            </span>
+          </div>
+          <h3 className="text-xl font-bold mb-1">Live Activity Dashboard</h3>
+          <p className="text-xs text-blue-100">Supervise and audit deliveries, staff creation actions, and receipts in real time.</p>
+        </Link>
+
         {/* Quick Operations */}
         <div>
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 mt-6">Quick Operations</h3>

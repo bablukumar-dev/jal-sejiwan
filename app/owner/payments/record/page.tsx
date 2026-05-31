@@ -5,6 +5,7 @@ import { Search, Calendar, CheckCircle2, X, WifiOff, RefreshCw } from 'lucide-re
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
+import { logActivity } from '@/lib/activityLogger';
 
 export default function RecordPayment() {
   const router = useRouter();
@@ -98,6 +99,19 @@ export default function RecordPayment() {
       setCustomers(customers.map(c => 
         c.id === selectedCustomerId ? { ...c, due: Math.max(0, c.due - numAmount) } : c
       ));
+
+      // Log direct payment collection activity silently in background
+      logActivity(
+        'payment_collected',
+        `Collected payment of ₹${numAmount} from ${selectedCustomer?.name || 'customer'} (${mode})`,
+        {
+          payment_id: newPayment.id,
+          customer_id: selectedCustomerId,
+          customer_name: selectedCustomer?.name || '',
+          amount: numAmount,
+          payment_mode: mode
+        }
+      );
 
       alert('Payment Recorded Successfully');
       router.back();

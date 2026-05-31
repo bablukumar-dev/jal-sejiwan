@@ -6,7 +6,8 @@ import {
   Package, 
   BarChart3,
   Settings,
-  LifeBuoy
+  LifeBuoy,
+  Activity
 } from 'lucide-react';
 
 interface BottomNavProps {
@@ -22,6 +23,7 @@ export default function BottomNav({ role, activeTab }: BottomNavProps) {
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/owner/dashboard' },
       { id: 'customers', label: 'Customers', icon: Users, href: '/owner/customers' },
       { id: 'deliveries', label: 'Deliveries', icon: Truck, href: '/owner/deliveries' },
+      { id: 'activity_logs', label: 'Live Log', icon: Activity, href: '/owner/activity' },
       { id: 'inventory', label: 'Inventory', icon: Package, href: '/inventory/dashboard' },
     ];
   } else if (role === 'staff') {
@@ -35,7 +37,7 @@ export default function BottomNav({ role, activeTab }: BottomNavProps) {
     links = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/inventory/dashboard' },
       { id: 'deliveries', label: 'Deliveries', icon: Truck, href: '/owner/deliveries' },
-      { id: 'dispatch', label: 'Dispatch', icon: Package, href: '/inventory/dispatch' },
+      { id: 'activity_logs', label: 'Live Log', icon: Activity, href: '/owner/activity' },
       { id: 'history', label: 'History', icon: BarChart3, href: '/inventory/history' },
       { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
     ];

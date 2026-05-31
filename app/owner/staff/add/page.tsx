@@ -8,6 +8,7 @@ import { useAppContext } from '@/app/context/AppContext';
 import { hashPin } from '@/lib/authHelper';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
+import { logActivity } from '@/lib/activityLogger';
 
 export default function AddStaff() {
   const router = useRouter();
@@ -44,6 +45,7 @@ export default function AddStaff() {
             return;
         }
 
+        const creatorId = currentUserRole === 'owner' ? 'owner' : (localStorage.getItem('staffUserId') || 'manager');
         const newStaff = {
         id: Date.now(),
         name,
@@ -53,7 +55,7 @@ export default function AddStaff() {
         pin: 'HIDDEN', // don't expose raw PIN 
         encryptedPin: hashPin(pin),
         active: true,
-        createdBy: 'owner',
+        createdBy: creatorId,
         failedPinAttempts: 0
         };
 
@@ -65,6 +67,14 @@ export default function AddStaff() {
         });
 
         setStaff([...staff, newStaff]);
+        
+        // Log activity silently in background
+        logActivity(
+          'staff_created',
+          `Added new staff member: ${name} (${role})`,
+          { staff_id: newStaff.id, name, role, route }
+        );
+
         alert("Staff Added Successfully!");
         router.push('/owner/staff');
     } catch (err) {

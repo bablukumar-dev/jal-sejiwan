@@ -2,7 +2,7 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Package, ArrowUpRight, ArrowDownLeft, AlertTriangle, CheckCircle2, Droplet, MapPin, Calendar, Factory, Truck, Wrench, ArrowRightLeft } from 'lucide-react';
+import { Package, ArrowUpRight, ArrowDownLeft, AlertTriangle, CheckCircle2, Droplet, MapPin, Calendar, Factory, Truck, Wrench, ArrowRightLeft, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
@@ -87,6 +87,22 @@ export default function InventoryDashboard() {
         <div className="mb-8">
           <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Quick Operations</h3>
           <div className="space-y-3">
+            <Link href="/owner/activity" className="bg-gradient-to-r from-indigo-700 to-blue-800 rounded-2xl p-4 flex items-center gap-4 text-white active:scale-95 transition-transform shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <Activity className="w-6 h-6" />
+              </div>
+              <div className="text-left">
+                <h4 className="font-bold text-lg">Live Activity Feed</h4>
+                <div className="text-[10px] font-bold text-indigo-200 uppercase tracking-wider flex items-center gap-1">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                  </span>
+                  Real-time Operational Signals
+                </div>
+              </div>
+            </Link>
+
             <Link href="/inventory/dispatch" className="bg-blue-700 rounded-2xl p-4 flex items-center gap-4 text-white active:scale-95 transition-transform shadow-sm">
               <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                 <ArrowUpRight className="w-6 h-6" />
