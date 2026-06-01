@@ -74,7 +74,7 @@ export default function StaffDashboard() {
   const skippedCount = deliveries.filter(d => d.status === 'Skipped' && d.staffId === currentStaffId).length;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24">
+    <div className="min-h-screen bg-slate-50 pb-32">
       <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 w-full">
         <div className="flex justify-between items-center px-4 h-16 max-w-md mx-auto">
           <div className="flex items-center gap-3">
@@ -278,7 +278,7 @@ export default function StaffDashboard() {
         )}
       </AnimatePresence>
 
-      <BottomNav role="manager" activeTab="dashboard" />
+      <BottomNav role="owner" activeTab="dashboard" />
     </div>
   );
 }
