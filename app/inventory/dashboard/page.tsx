@@ -20,7 +20,7 @@ function InventoryDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <TopAppBar title="Stock Command Center" subtitle="Operational Overview" showBack={true} />
+      <TopAppBar title="Stock Command Center" subtitle="Inventory Overview" showBack={true} />
 
       <main className="max-w-md mx-auto px-4 py-6">
         {/* Date */}

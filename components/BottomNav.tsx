@@ -5,7 +5,6 @@ import {
   Truck, 
   Package, 
   BarChart3,
-  Settings,
   LifeBuoy,
   Activity
 } from 'lucide-react';
