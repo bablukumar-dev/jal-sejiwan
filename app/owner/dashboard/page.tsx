@@ -109,6 +109,41 @@ function OwnerDashboard() {
       </header>
 
       <main className="max-w-md mx-auto p-4 space-y-4">
+        {/* Inventory Status */}
+        <div>
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Inventory Status</h3>
+          <div className="grid grid-cols-2 gap-3">
+              <div className="bg-blue-700 rounded-2xl p-5 text-white shadow-sm flex flex-col justify-between h-28">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-100">Full Stock</span>
+                    <Droplet className="w-4 h-4" />
+                </div>
+                <div className="text-3xl font-bold">{inventory.fullCans}</div>
+              </div>
+              <div className="bg-orange-500 rounded-2xl p-5 text-white shadow-sm flex flex-col justify-between h-28">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-orange-100">Empty Stock</span>
+                    <Package className="w-4 h-4" />
+                </div>
+                <div className="text-3xl font-bold">{inventory.emptyCans}</div>
+              </div>
+              <div className="bg-blue-200 rounded-2xl p-5 text-blue-900 shadow-sm flex flex-col justify-between h-28">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">In Market</span>
+                    <Truck className="w-4 h-4" />
+                </div>
+                <div className="text-3xl font-bold">{inventory.cansWithCustomers + inventory.cansInDelivery}</div>
+              </div>
+              <div className="bg-red-100 rounded-2xl p-5 text-red-900 shadow-sm flex flex-col justify-between h-28">
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-red-700">Damaged</span>
+                    <AlertTriangle className="w-4 h-4" />
+                </div>
+                <div className="text-3xl font-bold">{inventory.damagedCans}</div>
+              </div>
+          </div>
+        </div>
+
         {/* Date Selector */}
         <div className="bg-white rounded-xl p-3 flex items-center gap-3 border border-slate-200 shadow-sm">
           <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
