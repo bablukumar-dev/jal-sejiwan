@@ -44,15 +44,15 @@ function InventoryDashboard() {
             </div>
           </div>
 
-          <div className="bg-slate-200 rounded-2xl p-5 text-slate-900 shadow-sm">
+          <div className="bg-orange-500 rounded-2xl p-5 text-white shadow-sm">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
-                <Package className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-orange-600">
+                <Package className="w-4 h-4 fill-current" />
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Empty Stock</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-orange-100">Empty Stock</span>
             </div>
             <div className="text-3xl font-bold mb-1">{inventory.emptyCans}</div>
-            <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-orange-100">
               <Factory className="w-3 h-3" /> Needs Refilling
             </div>
           </div>

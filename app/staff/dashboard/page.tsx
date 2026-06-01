@@ -10,7 +10,7 @@ import { auth } from '@/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function StaffDashboard() {
-  const { deliveries, payments, staff } = useAppContext();
+  const { customers, deliveries, payments, inventory, staff, businessInfo } = useAppContext();
   const [userName, setUserName] = useState('');
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
@@ -75,15 +75,33 @@ export default function StaffDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <TopAppBar title="Jal Sejiwan" showBack={false} />
+      <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 w-full">
+        <div className="flex justify-between items-center px-4 h-16 max-w-md mx-auto">
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Operational Overview</span>
+              <h1 className="text-xl font-bold text-slate-900">Namaste, {userName.split(' ')[0]} <span className="text-blue-600 font-normal">(Manager)</span></h1>
+            </div>
+          </div>
+        </div>
+      </header>
 
-      <main className="max-w-md mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-900">{userName}</h1>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1 rounded uppercase tracking-wider">{staffRoute || 'No Route'}</span>
-            {staffRoute && <span className="text-blue-400 text-xs font-bold uppercase tracking-wider">Active Route</span>}
+<main className="max-w-md mx-auto p-4 space-y-4">
+        {/* Inventory Overview */}
+        <div>
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Inventory Status</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: 'Full Stock', value: inventory.fullCans, color: 'text-blue-600' },
+              { label: 'Empty Stock', value: inventory.emptyCans, color: 'text-slate-600' },
+              { label: 'In Market', value: inventory.cansWithCustomers + inventory.cansInDelivery, color: 'text-blue-600' },
+              { label: 'Damaged', value: inventory.damagedCans, color: 'text-red-600' },
+            ].map((item, i) => (
+              <div key={i} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col justify-between h-28">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.label}</span>
+                <div className="text-2xl font-bold text-slate-900">{item.value}</div>
+              </div>
+            ))}
           </div>
         </div>
 
