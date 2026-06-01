@@ -278,7 +278,7 @@ export default function StaffDashboard() {
         )}
       </AnimatePresence>
 
-      <BottomNav role="staff" activeTab="dashboard" />
+      <BottomNav role="manager" activeTab="dashboard" />
     </div>
   );
 }

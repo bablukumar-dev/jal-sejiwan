@@ -24,7 +24,7 @@ export default function BottomNav({ role: propRole, activeTab }: BottomNavProps)
   }
   let links: Array<{ id: string, label: string, icon: any, href: string }> = [];
 
-  if (role === 'owner') {
+  if (role === 'owner' || role === 'manager') {
     links = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/owner/dashboard' },
       { id: 'customers', label: 'Customers', icon: Users, href: '/owner/customers' },
