@@ -2,7 +2,7 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Truck, Wallet, Droplet, Package, AlertTriangle, UserPlus, FileText, Users, Bell, Route, Plus, ArrowRight, ChevronRight, X, LifeBuoy } from 'lucide-react';
+import { Truck, Wallet, Droplet, Package, AlertTriangle, UserPlus, FileText, Users, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
@@ -99,7 +99,7 @@ export default function StaffDashboard() {
           <div className="flex items-center gap-3">
             <div className="flex flex-col">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Operational Overview</span>
-              <h1 className="text-xl font-bold text-slate-900">Namaste, {userName.split(' ')[0]} <span className="text-blue-600 font-normal">(Staff)</span></h1>
+              <h1 className="text-xl font-bold text-slate-900">Namaste, {userName.split(' ')[0]} <span className="text-blue-600 font-normal">(Manager)</span></h1>
             </div>
           </div>
         </div>
