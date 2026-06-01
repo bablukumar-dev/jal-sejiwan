@@ -29,61 +29,6 @@ function InventoryDashboard() {
           <span className="text-xs font-bold text-slate-900">MAR 27, 2026</span>
         </div>
 
-        {/* Main Stats Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-blue-700 rounded-2xl p-5 text-white shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <Droplet className="w-4 h-4 fill-current" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-100">Full Stock</span>
-            </div>
-            <div className="text-3xl font-bold mb-1">{inventory.fullCans}</div>
-            <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-blue-200">
-              <ArrowUpRight className="w-3 h-3" /> Ready for Dispatch
-            </div>
-          </div>
-
-          <div className="bg-orange-500 rounded-2xl p-5 text-white shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-orange-600">
-                <Package className="w-4 h-4 fill-current" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-orange-100">Empty Stock</span>
-            </div>
-            <div className="text-3xl font-bold mb-1">{inventory.emptyCans}</div>
-            <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-orange-100">
-              <Factory className="w-3 h-3" /> Needs Refilling
-            </div>
-          </div>
-
-          <div className="bg-blue-200 rounded-2xl p-5 text-blue-900 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-full bg-white/50 flex items-center justify-center">
-                <Truck className="w-4 h-4" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">In Market</span>
-            </div>
-            <div className="text-3xl font-bold mb-1">{inventory.cansWithCustomers + inventory.cansInDelivery}</div>
-            <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-blue-700">
-              <MapPin className="w-3 h-3" /> With Customers
-            </div>
-          </div>
-
-          <div className="bg-red-100 rounded-2xl p-5 text-red-900 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-full bg-white/50 flex items-center justify-center text-red-600">
-                <AlertTriangle className="w-4 h-4 fill-current" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-red-700">Damaged</span>
-            </div>
-            <div className="text-3xl font-bold mb-1">{inventory.damagedCans}</div>
-            <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-red-700">
-              <Wrench className="w-3 h-3" /> Awaiting Repair
-            </div>
-          </div>
-        </div>
-
         {/* Quick Operations */}
         <div className="mb-8">
           <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Quick Operations</h3>
