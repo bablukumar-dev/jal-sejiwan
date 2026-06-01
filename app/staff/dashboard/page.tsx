@@ -87,23 +87,6 @@ export default function StaffDashboard() {
       </header>
 
 <main className="max-w-md mx-auto p-4 space-y-4">
-        {/* Inventory Overview */}
-        <div>
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Inventory Status</h3>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: 'Full Stock', value: inventory.fullCans, color: 'text-blue-600' },
-              { label: 'Empty Stock', value: inventory.emptyCans, color: 'text-slate-600' },
-              { label: 'In Market', value: inventory.cansWithCustomers + inventory.cansInDelivery, color: 'text-blue-600' },
-              { label: 'Damaged', value: inventory.damagedCans, color: 'text-red-600' },
-            ].map((item, i) => (
-              <div key={i} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col justify-between h-28">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.label}</span>
-                <div className="text-2xl font-bold text-slate-900">{item.value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Target Card */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-6 relative overflow-hidden">

@@ -16,13 +16,6 @@ function OwnerDashboard() {
 
   const pendingCustomers = customers.filter(c => c.due > 0).length;
 
-  // Manager Dashboard Integration: Inventory Management Needs
-  const managerInventoryItems = [
-      { label: 'Full Stock', value: inventory.fullCans, icon: Droplet, color: 'text-blue-600', link: '/inventory/dashboard' },
-      { label: 'Empty Stock', value: inventory.emptyCans, icon: Package, color: 'text-slate-600', link: '/inventory/dashboard' },
-      { label: 'In Market', value: inventory.cansWithCustomers + inventory.cansInDelivery, icon: Truck, color: 'text-blue-600', link: '/inventory/dashboard' },
-      { label: 'Damaged', value: inventory.damagedCans, icon: AlertTriangle, color: 'text-red-600', link: '/inventory/dashboard' },
-  ];
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -124,21 +117,6 @@ function OwnerDashboard() {
           <span className="font-medium text-sm">{new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
         </div>
 
-        {/* Inventory Overview */}
-        <div>
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Inventory Status</h3>
-          <div className="grid grid-cols-2 gap-3">
-            {managerInventoryItems.map((item, i) => (
-                <Link key={i} href={item.link} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col justify-between h-28 hover:bg-slate-50">
-                    <div className={`flex items-center justify-between`}>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.label}</span>
-                        <item.icon className={`w-4 h-4 ${item.color}`} />
-                    </div>
-                    <div className="text-2xl font-bold text-slate-900">{item.value}</div>
-                </Link>
-            ))}
-          </div>
-        </div>
 
         {/* Deliveries Today */}
         <div className="block bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden">
@@ -217,19 +195,6 @@ function OwnerDashboard() {
             )}
         </div>
 
-        {/* Alert */}
-        {inventory.fullCans <= (businessInfo.lowStockThreshold || 50) && (
-          <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-start gap-4">
-            <AlertTriangle className="w-6 h-6 text-orange-600 shrink-0 mt-1" />
-            <div className="flex-1">
-              <h4 className="font-bold text-orange-700 mb-1">Auto Low Stock Alert</h4>
-              <p className="text-sm text-orange-600/80 mb-3">20L Water Jars are below the safety threshold (Current: {inventory.fullCans} units).</p>
-              <Link href="/inventory/dashboard" className="inline-block bg-orange-500 text-white font-bold text-sm px-4 py-2 rounded-lg active:scale-95 transition-transform">
-                REORDER NOW
-              </Link>
-            </div>
-          </div>
-        )}
 
         {/* Live Command Station */}
 
