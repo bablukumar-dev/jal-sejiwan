@@ -7,12 +7,54 @@ import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
 import { wrapRoute } from '@/lib/permissionGuard';
+import OnboardingOverlay from '@/components/OnboardingOverlay';
 
 function OwnerDashboard() {
   const { customers, deliveries, payments, inventory, businessInfo } = useAppContext();
   const [isReminding, setIsReminding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const pendingCustomers = customers.filter(c => c.due > 0).length;
+
+  // Manager Dashboard Integration: Inventory Management Needs
+  const managerInventoryItems = [
+      { label: 'Full Stock', value: inventory.fullCans, icon: Droplet, color: 'text-blue-600', link: '/inventory/dashboard' },
+      { label: 'Empty Stock', value: inventory.emptyCans, icon: Package, color: 'text-slate-600', link: '/inventory/dashboard' },
+      { label: 'In Market', value: inventory.cansWithCustomers + inventory.cansInDelivery, icon: Truck, color: 'text-blue-600', link: '/inventory/dashboard' },
+      { label: 'Damaged', value: inventory.damagedCans, icon: AlertTriangle, color: 'text-red-600', link: '/inventory/dashboard' },
+  ];
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const ownerId = localStorage.getItem('ownerId');
+    const userRole = localStorage.getItem('userRole');
+    if (ownerId && userRole === 'owner') {
+      const localCompleted = localStorage.getItem(`onboardingCompleted_${ownerId}`);
+      if (localCompleted !== 'true') {
+        const checkDb = async () => {
+          try {
+            const { doc, getDoc } = await import('firebase/firestore');
+            const { db } = await import('@/firebase');
+            const userSnap = await getDoc(doc(db, 'users', ownerId));
+            if (userSnap.exists()) {
+              const uData = userSnap.data();
+              if (uData.onboardingCompleted === true) {
+                localStorage.setItem(`onboardingCompleted_${ownerId}`, 'true');
+              } else {
+                setShowOnboarding(true);
+              }
+            } else {
+              setShowOnboarding(true);
+            }
+          } catch (e) {
+            console.error("Failed to query onboardingCompleted status", e);
+            setShowOnboarding(true);
+          }
+        };
+        checkDb();
+      }
+    }
+  }, []);
 
   // Auto Monthly Reminder Check
   useEffect(() => {
@@ -79,11 +121,27 @@ function OwnerDashboard() {
           <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
             <span className="text-slate-500 text-sm">📅</span>
           </div>
-          <span className="font-medium text-sm">March 27, 2026</span>
+          <span className="font-medium text-sm">{new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+        </div>
+
+        {/* Inventory Overview */}
+        <div>
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Inventory Status</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {managerInventoryItems.map((item, i) => (
+                <Link key={i} href={item.link} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col justify-between h-28 hover:bg-slate-50">
+                    <div className={`flex items-center justify-between`}>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.label}</span>
+                        <item.icon className={`w-4 h-4 ${item.color}`} />
+                    </div>
+                    <div className="text-2xl font-bold text-slate-900">{item.value}</div>
+                </Link>
+            ))}
+          </div>
         </div>
 
         {/* Deliveries Today */}
-        <Link href="/owner/deliveries" className="block bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden active:scale-95 transition-transform">
+        <div className="block bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden">
           <div className="absolute top-4 right-4 opacity-5">
             <Truck className="w-24 h-24 text-slate-400" />
           </div>
@@ -99,11 +157,11 @@ function OwnerDashboard() {
           <div className="w-full bg-slate-100 rounded-full h-2">
             <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${deliveryPercentage}%` }}></div>
           </div>
-        </Link>
+        </div>
 
         {/* Financials */}
         <div className="grid grid-cols-1 gap-4">
-          <Link href="/owner/payments" className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center gap-4 active:scale-95 transition-transform">
+          <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
               <Wallet className="w-6 h-6" />
             </div>
@@ -112,9 +170,9 @@ function OwnerDashboard() {
               <div className="text-2xl font-bold text-slate-900">₹{cashCollected}</div>
               <div className="text-xs text-emerald-600 mt-1">Today&apos;s collection</div>
             </div>
-          </Link>
+          </div>
 
-          <Link href="/owner/customers" className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center gap-4 active:scale-95 transition-transform">
+          <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
               <Wallet className="w-6 h-6" />
             </div>
@@ -123,7 +181,7 @@ function OwnerDashboard() {
               <div className="text-2xl font-bold text-orange-600">₹{totalDue}</div>
               <div className="text-xs text-slate-500 mt-1">{pendingCustomers} Pending Customers</div>
             </div>
-          </Link>
+          </div>
         </div>
 
         {/* Remind All Due button */}
@@ -174,42 +232,22 @@ function OwnerDashboard() {
         )}
 
         {/* Live Command Station */}
-        <Link href="/owner/activity" className="block bg-gradient-to-r from-blue-700 to-indigo-800 text-white rounded-3xl p-5 shadow-md shadow-blue-700/10 hover:shadow-lg transition-all active:scale-95">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] bg-blue-600 px-2.5 py-1 rounded-full font-bold uppercase tracking-widest text-blue-100 flex items-center gap-1">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              Live Feed
-            </span>
-            <span className="text-xs text-blue-200 font-bold uppercase tracking-wider flex items-center gap-1">
-              Control Room ➔
-            </span>
-          </div>
-          <h3 className="text-xl font-bold mb-1">Live Activity Dashboard</h3>
-          <p className="text-xs text-blue-100">Supervise and audit deliveries, staff creation actions, and receipts in real time.</p>
-        </Link>
 
         {/* Quick Operations */}
         <div>
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 mt-6">Quick Operations</h3>
           <div className="grid grid-cols-2 gap-3">
-            <Link href="/owner/customers/add" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+            <Link id="onboarding-add-customer" href="/owner/customers/add" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
               <UserPlus className="w-6 h-6 text-blue-600" />
               <span className="text-sm font-medium text-slate-700">Add Customer</span>
             </Link>
-            <Link href="/owner/deliveries" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+            <Link id="onboarding-deliveries" href="/owner/deliveries" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
               <Truck className="w-6 h-6 text-blue-600" />
               <span className="text-sm font-medium text-slate-700">Deliveries</span>
             </Link>
-            <Link href="/owner/payments" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+            <Link id="onboarding-payments" href="/owner/payments" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
               <span className="text-xl font-bold text-blue-600">₹</span>
               <span className="text-sm font-medium text-slate-700">Payments</span>
-            </Link>
-            <Link href="/inventory/dashboard" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
-              <Package className="w-6 h-6 text-blue-600" />
-              <span className="text-sm font-medium text-slate-700">Inventory</span>
             </Link>
             <Link href="/owner/reports" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
               <FileText className="w-6 h-6 text-blue-600" />
@@ -222,39 +260,13 @@ function OwnerDashboard() {
           </div>
         </div>
 
-        {/* Current Inventory */}
-        <Link href="/inventory/dashboard" className="block bg-white rounded-2xl p-5 border border-slate-200 shadow-sm mt-6 active:scale-95 transition-transform">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold text-slate-900">Current Inventory</h3>
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Unit: {businessInfo.canSize}</span>
-          </div>
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Full Jars</div>
-              <div className="text-3xl font-bold text-slate-900 mb-2">{inventory.fullCans}</div>
-              <div className="h-1 w-full bg-blue-600 rounded-full"></div>
-            </div>
-            <div>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Empty Jars</div>
-              <div className="text-3xl font-bold text-slate-900 mb-2">{inventory.emptyCans}</div>
-              <div className="h-1 w-full bg-slate-200 rounded-full"></div>
-            </div>
-            <div>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pending</div>
-              <div className="text-2xl font-bold text-slate-900 mb-2">{inventory.cansInDelivery}</div>
-              <div className="h-1 w-full bg-orange-500 rounded-full"></div>
-            </div>
-            <div>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Damaged</div>
-              <div className="text-2xl font-bold text-slate-900 mb-2">{inventory.damagedCans}</div>
-              <div className="h-1 w-full bg-red-500 rounded-full"></div>
-            </div>
-          </div>
-        </Link>
-
       </main>
 
       <BottomNav role="owner" activeTab="dashboard" />
+
+      {showOnboarding && (
+        <OnboardingOverlay onClose={() => setShowOnboarding(false)} />
+      )}
     </div>
   );
 }

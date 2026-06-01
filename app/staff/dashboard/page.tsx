@@ -64,7 +64,7 @@ export default function StaffDashboard() {
   
   const today = new Date().toISOString().split('T')[0];
   
-  const todaysDeliveries = deliveries.filter(d => d.date === today && d.staffId === currentStaffId);
+  const todaysDeliveries = deliveries.filter(d => d.date === today && (currentStaffId !== null ? d.staffId === currentStaffId : true));
   const totalTarget = todaysDeliveries.length;
   const completedDeliveries = todaysDeliveries.filter(d => d.status === 'Delivered').length;
   const completionPercentage = totalTarget > 0 ? Math.round((completedDeliveries / totalTarget) * 100) : 0;
@@ -161,20 +161,20 @@ export default function StaffDashboard() {
         <div className="bg-slate-100 rounded-3xl p-6 border border-slate-200">
           <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Route Summary</h3>
           <div className="space-y-3">
-            <div onClick={() => setIsSummaryModalOpen(true)} className="bg-white rounded-xl p-4 flex items-center justify-between border border-slate-200 active:scale-95 transition-transform cursor-pointer">
+            <button type="button" onClick={() => setIsSummaryModalOpen(true)} className="w-full bg-white rounded-xl p-4 flex items-center justify-between border border-slate-200 active:scale-95 transition-transform cursor-pointer">
               <div className="flex items-center gap-3">
                 <FileText className="w-5 h-5 text-blue-600" />
                 <span className="font-bold text-slate-900">Daily Summary</span>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
-            </div>
-            <div onClick={() => setIsPaymentModalOpen(true)} className="bg-white rounded-xl p-4 flex items-center justify-between border border-slate-200 active:scale-95 transition-transform cursor-pointer">
+            </button>
+            <button type="button" onClick={() => setIsPaymentModalOpen(true)} className="w-full bg-white rounded-xl p-4 flex items-center justify-between border border-slate-200 active:scale-95 transition-transform cursor-pointer">
               <div className="flex items-center gap-3">
                 <Wallet className="w-5 h-5 text-blue-600" />
                 <span className="font-bold text-slate-900">Payment Ledger</span>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
-            </div>
+            </button>
           </div>
         </div>
 

@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect, useMemo } from 'react';
-import RouteMap from '@/components/RouteMap';
 
 export default function StaffCustomers() {
   const router = useRouter();
@@ -18,8 +17,6 @@ export default function StaffCustomers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
-  const [mapZoom, setMapZoom] = useState(13);
   
   useEffect(() => {
     const fetchStaffRoute = async () => {
@@ -154,84 +151,7 @@ export default function StaffCustomers() {
           </div>
         </div>
 
-        {/* Toggle between List View and Map View */}
-        <div className="flex bg-slate-100 p-1 rounded-xl mb-6 text-center">
-          <button 
-            type="button"
-            onClick={() => setViewMode('list')}
-            className={`flex-1 font-bold py-2.5 rounded-lg text-xs transition-all uppercase tracking-wide flex items-center justify-center gap-1.5 ${viewMode === 'list' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            📋 List View
-          </button>
-          <button 
-            type="button"
-            onClick={() => setViewMode('map')}
-            className={`flex-1 font-bold py-2.5 rounded-lg text-xs transition-all uppercase tracking-wide flex items-center justify-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            🗺️ Map View
-          </button>
-        </div>
-
-        {viewMode === 'map' ? (
-          <div className="bg-slate-200 rounded-3xl h-96 mb-6 relative overflow-hidden border border-slate-200 shadow-sm">
-            <RouteMap
-              customers={searchedCustomers}
-              deliveries={deliveries}
-              onRecord={(id) => {
-                const existing = deliveries.find(d => d.customerId === id && d.date === today);
-                if (existing) {
-                  router.push(`/staff/delivery/${existing.id}`);
-                } else {
-                  const newDelivery = {
-                    id: Date.now() + Math.floor(Math.random() * 1000),
-                    customerId: id,
-                    customerName: customers.find(c => c.id === id)?.name || '',
-                    date: today,
-                    status: 'Pending',
-                    staffId: currentStaffId || 0,
-                    staffName: staff.find(s => s.id === currentStaffId)?.name || '',
-                    deliveredQty: 0,
-                    returnedEmpty: 0,
-                    paymentReceived: false,
-                    paymentAmount: 0,
-                    paymentMode: 'Cash',
-                    note: ''
-                  };
-                  setDeliveries([...deliveries, newDelivery]);
-                  router.push(`/staff/delivery/${newDelivery.id}`);
-                }
-              }}
-              onSkip={(id) => {
-                const existing = deliveries.find(d => d.customerId === id && d.date === today);
-                if (existing) {
-                  router.push(`/staff/skip/${existing.id}`);
-                } else {
-                  const newDelivery = {
-                    id: Date.now() + Math.floor(Math.random() * 1000),
-                    customerId: id,
-                    customerName: customers.find(c => c.id === id)?.name || '',
-                    date: today,
-                    status: 'Pending',
-                    staffId: currentStaffId || 0,
-                    staffName: staff.find(s => s.id === currentStaffId)?.name || '',
-                    deliveredQty: 0,
-                    returnedEmpty: 0,
-                    paymentReceived: false,
-                    paymentAmount: 0,
-                    paymentMode: 'Cash',
-                    note: ''
-                  };
-                  setDeliveries([...deliveries, newDelivery]);
-                  router.push(`/staff/skip/${newDelivery.id}`);
-                }
-              }}
-              zoom={mapZoom}
-              setZoom={setMapZoom}
-            />
-          </div>
-        ) : (
-          <>
-            {/* Search Bar */}
+        {/* Search Bar */}
             <div className="mb-6">
               <div className="relative flex items-center">
                 <Search className="absolute left-4 text-slate-400 w-5 h-5" />
@@ -389,8 +309,7 @@ export default function StaffCustomers() {
           </AnimatePresence>
           )}
         </div>
-          </>
-        )}
+
       </main>
 
       {/* Floating Next Stop */}

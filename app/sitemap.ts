@@ -25,7 +25,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // Inventory Management Routes (Manager/Owner)
     { url: '/inventory/dashboard', changeFrequency: 'daily', priority: 0.8 },
     { url: '/inventory/dispatch', changeFrequency: 'daily', priority: 0.8 },
-    { url: '/inventory/history', changeFrequency: 'daily', priority: 0.8 },
     { url: '/inventory/reconciliation', changeFrequency: 'daily', priority: 0.8 },
     
     // Staff Routes (Delivery Partners)

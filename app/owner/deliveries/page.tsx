@@ -3,12 +3,11 @@
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import PullToRefresh from '@/components/PullToRefresh';
-import { Search, MapPin, CheckCircle2, Droplet, Plus, Truck, Wallet, Phone, Navigation, XCircle } from 'lucide-react';
+import { Search, MapPin, CheckCircle2, Droplet, Plus, Truck, Wallet, Phone, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import { useRouter } from 'next/navigation';
-import RouteMap from '@/components/RouteMap';
 import { wrapRoute } from '@/lib/permissionGuard';
 
 function DeliveriesList() {
@@ -17,8 +16,6 @@ function DeliveriesList() {
   const [filter, setFilter] = useState('All');
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [routeFilter, setRouteFilter] = useState('All Routes');
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
-  const [mapZoom, setMapZoom] = useState(12);
   const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('userRole');
@@ -145,43 +142,7 @@ function DeliveriesList() {
             </div>
             <div className="text-xl font-bold text-slate-900">{skippedCount}</div>
           </div>
-        </div>        {/* Toggle between List View and Map View */}
-        <div className="flex bg-slate-100 p-1 rounded-xl mb-6 text-center">
-          <button 
-            type="button"
-            onClick={() => setViewMode('list')}
-            className={`flex-1 font-bold py-2.5 rounded-lg text-xs transition-all uppercase tracking-wide flex items-center justify-center gap-1.5 ${viewMode === 'list' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            📋 List View
-          </button>
-          <button 
-            type="button"
-            onClick={() => setViewMode('map')}
-            className={`flex-1 font-bold py-2.5 rounded-lg text-xs transition-all uppercase tracking-wide flex items-center justify-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            🗺️ Map View
-          </button>
         </div>
-
-        {viewMode === 'map' ? (
-          <div className="bg-slate-200 rounded-3xl h-96 mb-6 relative overflow-hidden border border-slate-200 shadow-sm">
-            <RouteMap
-              customers={routeCustomers}
-              deliveries={todaysDeliveries}
-              onRecord={(customerId) => {
-                const d = todaysDeliveries.find(del => del.customerId === customerId);
-                if (d) router.push(`/staff/delivery/${d.id}`);
-              }}
-              onSkip={(customerId) => {
-                const d = todaysDeliveries.find(del => del.customerId === customerId);
-                if (d) router.push(`/staff/skip/${d.id}`);
-              }}
-              zoom={mapZoom}
-              setZoom={setMapZoom}
-            />
-          </div>
-        ) : (
-          <>
             {/* Filter Chips */}
             <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
               {['All', 'Pending', 'Delivered', 'Skipped'].map(f => (
@@ -262,9 +223,6 @@ function DeliveriesList() {
                           <button onClick={() => window.location.href = `tel:${customer.phone}`} className="flex-1 bg-slate-100 text-slate-700 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-transform">
                             <Phone className="w-4 h-4" /> Call
                           </button>
-                          <button onClick={() => window.open(`https://maps.google.com/?q=${customer.address}`)} className="flex-1 bg-slate-100 text-slate-700 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-transform">
-                            <Navigation className="w-4 h-4" /> Map
-                          </button>
                           <Link href={`/staff/skip/${delivery.id}`} className="flex-1 bg-orange-100 text-orange-700 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-transform">
                             <XCircle className="w-4 h-4" /> Skip
                           </Link>
@@ -319,8 +277,7 @@ function DeliveriesList() {
                 })
               )}
             </div>
-          </>
-        )}
+  
       </main>
       </PullToRefresh>
 

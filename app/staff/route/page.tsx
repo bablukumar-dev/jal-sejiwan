@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import RouteMap from '@/components/RouteMap';
 import { MapPin, Phone, Plus, AlertTriangle, ChevronRight, Navigation, XCircle, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -17,8 +16,6 @@ export default function MyRoute() {
   const [activeTab, setActiveTab] = useState<'Pending' | 'Completed'>('Pending');
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
-  const [mapZoom, setMapZoom] = useState(13); // Changed default zoom to a reasonable city zoom level
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   
   useEffect(() => {
     const fetchStaffRoute = async () => {
@@ -154,37 +151,7 @@ export default function MyRoute() {
           <p className="text-sm text-slate-600">{pendingList.length} Drops Remaining • {completedList.length} Completed Today</p>
         </div>
 
-        {/* Toggle between List View and Map View */}
-        <div className="flex bg-slate-100 p-1 rounded-xl mb-6 text-center">
-          <button 
-            type="button"
-            onClick={() => setViewMode('list')}
-            className={`flex-1 font-bold py-2.5 rounded-lg text-xs transition-colors uppercase tracking-wide flex items-center justify-center gap-1.5 ${viewMode === 'list' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            📋 List View
-          </button>
-          <button 
-            type="button"
-            onClick={() => setViewMode('map')}
-            className={`flex-1 font-bold py-2.5 rounded-lg text-xs transition-colors uppercase tracking-wide flex items-center justify-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            🗺️ Map View
-          </button>
-        </div>
 
-        {viewMode === 'map' ? (
-          <div className="bg-slate-200 rounded-3xl h-96 mb-6 relative overflow-hidden border border-slate-200 shadow-sm">
-            <RouteMap
-              customers={routeCustomers}
-              deliveries={deliveries}
-              onRecord={(id) => handleRecordDelivery(id)}
-              onSkip={(id) => handleSkipDelivery(id)}
-              zoom={mapZoom}
-              setZoom={setMapZoom}
-            />
-          </div>
-        ) : (
-          <>
             {/* Tabs */}
             <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
               <button 
@@ -332,8 +299,7 @@ export default function MyRoute() {
                 </AnimatePresence>
               )}
             </div>
-          </>
-        )}
+
 
         {/* Finish Route Banner */}
         {pendingList.length > 0 && (
