@@ -2,7 +2,7 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Route, FileText, Plus, Wallet, Droplet, ArrowRight, ChevronRight, X, LifeBuoy } from 'lucide-react';
+import { Route, FileText, Plus, Wallet, Droplet, ArrowRight, ChevronRight, X, LifeBuoy, UserPlus, Truck, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
@@ -158,24 +158,30 @@ export default function StaffDashboard() {
           </div>
         </Link>
 
-        {/* Route Summary */}
-        <div className="bg-slate-100 rounded-3xl p-6 border border-slate-200">
-          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Route Summary</h3>
-          <div className="space-y-3">
-            <button type="button" onClick={() => setIsSummaryModalOpen(true)} className="w-full bg-white rounded-xl p-4 flex items-center justify-between border border-slate-200 active:scale-95 transition-transform cursor-pointer">
-              <div className="flex items-center gap-3">
-                <FileText className="w-5 h-5 text-blue-600" />
-                <span className="font-bold text-slate-900">Daily Summary</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-400" />
-            </button>
-            <button type="button" onClick={() => setIsPaymentModalOpen(true)} className="w-full bg-white rounded-xl p-4 flex items-center justify-between border border-slate-200 active:scale-95 transition-transform cursor-pointer">
-              <div className="flex items-center gap-3">
-                <Wallet className="w-5 h-5 text-blue-600" />
-                <span className="font-bold text-slate-900">Payment Ledger</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-400" />
-            </button>
+        {/* Quick Operations */}
+        <div>
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 mt-6">Quick Operations</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <Link id="onboarding-add-customer" href="/owner/customers/add" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+              <UserPlus className="w-6 h-6 text-blue-600" />
+              <span className="text-sm font-medium text-slate-700">Add Customer</span>
+            </Link>
+            <Link id="onboarding-deliveries" href="/owner/deliveries" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+              <Truck className="w-6 h-6 text-blue-600" />
+              <span className="text-sm font-medium text-slate-700">Deliveries</span>
+            </Link>
+            <Link id="onboarding-payments" href="/owner/payments" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+              <span className="text-xl font-bold text-blue-600">₹</span>
+              <span className="text-sm font-medium text-slate-700">Payments</span>
+            </Link>
+            <Link href="/owner/reports" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+              <FileText className="w-6 h-6 text-blue-600" />
+              <span className="text-sm font-medium text-slate-700">Reports</span>
+            </Link>
+            <Link href="/owner/staff" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+              <Users className="w-6 h-6 text-blue-600" />
+              <span className="text-sm font-medium text-slate-700">Staff</span>
+            </Link>
           </div>
         </div>
 
