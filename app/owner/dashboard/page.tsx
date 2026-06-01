@@ -13,8 +13,38 @@ function OwnerDashboard() {
   const { customers, deliveries, payments, inventory, businessInfo } = useAppContext();
   const [isReminding, setIsReminding] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [userRole, setUserRole] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('userRole') || 'owner';
+    }
+    return 'owner';
+  });
+  const [userName, setUserName] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const role = localStorage.getItem('userRole');
+      if (role === 'owner') {
+        return businessInfo.ownerName || 'Owner';
+      } else {
+        return localStorage.getItem('staffUserName') || 'Manager';
+      }
+    }
+    return businessInfo.ownerName || 'Owner';
+  });
 
   const pendingCustomers = customers.filter(c => c.due > 0).length;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const role = localStorage.getItem('userRole');
+    if (role) {
+      setUserRole(role);
+      if (role === 'owner') {
+        setUserName(businessInfo.ownerName || 'Owner');
+      } else {
+        setUserName(localStorage.getItem('staffUserName') || 'Manager');
+      }
+    }
+  }, [businessInfo.ownerName]);
 
 
   useEffect(() => {
@@ -99,7 +129,12 @@ function OwnerDashboard() {
           <div className="flex items-center gap-3">
             <div className="flex flex-col">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Operational Overview</span>
-              <h1 className="text-xl font-bold text-slate-900">Namaste, {businessInfo.ownerName.split(' ')[0]} Ji <span className="text-blue-600 font-normal">(Owner)</span></h1>
+              <h1 className="text-xl font-bold text-slate-900">
+                Namaste, {(userName || 'User').split(' ')[0]} Ji{' '}
+                <span className="text-blue-600 font-normal">
+                  ({userRole === 'manager' ? 'Manager' : 'Owner'})
+                </span>
+              </h1>
             </div>
           </div>
           <Link href="/settings" className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 bg-slate-100 flex items-center justify-center">
@@ -249,20 +284,24 @@ function OwnerDashboard() {
               <span className="text-xl font-bold text-blue-600">₹</span>
               <span className="text-sm font-medium text-slate-700">Payments</span>
             </Link>
-            <Link href="/owner/reports" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
-              <FileText className="w-6 h-6 text-blue-600" />
-              <span className="text-sm font-medium text-slate-700">Reports</span>
-            </Link>
-            <Link href="/owner/staff" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
-              <Users className="w-6 h-6 text-blue-600" />
-              <span className="text-sm font-medium text-slate-700">Staff</span>
-            </Link>
+            {userRole === 'owner' && (
+              <Link href="/owner/reports" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+                <FileText className="w-6 h-6 text-blue-600" />
+                <span className="text-sm font-medium text-slate-700">Reports</span>
+              </Link>
+            )}
+            {userRole === 'owner' && (
+              <Link href="/owner/staff" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+                <Users className="w-6 h-6 text-blue-600" />
+                <span className="text-sm font-medium text-slate-700">Staff</span>
+              </Link>
+            )}
           </div>
         </div>
 
       </main>
 
-      <BottomNav role="owner" activeTab="dashboard" />
+      <BottomNav role={userRole} activeTab="dashboard" />
 
       {showOnboarding && (
         <OnboardingOverlay onClose={() => setShowOnboarding(false)} />
@@ -271,4 +310,4 @@ function OwnerDashboard() {
   );
 }
 
-export default wrapRoute(OwnerDashboard, { requiredRole: 'owner' });
+export default wrapRoute(OwnerDashboard, { requiredRole: 'manager' });
