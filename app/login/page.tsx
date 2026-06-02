@@ -87,6 +87,13 @@ export default function Login() {
     const normalizedRole = role === 'staff' ? 'Delivery Partner' : 'Manager';
     
     try {
+      // Clear out any stale Firebase Auth user session on local browser before PIN login
+      try {
+        await auth.signOut();
+      } catch (e) {
+        console.warn("Sign out during custom auth setup failed", e);
+      }
+
       const docRef = doc(db, 'staff_users', cleanPhone);
       const docSnap = await getDoc(docRef);
       

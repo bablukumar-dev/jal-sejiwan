@@ -273,4 +273,4 @@ function StaffManagement() {
   );
 }
 
-export default wrapRoute(StaffManagement, { requiredRole: 'owner' });
+export default wrapRoute(StaffManagement, { requiredRole: 'manager' });
