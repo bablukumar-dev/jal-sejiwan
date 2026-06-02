@@ -284,7 +284,7 @@ function OwnerDashboard() {
               <span className="text-xl font-bold text-blue-600">₹</span>
               <span className="text-sm font-medium text-slate-700">Payments</span>
             </Link>
-            {userRole === 'owner' && (
+            {(userRole === 'owner' || userRole === 'manager') && (
               <Link href="/owner/reports" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
                 <FileText className="w-6 h-6 text-blue-600" />
                 <span className="text-sm font-medium text-slate-700">Reports</span>
