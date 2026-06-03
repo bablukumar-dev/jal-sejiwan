@@ -10,6 +10,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { logActivity } from '@/lib/activityLogger';
 import { wrapRoute } from '@/lib/permissionGuard';
+import { safeGet } from '@/lib/utils';
 
 function AddStaff() {
   const router = useRouter();
@@ -21,10 +22,8 @@ function AddStaff() {
   const [route, setRoute] = useState(routes[0] || '');
   const [pin, setPin] = useState('');
   const [currentUserRole, setCurrentUserRole] = useState<'owner' | 'manager'>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('userRole');
-      if (stored === 'owner' || stored === 'manager') return stored as 'owner' | 'manager';
-    }
+    const stored = safeGet('userRole');
+    if (stored === 'owner' || stored === 'manager') return stored as 'owner' | 'manager';
     return 'owner';
   });
 
@@ -46,7 +45,7 @@ function AddStaff() {
             return;
         }
 
-        const creatorId = currentUserRole === 'owner' ? 'owner' : (localStorage.getItem('staffUserId') || 'manager');
+        const creatorId = currentUserRole === 'owner' ? 'owner' : (safeGet('staffUserId') || 'manager');
         const newStaff = {
         id: Date.now(),
         name,
@@ -60,7 +59,7 @@ function AddStaff() {
         failedPinAttempts: 0
         };
 
-        const currentOwnerId = localStorage.getItem('ownerId') || 'default_owner';
+        const currentOwnerId = safeGet('ownerId') || 'default_owner';
         
         await setDoc(doc(db, 'staff_users', phone.trim()), {
             ...newStaff,

@@ -8,7 +8,7 @@ import { MapPin, Phone, Plus, AlertTriangle, ChevronRight, Navigation, XCircle, 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 export default function MyRoute() {
   const router = useRouter();
@@ -54,7 +54,7 @@ export default function MyRoute() {
     fetchStaffRoute();
   }, [staff]);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
   
   const routeCustomers = customers.filter(c => c.route && c.route.toLowerCase() === staffRoute.toLowerCase());
   
@@ -79,57 +79,47 @@ export default function MyRoute() {
 
   const displayList = activeTab === 'Pending' ? pendingList : completedList;
 
-  const handleRecordDelivery = (customerId: number, e?: React.MouseEvent) => {
+  const generateDelivery = useCallback((customerId: number) => {
+    return {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      customerId: customerId,
+      customerName: customers.find(c => c.id === customerId)?.name || '',
+      date: today,
+      status: 'Pending' as const,
+      staffId: currentStaffId || 0,
+      staffName: staff.find(s => s.id === currentStaffId)?.name || '',
+      deliveredQty: 0,
+      returnedEmpty: 0,
+      paymentReceived: false,
+      paymentAmount: 0,
+      paymentMode: 'Cash',
+      note: ''
+    };
+  }, [customers, today, currentStaffId, staff]);
+
+  const handleRecordDelivery = useCallback((customerId: number, e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     const existing = deliveries.find(d => d.customerId === customerId && d.date === today);
     if (existing) {
       router.push(`/staff/delivery/${existing.id}`);
     } else {
-      const newDelivery = {
-        id: Date.now() + Math.floor(Math.random() * 1000),
-        customerId: customerId,
-        customerName: customers.find(c => c.id === customerId)?.name || '',
-        date: today,
-        status: 'Pending',
-        staffId: currentStaffId || 0,
-        staffName: staff.find(s => s.id === currentStaffId)?.name || '',
-        deliveredQty: 0,
-        returnedEmpty: 0,
-        paymentReceived: false,
-        paymentAmount: 0,
-        paymentMode: 'Cash',
-        note: ''
-      };
+      const newDelivery = generateDelivery(customerId);
       setDeliveries([...deliveries, newDelivery]);
       router.push(`/staff/delivery/${newDelivery.id}`);
     }
-  };
+  }, [deliveries, today, router, setDeliveries, generateDelivery]);
 
-  const handleSkipDelivery = (customerId: number, e?: React.MouseEvent) => {
+  const handleSkipDelivery = useCallback((customerId: number, e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     const existing = deliveries.find(d => d.customerId === customerId && d.date === today);
     if (existing) {
       router.push(`/staff/skip/${existing.id}`);
     } else {
-      const newDelivery = {
-        id: Date.now() + Math.floor(Math.random() * 1000),
-        customerId: customerId,
-        customerName: customers.find(c => c.id === customerId)?.name || '',
-        date: today,
-        status: 'Pending',
-        staffId: currentStaffId || 0,
-        staffName: staff.find(s => s.id === currentStaffId)?.name || '',
-        deliveredQty: 0,
-        returnedEmpty: 0,
-        paymentReceived: false,
-        paymentAmount: 0,
-        paymentMode: 'Cash',
-        note: ''
-      };
+      const newDelivery = generateDelivery(customerId);
       setDeliveries([...deliveries, newDelivery]);
       router.push(`/staff/skip/${newDelivery.id}`);
     }
-  };
+  }, [deliveries, today, router, setDeliveries, generateDelivery]);
 
   const handleManualRouteAdd = (e: React.MouseEvent) => {
     e.preventDefault();

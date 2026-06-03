@@ -8,51 +8,45 @@ import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
 import { wrapRoute } from '@/lib/permissionGuard';
 import OnboardingOverlay from '@/components/OnboardingOverlay';
+import OnlineStatusBadge from '@/components/OnlineStatusBadge';
+import { safeGet } from '@/lib/utils';
 
 function OwnerDashboard() {
   const { customers, deliveries, payments, inventory, businessInfo } = useAppContext();
   const [isReminding, setIsReminding] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userRole, setUserRole] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('userRole') || 'owner';
-    }
-    return 'owner';
+    return safeGet('userRole') || 'owner';
   });
   const [userName, setUserName] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const role = localStorage.getItem('userRole');
-      if (role === 'owner') {
-        return businessInfo.ownerName || 'Owner';
-      } else {
-        return localStorage.getItem('staffUserName') || 'Manager';
-      }
+    const role = safeGet('userRole');
+    if (role === 'owner') {
+      return businessInfo.ownerName || 'Owner';
+    } else {
+      return safeGet('staffUserName') || 'Manager';
     }
-    return businessInfo.ownerName || 'Owner';
   });
 
   const pendingCustomers = customers.filter(c => c.due > 0).length;
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const role = localStorage.getItem('userRole');
+    const role = safeGet('userRole');
     if (role) {
       setUserRole(role);
       if (role === 'owner') {
         setUserName(businessInfo.ownerName || 'Owner');
       } else {
-        setUserName(localStorage.getItem('staffUserName') || 'Manager');
+        setUserName(safeGet('staffUserName') || 'Manager');
       }
     }
   }, [businessInfo.ownerName]);
 
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const ownerId = localStorage.getItem('ownerId');
-    const userRole = localStorage.getItem('userRole');
+    const ownerId = safeGet('ownerId');
+    const userRole = safeGet('userRole');
     if (ownerId && userRole === 'owner') {
-      const localCompleted = localStorage.getItem(`onboardingCompleted_${ownerId}`);
+      const localCompleted = safeGet(`onboardingCompleted_${ownerId}`);
       if (localCompleted !== 'true') {
         const checkDb = async () => {
           try {
@@ -137,9 +131,12 @@ function OwnerDashboard() {
               </h1>
             </div>
           </div>
-          <Link href="/settings" className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 bg-slate-100 flex items-center justify-center">
-            <div className="w-full h-full bg-blue-600" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <OnlineStatusBadge />
+            <Link href="/settings" className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 bg-slate-100 flex items-center justify-center">
+              <div className="w-full h-full bg-blue-600" />
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -290,7 +287,7 @@ function OwnerDashboard() {
                 <span className="text-sm font-medium text-slate-700">Reports</span>
               </Link>
             )}
-            {userRole === 'owner' && (
+            {(userRole === 'owner' || userRole === 'manager') && (
               <Link href="/owner/staff" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
                 <Users className="w-6 h-6 text-blue-600" />
                 <span className="text-sm font-medium text-slate-700">Staff</span>

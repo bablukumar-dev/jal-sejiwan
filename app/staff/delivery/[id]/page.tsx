@@ -44,16 +44,18 @@ export default function DeliveryEntry() {
   const [currentRate, setCurrentRate] = useState<number>(45);
 
   useEffect(() => {
-    setIsOffline(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+    requestAnimationFrame(() => {
+      setIsOffline(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+    });
     
     const handleOnline = () => {
-      setIsOffline(false);
+      requestAnimationFrame(() => setIsOffline(false));
       // Simulate sync when coming online
       setIsSyncing(true);
       setTimeout(() => setIsSyncing(false), 1500);
     };
     
-    const handleOffline = () => setIsOffline(true);
+    const handleOffline = () => requestAnimationFrame(() => setIsOffline(true));
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -88,8 +90,10 @@ export default function DeliveryEntry() {
 
   useEffect(() => {
     if (customer && !hasInitializedRate) {
-      setCurrentRate(customer.rate || businessInfo?.defaultRate || 45);
-      setHasInitializedRate(true);
+      requestAnimationFrame(() => {
+        setCurrentRate(customer.rate || businessInfo?.defaultRate || 45);
+        setHasInitializedRate(true);
+      });
     }
   }, [customer, businessInfo, hasInitializedRate]);
 
@@ -104,6 +108,11 @@ export default function DeliveryEntry() {
     : (paymentType === 'Due' ? '0' : subtotal.toString());
 
   const handleConfirm = () => {
+    const prevDeliveries = [...deliveries];
+    const prevInventory = {...inventory};
+    const prevPayments = [...payments];
+    const prevCustomers = [...customers];
+
     try {
         if (!otpSent) {
            const randomOtp = Math.floor(1000 + Math.random() * 9000).toString();
@@ -198,6 +207,10 @@ export default function DeliveryEntry() {
         alert("Delivery Recorded Successfully!");
         router.back();
     } catch (e) {
+        setDeliveries(prevDeliveries);
+        setInventory(prevInventory);
+        setPayments(prevPayments);
+        setCustomers(prevCustomers);
         console.error("Failed to record delivery", e);
         alert("Failed to record delivery. Please try again.");
     }

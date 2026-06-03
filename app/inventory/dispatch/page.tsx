@@ -30,14 +30,19 @@ export default function DispatchScreen() {
   const handleConfirm = () => {
     if (!selectedStaff) return;
 
-    setInventory(prev => ({
-      ...prev,
-      fullCans: prev.fullCans - dispatched,
-      cansInDelivery: prev.cansInDelivery + dispatched
-    }));
+    try {
+      setInventory(prev => ({
+        ...prev,
+        fullCans: prev.fullCans - dispatched,
+        cansInDelivery: prev.cansInDelivery + dispatched
+      }));
 
-    // In a real app, we would log this dispatch to history
-    router.push('/inventory/dashboard');
+      // In a real app, we would log this dispatch to history
+      router.push('/inventory/dashboard');
+    } catch (e) {
+      console.error("Failed to confirm dispatch", e);
+      alert("Failed to confirm dispatch. Please try again.");
+    }
   };
 
   return (

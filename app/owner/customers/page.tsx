@@ -119,7 +119,7 @@ function CustomersList() {
           </button>
         </div>
 
-        {filter === 'Dues Only' && filteredCustomers.length > 0 && userRole === 'owner' && (
+        {filter === 'Dues Only' && filteredCustomers.length > 0 && (userRole === 'owner' || userRole === 'manager') && (
           <div className="mb-4">
             <button 
               onClick={handleBulkReminder}

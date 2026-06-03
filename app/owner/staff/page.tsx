@@ -12,6 +12,15 @@ import { doc, setDoc } from 'firebase/firestore';
 import { hashPin } from '@/lib/authHelper';
 import { wrapRoute } from '@/lib/permissionGuard';
 
+const safeGet = (key: string): string | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
 function StaffManagement() {
   const { staff, setStaff, deliveries } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,7 +69,7 @@ function StaffManagement() {
     return { total, completionRate, feedbackSummary };
   };
 
-  const currentRole = (typeof window !== 'undefined' ? localStorage.getItem('userRole') : '')?.toLowerCase();
+  const currentRole = (safeGet('userRole') || '').toLowerCase();
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
@@ -140,8 +149,8 @@ function StaffManagement() {
                       <div className="text-xs text-slate-500">Emp ID: {s.id.toString().padStart(3, '0')}-402</div>
                     </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${s.active ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                    {s.active ? 'Active' : 'Inactive'}
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${s?.active ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                    {s?.active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
 
@@ -273,4 +282,4 @@ function StaffManagement() {
   );
 }
 
-export default wrapRoute(StaffManagement, { requiredRole: 'owner' });
+export default wrapRoute(StaffManagement, { requiredRole: 'manager' });

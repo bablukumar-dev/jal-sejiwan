@@ -3,6 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
+const safeGet = (key: string): string | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
 export function RoleGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname() || '';
@@ -15,7 +24,7 @@ export function RoleGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const role = (localStorage.getItem('userRole') || '').toUpperCase();
+    const role = (safeGet('userRole') || '').toUpperCase();
     
     // Default allowed
     let isAllowed = true;
@@ -23,8 +32,7 @@ export function RoleGuard({ children }: { children: React.ReactNode }) {
     // Permissions logic
     if (role === 'MANAGER') {
        if (pathname.includes('/staff/add') || 
-           pathname.includes('/owner/staff') ||
-           pathname.includes('/owner/reports') ||
+           pathname.includes('/owner/staff/add') ||
            pathname.includes('/owner/dashboard/prices')
        ) {
            isAllowed = false;

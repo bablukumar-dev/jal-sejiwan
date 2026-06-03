@@ -6,13 +6,20 @@ import { Calendar, Download, FileText, BarChart3, AlertTriangle, Package, Users,
 import { useAppContext } from '@/app/context/AppContext';
 import { wrapRoute } from '@/lib/permissionGuard';
 
+const safeGet = (key: string): string | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
 function Reports() {
   const { customers, deliveries, payments, businessInfo } = useAppContext();
   const [userRole, setUserRole] = useState<'owner' | 'manager' | 'staff'>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('userRole');
-      if (stored === 'owner' || stored === 'manager' || stored === 'staff') return stored;
-    }
+    const stored = safeGet('userRole');
+    if (stored === 'owner' || stored === 'manager' || stored === 'staff') return stored;
     return 'owner';
   });
 
@@ -63,7 +70,7 @@ function Reports() {
             </div>
           </div>
 
-          {userRole === 'owner' && (
+          {(userRole === 'owner' || userRole === 'manager') && (
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
               <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
                 <Wallet className="w-5 h-5" />
@@ -79,7 +86,7 @@ function Reports() {
             </div>
           )}
 
-          {userRole === 'owner' && (
+          {(userRole === 'owner' || userRole === 'manager') && (
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
               <div className="absolute top-4 right-4 bg-red-50 text-red-600 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Action Required</div>
               <div className="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center mb-3">
@@ -135,7 +142,7 @@ function Reports() {
             </div>
           </div>
 
-          {userRole === 'owner' && (
+          {(userRole === 'owner' || userRole === 'manager') && (
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
               <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
                 <BarChart3 className="w-5 h-5" />

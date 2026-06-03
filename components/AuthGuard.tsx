@@ -6,6 +6,15 @@ import { doc, getDoc } from 'firebase/firestore';
 
 const publicPaths = ['/login', '/'];
 
+const safeGet = (key: string): string | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -19,8 +28,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) {
         // Check if there is a local non-Firebase session (PIN login for staff/manager)
-        const localRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
-        const localPinLogin = typeof window !== 'undefined' ? localStorage.getItem('pinAuth') : null;
+        const localRole = safeGet('userRole');
+        const localPinLogin = safeGet('pinAuth');
         
         if (localPinLogin === 'true' && (localRole === 'staff' || localRole === 'manager')) {
            // Allowed by local PIN login
@@ -37,7 +46,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
       } else {
         // Enforce role-based routing
-        let targetRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
+        let targetRole = safeGet('userRole');
         
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));

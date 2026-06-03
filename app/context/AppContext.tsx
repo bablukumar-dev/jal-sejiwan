@@ -162,6 +162,15 @@ const initialBusinessInfo: BusinessInfo = {
   canSize: "20 Litre"
 };
 
+const safeGet = (key: string): string | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [deliveries, setDeliveries] = useState<Delivery[]>(initialDeliveries);
@@ -177,15 +186,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const lastRemoteData = useRef<string | null>(null);
   const snapshotReceivedRef = useRef(false);
+  const isSaving = useRef(false);
 
   // Poll localStorage for ownerId changes to detect logins/logouts dynamically
   useEffect(() => {
     const checkOwner = () => {
-      if (typeof window !== 'undefined') {
-        const id = localStorage.getItem('ownerId');
-        if (id !== ownerId) {
-          setOwnerId(id);
-        }
+      const id = safeGet('ownerId');
+      if (id !== ownerId) {
+        setOwnerId(id);
       }
     };
     checkOwner();
@@ -197,7 +205,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadCache = () => {
       try {
-        if (!localStorage.getItem('demo_data_cleared_v2')) {
+        if (!safeGet('demo_data_cleared_v2')) {
           localStorage.removeItem('customers');
           localStorage.removeItem('deliveries');
           localStorage.removeItem('payments');
@@ -210,23 +218,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('demo_data_cleared_v2', 'true');
         }
 
-        const storedCustomers = localStorage.getItem('customers');
+        const storedCustomers = safeGet('customers');
         if (storedCustomers) setCustomers(JSON.parse(storedCustomers));
-        const storedDeliveries = localStorage.getItem('deliveries');
+        const storedDeliveries = safeGet('deliveries');
         if (storedDeliveries) setDeliveries(JSON.parse(storedDeliveries));
-        const storedPayments = localStorage.getItem('payments');
+        const storedPayments = safeGet('payments');
         if (storedPayments) setPayments(JSON.parse(storedPayments));
-        const storedInventory = localStorage.getItem('inventory');
+        const storedInventory = safeGet('inventory');
         if (storedInventory) setInventory(JSON.parse(storedInventory));
-        const storedHistory = localStorage.getItem('inventoryHistory');
+        const storedHistory = safeGet('inventoryHistory');
         if (storedHistory) setInventoryHistory(JSON.parse(storedHistory));
-        const storedStaff = localStorage.getItem('staff');
+        const storedStaff = safeGet('staff');
         if (storedStaff) setStaff(JSON.parse(storedStaff));
-        const storedRoutes = localStorage.getItem('routes');
+        const storedRoutes = safeGet('routes');
         if (storedRoutes) setRoutes(JSON.parse(storedRoutes));
-        const storedAreas = localStorage.getItem('areas');
+        const storedAreas = safeGet('areas');
         if (storedAreas) setAreas(JSON.parse(storedAreas));
-        const storedBusinessInfo = localStorage.getItem('businessInfo');
+        const storedBusinessInfo = safeGet('businessInfo');
         if (storedBusinessInfo) setBusinessInfo(JSON.parse(storedBusinessInfo));
       } catch (e) {
         console.error("Failed to load local storage cache", e);
@@ -329,10 +337,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     lastRemoteData.current = currentLocalStr;
 
+    const currentOwnerId = ownerId;
+
     const saveToFirestore = async () => {
-      if (!ownerId) return;
+      if (!currentOwnerId || isSaving.current) return;
+      isSaving.current = true;
       try {
-        await setDoc(doc(db, 'workspaces', ownerId), {
+        await setDoc(doc(db, 'workspaces', currentOwnerId), {
           customers,
           deliveries,
           payments,
@@ -345,11 +356,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
       } catch (e) {
         console.error("Failed to sync state to workspace", e);
+      } finally {
+        isSaving.current = false;
       }
     };
 
     saveToFirestore();
   }, [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isInitialized, ownerId]);
+
 
   const contextValue = React.useMemo(() => ({
     customers, setCustomers,
