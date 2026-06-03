@@ -218,7 +218,7 @@ export default function DeliveryEntry() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <TopAppBar title="Jal Sejiwan" subtitle={`Route: ${customer.route}`} showBack={true} />
+      <TopAppBar title="JalSejiwan" subtitle={`Route: ${customer.route}`} showBack={true} />
 
       {isOffline && (
         <div className="bg-orange-100 p-2 text-center flex items-center justify-center gap-2">

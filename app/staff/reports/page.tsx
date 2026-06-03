@@ -31,7 +31,7 @@ function Reports() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <TopAppBar title="Jal Sejiwan" showBack={true} />
+      <TopAppBar title="JalSejiwan" showBack={true} />
 
       <main className="max-w-md mx-auto px-4 py-6">
         {/* Header */}

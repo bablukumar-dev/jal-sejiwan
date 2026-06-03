@@ -140,7 +140,7 @@ export function wrapRoute<P extends object>(
       }
 
       if (!isAllowed) {
-        // Redirection logic matching Jal Sejiwan flow
+        // Redirection logic matching JalSejiwan flow
         if (role === 'staff') {
           router.replace('/staff/dashboard');
         } else {
