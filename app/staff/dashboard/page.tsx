@@ -9,7 +9,6 @@ import { useState, useEffect } from 'react';
 import { auth } from '@/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import OnboardingOverlay from '@/components/OnboardingOverlay';
-import OnlineStatusBadge from '@/components/OnlineStatusBadge';
 
 export default function StaffDashboard() {
   const { customers, deliveries, payments, inventory, staff, businessInfo } = useAppContext();
@@ -102,9 +101,6 @@ export default function StaffDashboard() {
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Operational Overview</span>
               <h1 className="text-xl font-bold text-slate-900">Namaste, {userName.split(' ')[0]} <span className="text-blue-600 font-normal">(Manager)</span></h1>
             </div>
-          </div>
-          <div>
-            <OnlineStatusBadge />
           </div>
         </div>
       </header>

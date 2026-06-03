@@ -4,7 +4,6 @@ import { ArrowLeft, UserCircle, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/firebase';
-import OnlineStatusBadge from '@/components/OnlineStatusBadge';
 
 interface TopAppBarProps {
   title: string;
@@ -43,7 +42,6 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <OnlineStatusBadge />
           <button 
             onClick={handleLogout}
             className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"

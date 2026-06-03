@@ -8,7 +8,6 @@ import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
 import { wrapRoute } from '@/lib/permissionGuard';
 import OnboardingOverlay from '@/components/OnboardingOverlay';
-import OnlineStatusBadge from '@/components/OnlineStatusBadge';
 
 function OwnerDashboard() {
   const { customers, deliveries, payments, inventory, businessInfo } = useAppContext();
@@ -138,12 +137,9 @@ function OwnerDashboard() {
               </h1>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <OnlineStatusBadge />
-            <Link href="/settings" className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 bg-slate-100 flex items-center justify-center">
-              <div className="w-full h-full bg-blue-600" />
-            </Link>
-          </div>
+          <Link href="/settings" className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 bg-slate-100 flex items-center justify-center">
+            <div className="w-full h-full bg-blue-600" />
+          </Link>
         </div>
       </header>
 
@@ -294,7 +290,7 @@ function OwnerDashboard() {
                 <span className="text-sm font-medium text-slate-700">Reports</span>
               </Link>
             )}
-            {(userRole === 'owner' || userRole === 'manager') && (
+            {userRole === 'owner' && (
               <Link href="/owner/staff" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
                 <Users className="w-6 h-6 text-blue-600" />
                 <span className="text-sm font-medium text-slate-700">Staff</span>
