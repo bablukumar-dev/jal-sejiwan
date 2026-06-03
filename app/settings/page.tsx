@@ -417,7 +417,7 @@ export default function SettingsPage() {
         </button>
 
         <div className="mt-8 text-center">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Jal Sejiwan Operations V2.4.0-BUILD88</span>
+          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">JalSejiwan Operations V2.4.0-BUILD88</span>
         </div>
 
       </main>

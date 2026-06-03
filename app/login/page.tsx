@@ -355,7 +355,7 @@ export default function Login() {
         <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4">
           <Droplet className="w-8 h-8 fill-current" />
         </div>
-        <h1 className="text-3xl font-bold text-blue-700 mb-1">Jal Sejiwan</h1>
+        <h1 className="text-3xl font-bold text-blue-700 mb-1">JalSejiwan</h1>
         <p className="text-slate-500 mb-8 text-center">Smart Water Management</p>
 
         <div className="w-full mb-6">

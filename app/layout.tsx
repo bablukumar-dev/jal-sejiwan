@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/',
   },
-  title: 'Jal Sejiwan',
+  title: 'JalSejiwan',
   description: 'Smart Water Management Application',
 };
 
