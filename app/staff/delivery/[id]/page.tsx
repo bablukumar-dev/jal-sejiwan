@@ -11,7 +11,7 @@ export default function DeliveryEntry() {
   const router = useRouter();
   const params = useParams();
   const deliveryId = Number(params.id);
-  const { deliveries, customers, setDeliveries, setCustomers, setInventory, setPayments, businessInfo } = useAppContext();
+  const { deliveries, customers, setDeliveries, setCustomers, setInventory, setPayments, businessInfo, inventory, payments } = useAppContext();
 
   const delivery = deliveries.find(d => d.id === deliveryId);
   const customer = customers.find(c => c.id === delivery?.customerId);
