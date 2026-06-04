@@ -2,6 +2,7 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
+import { useRouter } from 'next/navigation';
 import { Truck, Wallet, Droplet, Package, AlertTriangle, UserPlus, FileText, Users, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
@@ -12,6 +13,7 @@ import OnlineStatusBadge from '@/components/OnlineStatusBadge';
 import { safeGet } from '@/lib/utils';
 
 function OwnerDashboard() {
+  const router = useRouter();
   const { customers, deliveries, payments, inventory, businessInfo } = useAppContext();
   const [isReminding, setIsReminding] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -269,26 +271,26 @@ function OwnerDashboard() {
         <div>
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 mt-6">Quick Operations</h3>
           <div className="grid grid-cols-2 gap-3">
-            <Link id="onboarding-add-customer" href="/owner/customers/add" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+            <Link id="onboarding-add-customer" href="/owner/customers/add" onClick={(e) => { e.preventDefault(); router.push('/owner/customers/add'); }} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
               <UserPlus className="w-6 h-6 text-blue-600" />
               <span className="text-sm font-medium text-slate-700">Add Customer</span>
             </Link>
-            <Link id="onboarding-deliveries" href="/owner/deliveries" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+            <Link id="onboarding-deliveries" href="/owner/deliveries" onClick={(e) => { e.preventDefault(); router.push('/owner/deliveries'); }} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
               <Truck className="w-6 h-6 text-blue-600" />
               <span className="text-sm font-medium text-slate-700">Deliveries</span>
             </Link>
-            <Link id="onboarding-payments" href="/owner/payments" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+            <Link id="onboarding-payments" href="/owner/payments" onClick={(e) => { e.preventDefault(); router.push('/owner/payments'); }} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
               <span className="text-xl font-bold text-blue-600">₹</span>
               <span className="text-sm font-medium text-slate-700">Payments</span>
             </Link>
             {(userRole === 'owner' || userRole === 'manager') && (
-              <Link href="/owner/reports" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+              <Link href="/owner/reports" onClick={(e) => { e.preventDefault(); router.push('/owner/reports'); }} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
                 <FileText className="w-6 h-6 text-blue-600" />
                 <span className="text-sm font-medium text-slate-700">Reports</span>
               </Link>
             )}
             {(userRole === 'owner' || userRole === 'manager') && (
-              <Link href="/owner/staff" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+              <Link href="/owner/staff" onClick={(e) => { e.preventDefault(); router.push('/owner/staff'); }} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
                 <Users className="w-6 h-6 text-blue-600" />
                 <span className="text-sm font-medium text-slate-700">Staff</span>
               </Link>
