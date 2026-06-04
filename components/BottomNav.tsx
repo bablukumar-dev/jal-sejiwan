@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Users, 
@@ -17,7 +16,6 @@ interface BottomNavProps {
 }
 
 export default function BottomNav({ role: propRole, activeTab }: BottomNavProps) {
-  const router = useRouter();
   let role = propRole || (typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'staff');
   if (role) {
     role = role.toLowerCase();
@@ -52,7 +50,6 @@ export default function BottomNav({ role: propRole, activeTab }: BottomNavProps)
             <Link 
               key={link.id} 
               href={link.href}
-              onClick={(e) => { e.preventDefault(); router.push(link.href); }}
               className={`flex flex-col items-center justify-center px-3 py-2 rounded-xl transition-colors ${
                 isActive 
                   ? 'text-blue-700 bg-blue-50' 
