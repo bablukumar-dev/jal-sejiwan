@@ -50,9 +50,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists() && userDoc.data().role) {
-            targetRole = userDoc.data().role;
-            if (typeof window !== 'undefined') localStorage.setItem('userRole', targetRole as string);
+          const firestoreRole = userDoc.data()?.role?.toLowerCase();
+          if (userDoc.exists() && firestoreRole) {
+            if (targetRole && targetRole !== firestoreRole) {
+              router.push('/login');
+              return;
+            }
+            targetRole = firestoreRole;
           }
         } catch (e) {
           console.error("Could not verify role", e);
