@@ -339,14 +339,25 @@ export default function Login() {
   };
 
   const redirectBasedOnRole = (targetRole: string) => {
-    if (!targetRole) {
-      router.push('/login');
+    const role = targetRole?.toLowerCase();
+
+    if (role === 'owner') {
+      localStorage.setItem('userRole', 'owner');
+      router.push('/owner/dashboard');
       return;
     }
-    localStorage.setItem('userRole', targetRole);
-    if (targetRole === 'owner') router.push('/owner/dashboard');
-    if (targetRole === 'staff') router.push('/staff/dashboard');
-    if (targetRole === 'manager') router.push('/owner/dashboard');
+    if (role === 'manager') {
+      localStorage.setItem('userRole', 'manager');
+      router.push('/owner/dashboard');
+      return;
+    }
+    if (role === 'staff') {
+      localStorage.setItem('userRole', 'staff');
+      router.push('/staff/dashboard');
+      return;
+    }
+
+    router.push('/login');
   };
 
   return (

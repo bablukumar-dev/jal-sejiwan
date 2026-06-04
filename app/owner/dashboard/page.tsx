@@ -295,7 +295,7 @@ function OwnerDashboard() {
                 <span className="text-sm font-medium text-slate-700">Reports</span>
               </button>
             )}
-            {(userRole === 'owner' || userRole === 'manager') && (
+            {userRole === 'owner' && (
               <button onClick={() => router.push('/owner/staff')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
                 <Users className="w-6 h-6 text-blue-600" />
                 <span className="text-sm font-medium text-slate-700">Staff</span>
