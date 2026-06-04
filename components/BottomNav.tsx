@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Users, 
@@ -16,6 +17,7 @@ interface BottomNavProps {
 }
 
 export default function BottomNav({ role: propRole, activeTab }: BottomNavProps) {
+  const router = useRouter();
   let role = propRole || (typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'staff');
   if (role) {
     role = role.toLowerCase();
@@ -47,10 +49,10 @@ export default function BottomNav({ role: propRole, activeTab }: BottomNavProps)
           const Icon = link.icon;
           const isActive = activeTab === link.id;
           return (
-            <Link 
+            <button 
               key={link.id} 
-              href={link.href}
-              className={`flex flex-col items-center justify-center px-3 py-2 rounded-xl transition-colors ${
+              onClick={() => router.push(link.href)}
+              className={`flex flex-col items-center justify-center px-3 py-2 rounded-xl transition-colors w-full ${
                 isActive 
                   ? 'text-blue-700 bg-blue-50' 
                   : 'text-slate-500 hover:bg-slate-50'
@@ -60,7 +62,7 @@ export default function BottomNav({ role: propRole, activeTab }: BottomNavProps)
               <span className={`text-[10px] font-bold uppercase mt-1 tracking-wide ${isActive ? 'text-blue-800' : ''}`}>
                 {link.label}
               </span>
-            </Link>
+            </button>
           );
         })}
       </div>

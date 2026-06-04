@@ -10,8 +10,10 @@ import { wrapRoute } from '@/lib/permissionGuard';
 import OnboardingOverlay from '@/components/OnboardingOverlay';
 import OnlineStatusBadge from '@/components/OnlineStatusBadge';
 import { safeGet } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 function OwnerDashboard() {
+  const router = useRouter();
   const { customers, deliveries, payments, inventory, businessInfo } = useAppContext();
   const [isReminding, setIsReminding] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -269,29 +271,35 @@ function OwnerDashboard() {
         <div>
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 mt-6">Quick Operations</h3>
           <div className="grid grid-cols-2 gap-3">
-            <Link id="onboarding-add-customer" href="/owner/customers/add" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
-              <UserPlus className="w-6 h-6 text-blue-600" />
-              <span className="text-sm font-medium text-slate-700">Add Customer</span>
-            </Link>
-            <Link id="onboarding-deliveries" href="/owner/deliveries" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
-              <Truck className="w-6 h-6 text-blue-600" />
-              <span className="text-sm font-medium text-slate-700">Deliveries</span>
-            </Link>
-            <Link id="onboarding-payments" href="/owner/payments" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
-              <span className="text-xl font-bold text-blue-600">₹</span>
-              <span className="text-sm font-medium text-slate-700">Payments</span>
-            </Link>
             {(userRole === 'owner' || userRole === 'manager') && (
-              <Link href="/owner/reports" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
-                <FileText className="w-6 h-6 text-blue-600" />
-                <span className="text-sm font-medium text-slate-700">Reports</span>
-              </Link>
+              <button id="onboarding-add-customer" onClick={() => router.push('/owner/customers/add')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
+                <UserPlus className="w-6 h-6 text-blue-600" />
+                <span className="text-sm font-medium text-slate-700">Add Customer</span>
+              </button>
             )}
             {(userRole === 'owner' || userRole === 'manager') && (
-              <Link href="/owner/staff" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+              <button id="onboarding-deliveries" onClick={() => router.push('/owner/deliveries')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
+                <Truck className="w-6 h-6 text-blue-600" />
+                <span className="text-sm font-medium text-slate-700">Deliveries</span>
+              </button>
+            )}
+            {(userRole === 'owner' || userRole === 'manager') && (
+              <button id="onboarding-payments" onClick={() => router.push('/owner/payments')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
+                <span className="text-xl font-bold text-blue-600">₹</span>
+                <span className="text-sm font-medium text-slate-700">Payments</span>
+              </button>
+            )}
+            {(userRole === 'owner' || userRole === 'manager') && (
+              <button onClick={() => router.push('/owner/reports')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
+                <FileText className="w-6 h-6 text-blue-600" />
+                <span className="text-sm font-medium text-slate-700">Reports</span>
+              </button>
+            )}
+            {(userRole === 'owner' || userRole === 'manager') && (
+              <button onClick={() => router.push('/owner/staff')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
                 <Users className="w-6 h-6 text-blue-600" />
                 <span className="text-sm font-medium text-slate-700">Staff</span>
-              </Link>
+              </button>
             )}
           </div>
         </div>
