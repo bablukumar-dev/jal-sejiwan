@@ -34,12 +34,14 @@ function OwnerDashboard() {
   useEffect(() => {
     const role = safeGet('userRole');
     if (role) {
-      setUserRole(role);
-      if (role === 'owner') {
-        setUserName(businessInfo.ownerName || 'Owner');
-      } else {
-        setUserName(safeGet('staffUserName') || 'Manager');
-      }
+      requestAnimationFrame(() => {
+        setUserRole(role);
+        if (role === 'owner') {
+          setUserName(businessInfo.ownerName || 'Owner');
+        } else {
+          setUserName(safeGet('staffUserName') || 'Manager');
+        }
+      });
     }
   }, [businessInfo.ownerName]);
 

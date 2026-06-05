@@ -60,6 +60,10 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+const getLockTime = () => {
+  return new Date(Date.now() + 15 * 60000).toISOString();
+};
+
 export default function Login() {
   const router = useRouter();
   const { staff, setStaff } = useAppContext();
@@ -144,7 +148,7 @@ export default function Login() {
          if (docSnap.exists()) {
            const updateData: any = { failedPinAttempts: failedAttempts };
            if (failedAttempts >= 5) {
-             updateData.pinLockedUntil = new Date(Date.now() + 15 * 60000).toISOString();
+             updateData.pinLockedUntil = getLockTime();
              setError('Account temporarily locked. Contact Owner.');
            } else {
              setError(`Wrong password. Attempts remaining: ${5 - failedAttempts}`);
@@ -155,7 +159,7 @@ export default function Login() {
            const idx = updatedStaff.findIndex(st => st.id === s!.id);
            updatedStaff[idx] = { ...s, failedPinAttempts: failedAttempts };
            if (failedAttempts >= 5) {
-             updatedStaff[idx].pinLockedUntil = new Date(Date.now() + 15 * 60000).toISOString();
+             updatedStaff[idx].pinLockedUntil = getLockTime();
              setError('Account temporarily locked. Contact Owner.');
            } else {
              setError(`Wrong password. Attempts remaining: ${5 - failedAttempts}`);

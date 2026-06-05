@@ -26,18 +26,20 @@ export default function StaffDashboard() {
       if (currentStaff) {
         requestAnimationFrame(() => {
           setUserName(currentStaff.name);
+          if (currentStaff.route) {
+            setStaffRoute(currentStaff.route);
+          }
+          setCurrentStaffId(currentStaff.id);
         });
-        if (currentStaff.route) {
-          setStaffRoute(currentStaff.route);
-        }
-        setCurrentStaffId(currentStaff.id);
       }
       return;
     }
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
-        setUserName(user.displayName || user.email?.split('@')[0] || 'User');
+        requestAnimationFrame(() => {
+          setUserName(user.displayName || user.email?.split('@')[0] || 'User');
+        });
         // Find staff route if any
         try {
           const { doc, getDoc } = await import('firebase/firestore');
@@ -46,14 +48,16 @@ export default function StaffDashboard() {
           if (userDoc.exists() && userDoc.data().role === 'staff') {
              const currentStaff = staff.find(s => s.phone === userDoc.data().phone || s.name === userDoc.data().name);
              if (currentStaff) {
-               if (currentStaff.route) {
-                 setStaffRoute(currentStaff.route);
-               }
-               setCurrentStaffId(currentStaff.id);
+                requestAnimationFrame(() => {
+                  if (currentStaff.route) {
+                    setStaffRoute(currentStaff.route);
+                  }
+                  setCurrentStaffId(currentStaff.id);
+                });
              }
           }
         } catch (e) {
-           console.error(e);
+            console.error(e);
         }
       }
     });

@@ -121,7 +121,9 @@ export default function SettingsPage() {
       const pinAuth = localStorage.getItem('pinAuth');
       const storedName = localStorage.getItem('staffUserName');
       if (pinAuth === 'true' && storedName) {
-        setUserName(storedName);
+        requestAnimationFrame(() => {
+          setUserName(storedName);
+        });
         return;
       }
     }

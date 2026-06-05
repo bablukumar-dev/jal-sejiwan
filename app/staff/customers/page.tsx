@@ -10,6 +10,10 @@ import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect, useMemo } from 'react';
 
+const getUniqueId = () => {
+  return Date.now() + Math.floor(Math.random() * 1000);
+};
+
 export default function StaffCustomers() {
   const router = useRouter();
   const { deliveries, setDeliveries, customers, staff, businessInfo } = useAppContext();
@@ -63,20 +67,22 @@ export default function StaffCustomers() {
     return c.name?.toLowerCase().includes(q) || c.phone?.includes(q) || c.route?.toLowerCase().includes(q) || c.area?.toLowerCase().includes(q);
   });
 
-  const mappedDeliveries = searchedCustomers.map(customer => {
-    const deliveryToday = deliveries.find(d => d.customerId === customer.id && d.date === today);
-    return {
-      customer,
-      delivery: deliveryToday || {
-        id: `mock_${customer.id}`, // specific known ID we can intercept, but we will not link directly to this string ID
-        customerId: customer.id,
-        date: today,
-        status: 'Pending' as const,
-        staffId: currentStaffId,
-        priority: 'Normal'
-      }
-    };
-  });
+  const mappedDeliveries = useMemo(() => {
+    return searchedCustomers.map(customer => {
+      const deliveryToday = deliveries.find(d => d.customerId === customer.id && d.date === today);
+      return {
+        customer,
+        delivery: deliveryToday || {
+          id: `mock_${customer.id}`, // specific known ID we can intercept, but we will not link directly to this string ID
+          customerId: customer.id,
+          date: today,
+          status: 'Pending' as const,
+          staffId: currentStaffId,
+          priority: 'Normal'
+        }
+      };
+    });
+  }, [searchedCustomers, deliveries, today, currentStaffId]);
 
   const displayList = useMemo(() => {
     if (activeTab === 'All') return mappedDeliveries;
@@ -94,7 +100,7 @@ export default function StaffCustomers() {
       router.push(`/staff/delivery/${existing.id}`);
     } else {
       const newDelivery = {
-        id: Date.now() + Math.floor(Math.random() * 1000),
+        id: getUniqueId(),
         customerId: customerId,
         customerName: customers.find(c => c.id === customerId)?.name || '',
         date: today,
@@ -120,7 +126,7 @@ export default function StaffCustomers() {
       router.push(`/staff/skip/${existing.id}`);
     } else {
       const newDelivery = {
-        id: Date.now() + Math.floor(Math.random() * 1000),
+        id: getUniqueId(),
         customerId: customerId,
         customerName: customers.find(c => c.id === customerId)?.name || '',
         date: today,
