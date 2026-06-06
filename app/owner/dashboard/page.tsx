@@ -273,7 +273,7 @@ function OwnerDashboard() {
         <div>
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 mt-6">Quick Operations</h3>
           <div className="grid grid-cols-2 gap-3">
-            {(userRole === 'owner' || userRole === 'manager') && (
+            {(userRole === 'owner' || userRole === 'manager' || userRole === 'staff') && (
               <button id="onboarding-add-customer" onClick={() => router.push('/owner/customers/add')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
                 <UserPlus className="w-6 h-6 text-blue-600" />
                 <span className="text-sm font-medium text-slate-700">Add Customer</span>

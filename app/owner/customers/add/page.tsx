@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TopAppBar from '@/components/TopAppBar';
 import { User, MapPin, Save, Settings, IndianRupee } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -27,6 +27,11 @@ export default function AddCustomer() {
   const [walletBalance, setWalletBalance] = useState(0);
   const [subscriptionPlan, setSubscriptionPlan] = useState<'None' | 'Monthly' | 'Unlimited' | 'Custom'>('None');
   const [riskLevel, setRiskLevel] = useState<'Low' | 'Medium' | 'High'>('Low');
+
+  const [userRole, setUserRole] = useState<string>('');
+  useEffect(() => {
+    setUserRole(localStorage.getItem('userRole') || '');
+  }, []);
 
   const [errors, setErrors] = useState<{name?: string, phone?: string}>({});
 
@@ -331,6 +336,7 @@ export default function AddCustomer() {
             </div>
             
             {/* Enterprise Fields */}
+            {(userRole === 'owner' || userRole === 'manager') && (
             <div className="flex gap-4">
               <div className="flex-1">
                 <label className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 block">Security Deposit</label>
@@ -351,7 +357,9 @@ export default function AddCustomer() {
                 />
               </div>
             </div>
+            )}
 
+            {(userRole === 'owner' || userRole === 'manager') && (
             <div className="flex gap-4">
               <div className="flex-1">
                 <label className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 block">Subscription Map</label>
@@ -379,6 +387,7 @@ export default function AddCustomer() {
                 </select>
               </div>
             </div>
+            )}
             <div>
               <label className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 block">Notes</label>
               <textarea 
