@@ -15,6 +15,9 @@ export default function StaffDashboard() {
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showRoute, setShowRoute] = useState(false);
+  const [showDailySummary, setShowDailySummary] = useState(false);
+  const [showLedger, setShowLedger] = useState(false);
   
   useEffect(() => {
     // Check PIN-based authentication first
@@ -134,37 +137,98 @@ export default function StaffDashboard() {
         </div>
 
         {/* Primary Action Button */}
-        <Link href="/staff/customers" className="bg-blue-700 hover:bg-blue-800 text-white rounded-2xl p-5 flex items-center justify-between transition-colors shadow-sm mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-              <Route className="w-6 h-6 text-white" />
+        <div className="mb-6">
+          <button onClick={() => setShowRoute(!showRoute)} className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-2xl p-5 flex items-center justify-between transition-colors shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <Route className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left">
+                <div className="text-[10px] font-bold text-blue-200 uppercase tracking-wider">Next Stop</div>
+                <div className="text-xl font-bold">START MY ROUTE</div>
+              </div>
             </div>
-            <div>
-              <div className="text-[10px] font-bold text-blue-200 uppercase tracking-wider">Next Stop</div>
-              <div className="text-xl font-bold">START MY ROUTE</div>
+            <ChevronRight className={`w-6 h-6 text-white transition-transform ${showRoute ? 'rotate-90' : ''}`} />
+          </button>
+          
+          {showRoute && (
+            <div className="mt-3 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Assigned Route</h4>
+              {customers.filter((c: any) => c.route === staffRoute || c.area === staffRoute).length > 0 ? (
+                customers.filter((c: any) => c.route === staffRoute || c.area === staffRoute).map(customer => (
+                  <div key={customer.id} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0">
+                    <div>
+                      <div className="font-bold text-slate-900">{customer.name}</div>
+                      <div className="text-xs text-slate-500">{customer.address}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-slate-500 text-center py-4">No customers assigned to this route.</div>
+              )}
             </div>
-          </div>
-          <ArrowRight className="w-6 h-6 text-white" />
-        </Link>
+          )}
+        </div>
 
         {/* Secondary Section */}
         <div className="bg-slate-100/60 rounded-2xl p-5 border border-slate-200/50">
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Route Summary</h3>
           <div className="space-y-3">
-            <Link href="/staff/customers" className="bg-white rounded-xl p-4 flex items-center justify-between shadow-sm border border-slate-200">
-              <div className="flex items-center gap-3">
-                 <FileText className="w-5 h-5 text-blue-700" />
-                 <span className="font-bold text-slate-900">Daily Summary</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-400" />
-            </Link>
-            <Link href="/staff/customers" className="bg-white rounded-xl p-4 flex items-center justify-between shadow-sm border border-slate-200">
-              <div className="flex items-center gap-3">
-                 <Wallet className="w-5 h-5 text-blue-700" />
-                 <span className="font-bold text-slate-900">Payment Ledger</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-400" />
-            </Link>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <button 
+                onClick={() => setShowDailySummary(!showDailySummary)}
+                className="w-full p-4 flex items-center justify-between focus:outline-none"
+              >
+                <div className="flex items-center gap-3">
+                   <FileText className="w-5 h-5 text-blue-700" />
+                   <span className="font-bold text-slate-900">Daily Summary</span>
+                </div>
+                <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${showDailySummary ? 'rotate-90' : ''}`} />
+              </button>
+              {showDailySummary && (
+                <div className="p-4 pt-0 border-t border-slate-100 bg-slate-50">
+                   <div className="flex justify-between items-center mb-2">
+                     <span className="text-sm text-slate-600">Completed Deliveries</span>
+                     <span className="font-bold text-slate-900">{todayDeliveriesCount}</span>
+                   </div>
+                   <div className="flex justify-between items-center mb-2">
+                     <span className="text-sm text-slate-600">Total Target</span>
+                     <span className="font-bold text-slate-900">{targetDeliveries}</span>
+                   </div>
+                   <div className="flex justify-between items-center">
+                     <span className="text-sm text-slate-600">Completion</span>
+                     <span className="font-bold text-blue-700">{deliveryPercentage}%</span>
+                   </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <button 
+                onClick={() => setShowLedger(!showLedger)}
+                className="w-full p-4 flex items-center justify-between focus:outline-none"
+              >
+                <div className="flex items-center gap-3">
+                   <Wallet className="w-5 h-5 text-blue-700" />
+                   <span className="font-bold text-slate-900">Payment Ledger</span>
+                </div>
+                <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${showLedger ? 'rotate-90' : ''}`} />
+              </button>
+              {showLedger && (
+                <div className="p-4 pt-0 border-t border-slate-100 bg-slate-50 space-y-2 max-h-60 overflow-y-auto">
+                  {payments.filter(p => p.date === today && p.collectedBy === userName).length > 0 ? (
+                    payments.filter(p => p.date === today && p.collectedBy === userName).map(payment => (
+                      <div key={payment.id} className="flex justify-between items-center py-2 border-b border-slate-200 last:border-0">
+                        <span className="text-sm font-medium text-slate-700">{customers.find(c => c.id === payment.customerId)?.name || 'Unknown'}</span>
+                        <span className="font-bold text-emerald-600">₹{payment.amount}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-slate-500 text-center py-2">No payments collected today.</div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
