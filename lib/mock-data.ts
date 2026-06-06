@@ -5,6 +5,7 @@ export const currentUser: User = {
   name: 'Rajesh Ji',
   role: 'owner',
   phone: '+919876543210',
+  businessId: 'default_business',
 };
 
 export const mockCustomers: Customer[] = [

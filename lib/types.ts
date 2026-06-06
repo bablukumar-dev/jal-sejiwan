@@ -5,6 +5,14 @@ export interface User {
   name: string;
   role: Role;
   phone: string;
+  businessId?: string;
+}
+
+export interface Business {
+  businessId: string;
+  businessName: string;
+  createdAt: string;
+  ownerId: string;
 }
 
 export interface Customer {

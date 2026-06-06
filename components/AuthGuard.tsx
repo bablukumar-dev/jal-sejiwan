@@ -50,16 +50,43 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
-          const firestoreRole = userDoc.data()?.role?.toLowerCase();
-          if (userDoc.exists() && firestoreRole) {
-            if (targetRole && targetRole !== firestoreRole) {
-              router.push('/login');
-              return;
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            const firestoreRole = data.role?.toLowerCase();
+            
+            if (firestoreRole) {
+              if (targetRole && targetRole !== firestoreRole) {
+                router.push('/login');
+                return;
+              }
+              targetRole = firestoreRole;
             }
-            targetRole = firestoreRole;
+            
+            // Migration: Assign default businessId
+            if (!data.businessId) {
+              const { setDoc } = await import('firebase/firestore');
+              await setDoc(doc(db, 'users', user.uid), { businessId: 'default_business' }, { merge: true });
+              if (typeof window !== 'undefined') localStorage.setItem('businessId', 'default_business');
+            } else {
+              if (typeof window !== 'undefined') localStorage.setItem('businessId', data.businessId);
+            }
+            
+            // Create default business document if user is owner
+            if (targetRole === 'owner') {
+               const { setDoc } = await import('firebase/firestore');
+               const businessDoc = await getDoc(doc(db, 'businesses', 'default_business'));
+               if (!businessDoc.exists()) {
+                 await setDoc(doc(db, 'businesses', 'default_business'), {
+                   businessId: 'default_business',
+                   businessName: 'Default Business',
+                   createdAt: new Date().toISOString(),
+                   ownerId: user.uid
+                 }, { merge: true });
+               }
+            }
           }
         } catch (e) {
-          console.error("Could not verify role", e);
+          console.error("Could not verify role or run migration", e);
         }
 
         if (targetRole === 'staff' && pathname.startsWith('/owner') && !pathname.includes('/owner/customers/add')) {

@@ -188,11 +188,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const snapshotReceivedRef = useRef(false);
   const isSaving = useRef(false);
 
-  // Poll localStorage for ownerId changes to detect logins/logouts dynamically
+  // Poll localStorage for ownerId/businessId changes to detect logins/logouts dynamically
   useEffect(() => {
     const checkOwner = () => {
-      const id = safeGet('ownerId');
-      if (id !== ownerId) {
+      const id = safeGet('businessId') || safeGet('ownerId') || 'default_business';
+      if (id !== ownerId && safeGet('userRole')) {
         setOwnerId(id);
       }
     };

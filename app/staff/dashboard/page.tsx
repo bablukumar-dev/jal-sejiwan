@@ -97,7 +97,7 @@ export default function StaffDashboard() {
           <div className="absolute top-4 right-4 opacity-5">
             <Truck className="w-32 h-32 text-slate-400" />
           </div>
-          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Today's Target</h3>
+          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Today&apos;s Target</h3>
           <div className="flex items-end gap-2 mb-4">
             <span className="text-6xl font-bold text-blue-700 leading-none">{todayDeliveriesCount}</span>
             <span className="text-2xl font-medium text-slate-400 mb-1">/{targetDeliveries}</span>

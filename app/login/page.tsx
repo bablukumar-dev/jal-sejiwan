@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Droplet, Store, Truck, Package, Mail, Lock, User, Phone } from 'lucide-react';
 import { auth, db } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification, signOut, browserPopupRedirectResolver, updateProfile } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { useAppContext } from '@/app/context/AppContext';
 import { comparePin } from '@/lib/authHelper';
 
@@ -233,10 +233,21 @@ export default function Login() {
         });
         
         try {
+          const newBusinessRef = doc(collection(db, 'businesses'));
+          const generatedBusinessId = newBusinessRef.id;
+
+          await setDoc(newBusinessRef, {
+            businessId: generatedBusinessId,
+            businessName: `${name || 'New'}'s Business`,
+            createdAt: new Date().toISOString(),
+            ownerId: userCredential.user.uid
+          });
+
           await setDoc(doc(db, 'users', userCredential.user.uid), {
             name: name,
             email: userCredential.user.email,
             role: role,
+            businessId: generatedBusinessId,
             createdAt: serverTimestamp(),
           });
         } catch (firestoreErr) {
@@ -259,10 +270,19 @@ export default function Login() {
         }
         
         let targetRole = role;
+        let businessId = 'default_business';
         try {
           const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-          if (userDoc.exists() && userDoc.data().role) {
-            targetRole = userDoc.data().role;
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            if (data.role) {
+              targetRole = data.role;
+            }
+            if (data.businessId) {
+              businessId = data.businessId;
+            } else {
+              await setDoc(doc(db, 'users', userCredential.user.uid), { businessId: 'default_business' }, { merge: true });
+            }
           }
         } catch (firestoreErr) {
           console.error("Could not fetch user role", firestoreErr);
@@ -271,6 +291,7 @@ export default function Login() {
         if (targetRole === 'owner') {
            localStorage.setItem('ownerId', userCredential.user.uid);
         }
+        localStorage.setItem('businessId', businessId);
         
         redirectBasedOnRole(targetRole);
       }
@@ -300,18 +321,36 @@ export default function Login() {
       const result = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
       
       let targetRole = role;
+      let businessId = 'default_business';
       try {
         const userDoc = await getDoc(doc(db, 'users', result.user.uid));
         if (!userDoc.exists()) {
+          const newBusinessRef = doc(collection(db, 'businesses'));
+          businessId = newBusinessRef.id;
+
+          await setDoc(newBusinessRef, {
+             businessId: businessId,
+             businessName: `${result.user.displayName || 'New'}'s Business`,
+             createdAt: new Date().toISOString(),
+             ownerId: result.user.uid
+          });
+
           await setDoc(doc(db, 'users', result.user.uid), {
             name: result.user.displayName || 'Unknown',
             email: result.user.email,
             role: role,
+            businessId: businessId,
             createdAt: serverTimestamp(),
           });
         } else {
-          if (userDoc.data().role) {
-            targetRole = userDoc.data().role;
+          const data = userDoc.data();
+          if (data.role) {
+            targetRole = data.role;
+          }
+          if (data.businessId) {
+            businessId = data.businessId;
+          } else {
+            await setDoc(doc(db, 'users', result.user.uid), { businessId: 'default_business' }, { merge: true });
           }
         }
       } catch (firestoreErr) {
@@ -321,6 +360,7 @@ export default function Login() {
       if (targetRole === 'owner') {
          localStorage.setItem('ownerId', result.user.uid);
       }
+      localStorage.setItem('businessId', businessId);
       
       redirectBasedOnRole(targetRole);
     } catch (err: any) {
