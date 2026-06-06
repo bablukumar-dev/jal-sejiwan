@@ -21,6 +21,11 @@ export default function StaffCustomers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
+  const [userRole, setUserRole] = useState<string>('');
+  
+  useEffect(() => {
+    setUserRole(typeof window !== 'undefined' ? localStorage.getItem('userRole') || '' : '');
+  }, []);
   
   useEffect(() => {
     const fetchStaffRoute = async () => {
@@ -155,6 +160,11 @@ export default function StaffCustomers() {
             <h1 className="text-3xl font-bold text-slate-900 mb-1">Customers</h1>
             <p className="text-sm text-slate-600">Track & Deliver</p>
           </div>
+          {(userRole === 'owner' || userRole === 'manager' || userRole === 'staff') && (
+             <Link href="/owner/customers/add" className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 active:scale-95 transition-transform text-sm">
+               <Plus className="w-4 h-4" /> Add Customer
+             </Link>
+          )}
         </div>
 
         {/* Search Bar */}
