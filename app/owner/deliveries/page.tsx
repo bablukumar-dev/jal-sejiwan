@@ -163,7 +163,7 @@ function DeliveriesList() {
                   <div className="bg-slate-100 w-24 h-24 rounded-full flex items-center justify-center mb-4">
                     <Truck className="w-12 h-12 text-slate-300" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-800 mb-2">No deliveries found</h3>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">No deliveries yet</h3>
                   <p className="text-slate-500 mb-6 max-w-[250px]">
                     You have no deliveries scheduled for the selected date and filters.
                   </p>

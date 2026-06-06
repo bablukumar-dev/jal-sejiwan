@@ -139,9 +139,9 @@ function CustomersList() {
               <div className="bg-blue-50 w-24 h-24 rounded-full flex items-center justify-center mb-4">
                 <Users className="w-12 h-12 text-blue-300" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">No customers found</h3>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">No customers yet</h3>
               <p className="text-slate-500 mb-6 max-w-[250px]">
-                {searchQuery ? "We couldn't find any customers matching your search." : "You haven't added any customers to this list yet."}
+                {searchQuery ? "We couldn't find any customers matching your search." : "Start by adding your first customer"}
               </p>
               {!searchQuery && (
                 <Link href="/owner/customers/add" className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 active:scale-95 transition-transform">

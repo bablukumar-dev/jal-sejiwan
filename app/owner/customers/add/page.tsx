@@ -28,10 +28,7 @@ export default function AddCustomer() {
   const [subscriptionPlan, setSubscriptionPlan] = useState<'None' | 'Monthly' | 'Unlimited' | 'Custom'>('None');
   const [riskLevel, setRiskLevel] = useState<'Low' | 'Medium' | 'High'>('Low');
 
-  const [userRole, setUserRole] = useState<string>('');
-  useEffect(() => {
-    setUserRole(localStorage.getItem('userRole') || '');
-  }, []);
+  const userRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') || '' : '';
 
   const [errors, setErrors] = useState<{name?: string, phone?: string}>({});
 

@@ -8,7 +8,7 @@ export const shareInvoiceViaWhatsApp = async (
 ) => {
   const fileName = `Invoice_${customer.name.replace(/\s+/g, '_')}_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.pdf`;
   
-  const message = `Namaste ${customer.name} 👋\n\nAapka Jal Seva bill ready hai.\n\n📄 Invoice Number: ${invoiceNo}\n💰 Total Due: ₹${customer.due}\n\nKripya PDF dekhkar payment karein.\n\nDhanyavaad 🙏\n${businessInfo.name}`;
+  const message = `Namaste ${customer.name} 👋\n\nAapka JalSejiwan bill ready hai.\n\n📄 Invoice Number: ${invoiceNo}\n💰 Total Due: ₹${customer.due}\n\nKripya PDF dekhkar payment karein.\n\nDhanyavaad 🙏\n${businessInfo.name}`;
 
   // Try using Web Share API if files are supported (e.g. mobile)
   if (navigator.canShare && navigator.canShare({ files: [new File([pdfBlob], fileName, { type: 'application/pdf' })] })) {

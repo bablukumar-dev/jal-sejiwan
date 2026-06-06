@@ -117,8 +117,8 @@ function OwnerDashboard() {
   const cashCollected = payments.filter(p => p.date === today).reduce((sum, p) => sum + p.amount, 0);
   const totalDue = customers.reduce((sum, c) => sum + c.due, 0);
 
-  const targetDeliveries = 150; // Mock target
-  const deliveryPercentage = Math.round((todayDeliveriesCount / targetDeliveries) * 100) || 0;
+  const targetDeliveries = customers.length > 0 ? customers.length : 0;
+  const deliveryPercentage = targetDeliveries > 0 ? Math.round((todayDeliveriesCount / targetDeliveries) * 100) : (todayDeliveriesCount > 0 ? 100 : 0);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-24">

@@ -105,47 +105,7 @@ export default function ActivityLogDashboard() {
 
   // Seeding mock fallback logs if database is empty - ensures pristine UI immediately
   const fallbackLogs: ActivityLog[] = useMemo(() => {
-    const today = new Date();
-    const subDays = (d: number) => new Date(today.getTime() - d * 24 * 60 * 60 * 1000).toISOString();
-    
-    return [
-      {
-        log_id: 'mock-1',
-        timestamp: subDays(0),
-        user_id: 'default_manager',
-        user_name: 'Ankit Sharma (Manager)',
-        user_role: 'manager',
-        managed_by: null,
-        action_type: 'staff_created',
-        description: 'Added new staff member: Rajesh Kumar (Delivery Partner)',
-        metadata: { name: 'Rajesh Kumar', role: 'Delivery Partner', route: 'Sector 62 Noida' },
-        workspaceId: workspaceId || 'default'
-      },
-      {
-        log_id: 'mock-2',
-        timestamp: subDays(0.04), // approx 1 hr ago
-        user_id: 'default_staff',
-        user_name: 'Rajesh Kumar',
-        user_role: 'staff',
-        managed_by: 'default_manager',
-        action_type: 'delivery_completed',
-        description: 'Completed delivery to Shivam Apartments: 5 Cans, 5 Empties, payment ₹225 (UPI)',
-        metadata: { delivered_qty: 5, returned_empty_qty: 5, payment_amount: 225, payment_mode: 'UPI' },
-        workspaceId: workspaceId || 'default'
-      },
-      {
-        log_id: 'mock-3',
-        timestamp: subDays(0.1), // approx 2 hr ago
-        user_id: 'owner',
-        user_name: 'Owner (Main)',
-        user_role: 'owner',
-        managed_by: null,
-        action_type: 'payment_collected',
-        description: 'Collected payment of ₹1,200 from Apex Corporate Park (Cash)',
-        metadata: { amount: 1200, payment_mode: 'Cash' },
-        workspaceId: workspaceId || 'default'
-      }
-    ];
+    return [];
   }, [workspaceId]);
 
   const activeLogs = logs.length > 0 ? logs : fallbackLogs;

@@ -71,15 +71,16 @@ export default function StaffDashboard() {
   const todaysDeliveries = deliveries.filter(d => d.date === today && (currentStaffId !== null ? d.staffId === currentStaffId : true));
   const todayDeliveriesCount = todaysDeliveries.length;
   
-  const targetDeliveries = 50; 
-  const deliveryPercentage = Math.round((todayDeliveriesCount / targetDeliveries) * 100) || 0;
+  const routeCustomersCount = customers.filter(c => c.route === staffRoute || c.area === staffRoute).length;
+  const targetDeliveries = routeCustomersCount > 0 ? routeCustomersCount : 0; 
+  const deliveryPercentage = targetDeliveries > 0 ? Math.round((todayDeliveriesCount / targetDeliveries) * 100) : (todayDeliveriesCount > 0 ? 100 : 0);
 
   const cashCollected = payments.filter(p => p.date === today && p.collectedBy === userName).reduce((sum, p) => sum + p.amount, 0);
-  const emptiesCount = todaysDeliveries.reduce((sum, d) => sum + (d.returnedEmpty || 0), 0) || 18;
+  const emptiesCount = todaysDeliveries.reduce((sum, d) => sum + (d.returnedEmpty || 0), 0);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-24">
-      <TopAppBar title="Jal Seva" />
+      <TopAppBar title="JalSejiwan" />
       
       <main className="max-w-md mx-auto p-4">
         {/* Header Section */}
@@ -87,7 +88,7 @@ export default function StaffDashboard() {
           <h1 className="text-2xl font-bold text-slate-900">{userName || 'Staff'}</h1>
           <div className="flex items-center gap-2 mt-2">
             <span className="bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-1 rounded tracking-wider uppercase">
-              {staffRoute || 'SECTOR 45'}
+              {staffRoute || 'UNASSIGNED'}
             </span>
             <span className="text-blue-300 font-bold text-[10px] uppercase tracking-wider">
               Active Route

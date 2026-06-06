@@ -21,11 +21,7 @@ export default function StaffCustomers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
-  const [userRole, setUserRole] = useState<string>('');
-  
-  useEffect(() => {
-    setUserRole(typeof window !== 'undefined' ? localStorage.getItem('userRole') || '' : '');
-  }, []);
+  const userRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') || '' : '';
   
   useEffect(() => {
     const fetchStaffRoute = async () => {
@@ -210,7 +206,7 @@ export default function StaffCustomers() {
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                 <Users className="w-8 h-8 text-slate-400" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-1">No Customers Found</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-1">No customers yet</h3>
               <p className="text-sm text-slate-500">Try adjusting your search or tab filter.</p>
             </div>
           ) : (
