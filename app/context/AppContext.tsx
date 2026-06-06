@@ -193,6 +193,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const checkOwner = () => {
       const id = safeGet('businessId') || safeGet('ownerId') || 'default_business';
       if (id !== ownerId && safeGet('userRole')) {
+        // If owner changing mid-session, clear local state immediately
+        if (ownerId !== null) {
+          localStorage.removeItem('customers');
+          localStorage.removeItem('deliveries');
+          localStorage.removeItem('payments');
+          localStorage.removeItem('inventory');
+          localStorage.removeItem('inventoryHistory');
+          localStorage.removeItem('staff');
+          localStorage.removeItem('routes');
+          localStorage.removeItem('areas');
+          localStorage.removeItem('businessInfo');
+          
+          setCustomers(initialCustomers);
+          setDeliveries(initialDeliveries);
+          setPayments(initialPayments);
+          setInventory(initialInventory);
+          setInventoryHistory(initialInventoryHistory);
+          setStaff(initialStaff);
+          setRoutes(initialRoutes);
+          setAreas(initialAreas);
+          setBusinessInfo(initialBusinessInfo);
+        }
         setOwnerId(id);
       }
     };
@@ -256,7 +278,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribe = onSnapshot(docRef, (snapshot) => {
       snapshotReceivedRef.current = true;
-      if (!snapshot.exists()) return;
+      if (!snapshot.exists()) {
+        const emptyState = {
+          customers: initialCustomers,
+          deliveries: initialDeliveries,
+          payments: initialPayments,
+          inventory: initialInventory,
+          inventoryHistory: initialInventoryHistory,
+          staff: initialStaff,
+          routes: initialRoutes,
+          areas: initialAreas,
+          businessInfo: initialBusinessInfo
+        };
+        lastRemoteData.current = JSON.stringify(emptyState);
+        setCustomers(initialCustomers);
+        setDeliveries(initialDeliveries);
+        setPayments(initialPayments);
+        setInventory(initialInventory);
+        setInventoryHistory(initialInventoryHistory);
+        setStaff(initialStaff);
+        setRoutes(initialRoutes);
+        setAreas(initialAreas);
+        setBusinessInfo(initialBusinessInfo);
+        
+        // Save the empty structure to firestore to initialize it
+        setDoc(docRef, emptyState, { merge: true }).catch(console.error);
+        return;
+      }
 
       const data = snapshot.data();
       const stringified = JSON.stringify({
