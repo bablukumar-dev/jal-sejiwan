@@ -62,11 +62,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
               targetRole = firestoreRole;
             }
             
-            // Migration: Assign default businessId
+            // Migration: Assign resolved or default businessId
             if (!data.businessId) {
-              const { setDoc } = await import('firebase/firestore');
-              await setDoc(doc(db, 'users', user.uid), { businessId: 'default_business' }, { merge: true });
-              if (typeof window !== 'undefined') localStorage.setItem('businessId', 'default_business');
+              const { setDoc, query, collection, where, getDocs } = await import('firebase/firestore');
+              const q = query(collection(db, "businesses"), where("ownerId", "==", user.uid));
+              const qSnapshot = await getDocs(q);
+              let resolvedBusinessId = 'default_business';
+              if (!qSnapshot.empty) {
+                resolvedBusinessId = qSnapshot.docs[0].id;
+              }
+              await setDoc(doc(db, 'users', user.uid), { businessId: resolvedBusinessId }, { merge: true });
+              if (typeof window !== 'undefined') localStorage.setItem('businessId', resolvedBusinessId);
             } else {
               if (typeof window !== 'undefined') localStorage.setItem('businessId', data.businessId);
             }

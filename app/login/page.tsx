@@ -281,7 +281,15 @@ export default function Login() {
             if (data.businessId) {
               businessId = data.businessId;
             } else {
-              await setDoc(doc(db, 'users', userCredential.user.uid), { businessId: 'default_business' }, { merge: true });
+              const { query, collection, where, getDocs } = await import('firebase/firestore');
+              const q = query(collection(db, "businesses"), where("ownerId", "==", userCredential.user.uid));
+              const qSnapshot = await getDocs(q);
+              if (!qSnapshot.empty) {
+                businessId = qSnapshot.docs[0].id;
+              } else {
+                businessId = 'default_business';
+              }
+              await setDoc(doc(db, 'users', userCredential.user.uid), { businessId }, { merge: true });
             }
           }
         } catch (firestoreErr) {
@@ -350,7 +358,15 @@ export default function Login() {
           if (data.businessId) {
             businessId = data.businessId;
           } else {
-            await setDoc(doc(db, 'users', result.user.uid), { businessId: 'default_business' }, { merge: true });
+            const { query, collection, where, getDocs } = await import('firebase/firestore');
+            const q = query(collection(db, "businesses"), where("ownerId", "==", result.user.uid));
+            const qSnapshot = await getDocs(q);
+            if (!qSnapshot.empty) {
+              businessId = qSnapshot.docs[0].id;
+            } else {
+              businessId = 'default_business';
+            }
+            await setDoc(doc(db, 'users', result.user.uid), { businessId }, { merge: true });
           }
         }
       } catch (firestoreErr) {
