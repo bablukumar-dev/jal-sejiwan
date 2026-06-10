@@ -56,6 +56,14 @@ export default function ActivityLogDashboard() {
     return null;
   });
 
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const currentUser = useMemo(() => {
+    return {
+      businessId: workspaceId || ''
+    };
+  }, [workspaceId]);
+
   // DB States
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,17 +77,26 @@ export default function ActivityLogDashboard() {
 
   // Load live activity logs from Firestore
   useEffect(() => {
-    if (!workspaceId) {
+    if (!currentUser.businessId) {
       setIsLoading(false);
       return;
     }
 
     try {
       setIsLoading(true);
-      const logsRef = collection(db, 'workspaces', workspaceId, 'activity_logs');
-      const q = query(logsRef, where("businessId", "==", workspaceId));
+      const logsRef = collection(db, 'workspaces', currentUser.businessId, 'activity_logs');
+      const q = query(logsRef, where("businessId", "==", currentUser.businessId));
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
+        // Prevent empty false state by wrapping exists check
+        const exists = typeof (snapshot as any).exists === 'function' ? (snapshot as any).exists() : !snapshot.empty;
+        if (!exists) {
+          setLogs([]);
+          setIsLoading(false);
+          setIsLive(true);
+          return;
+        }
+
         const fetchedLogs: ActivityLog[] = [];
         snapshot.forEach((doc) => {
           fetchedLogs.push(doc.data() as ActivityLog);
@@ -105,12 +122,12 @@ export default function ActivityLogDashboard() {
       console.error("Failed to setup real-time activity log subscription:", e);
       setIsLoading(false);
     }
-  }, [workspaceId]);
+  }, [currentUser.businessId, refreshKey]);
 
   // Seeding mock fallback logs if database is empty - ensures pristine UI immediately
   const fallbackLogs: ActivityLog[] = useMemo(() => {
     return [];
-  }, [workspaceId]);
+  }, []);
 
   const activeLogs = logs.length > 0 ? logs : fallbackLogs;
 
@@ -221,8 +238,9 @@ export default function ActivityLogDashboard() {
           <button 
             onClick={() => {
               setIsLive(false);
-              // Trigger reload
-              window.location.reload();
+              setIsLoading(true);
+              // Safely manual re-attach trigger + fallback window reload
+              setRefreshKey(prev => prev + 1);
             }}
             className="text-slate-400 hover:text-blue-700 p-1 bg-white hover:bg-blue-50 border border-slate-200 rounded-xl transition-all"
             title="Refresh feeds"
@@ -368,7 +386,12 @@ export default function ActivityLogDashboard() {
 
         {/* Streams Container */}
         <div className="space-y-4">
-          {finalLogs.length === 0 ? (
+          {isLoading ? (
+            <div className="bg-white rounded-3xl p-12 text-center border border-slate-100 flex flex-col items-center justify-center space-y-3">
+              <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+              <p className="text-sm font-medium text-slate-500">Connecting to secure real-time feed...</p>
+            </div>
+          ) : finalLogs.length === 0 ? (
             <div className="bg-white rounded-3xl p-12 text-center border border-slate-100">
               <Activity className="w-12 h-12 text-slate-300 mx-auto mb-3" />
               <p className="font-bold text-slate-700 text-base mb-1">No activities recorded</p>
