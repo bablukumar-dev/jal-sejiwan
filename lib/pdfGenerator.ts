@@ -23,10 +23,10 @@ export const generateInvoicePDF = (
   // Invoice Details
   doc.setFontSize(12);
   const invoiceNo = `INV-${Date.now()}`;
-  doc.text(`Invoice No: ${invoiceNo}`, 140, 22);
-  doc.text(`Date: ${new Date().toLocaleDateString()}`, 140, 28);
+  doc.text(`Invoice No: ${invoiceNo}`, 196, 22, { align: 'right' });
+  doc.text(`Date: ${new Date().toLocaleDateString()}`, 196, 28, { align: 'right' });
   if (startDate && endDate) {
-    doc.text(`Period: ${startDate} to ${endDate}`, 140, 34);
+    doc.text(`Period: ${startDate} to ${endDate}`, 196, 34, { align: 'right' });
   }
 
   // Customer Details
@@ -51,7 +51,7 @@ export const generateInvoicePDF = (
          amount: amount,
          type: 'charge'
        });
-    }
+     }
   });
 
   payments.forEach(p => {
@@ -94,17 +94,35 @@ export const generateInvoicePDF = (
 
   // @ts-ignore
   const finalY = doc.lastAutoTable.finalY || 75;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const summaryHeight = 45;
+  const rightX = 196;
 
-  doc.setFontSize(11);
-  doc.text(`Total Delivery Amount: Rs ${totalDelivered}`, 140, finalY + 10);
-  doc.text(`Total Payments Received: Rs ${totalPayments}`, 140, finalY + 16);
-  doc.setFontSize(13);
-  doc.setTextColor(231, 76, 60);
-  doc.text(`Total Outstanding Due: Rs ${customer.due}`, 140, finalY + 24);
+  if (finalY + summaryHeight > pageHeight - 15) {
+    doc.addPage();
+    const newY = 20;
+    doc.setFontSize(11);
+    doc.text(`Total Delivery Amount: Rs ${totalDelivered}`, rightX, newY + 10, { align: 'right' });
+    doc.text(`Total Payments Received: Rs ${totalPayments}`, rightX, newY + 16, { align: 'right' });
+    doc.setFontSize(13);
+    doc.setTextColor(231, 76, 60);
+    doc.text(`Total Outstanding Due: Rs ${customer.due}`, rightX, newY + 24, { align: 'right' });
 
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(10);
-  doc.text('Thank you for your business!', 14, finalY + 40);
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.text('Thank you for your business!', 14, newY + 40);
+  } else {
+    doc.setFontSize(11);
+    doc.text(`Total Delivery Amount: Rs ${totalDelivered}`, rightX, finalY + 10, { align: 'right' });
+    doc.text(`Total Payments Received: Rs ${totalPayments}`, rightX, finalY + 16, { align: 'right' });
+    doc.setFontSize(13);
+    doc.setTextColor(231, 76, 60);
+    doc.text(`Total Outstanding Due: Rs ${customer.due}`, rightX, finalY + 24, { align: 'right' });
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.text('Thank you for your business!', 14, finalY + 40);
+  }
   
   return { doc, invoiceNo };
 };

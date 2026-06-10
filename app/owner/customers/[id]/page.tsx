@@ -8,6 +8,10 @@ import { Phone, Truck, Wallet, Droplet, ArrowLeftRight, AlertTriangle, ArrowRigh
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
+import { generateInvoicePDF } from '@/lib/pdfGenerator';
+import { generatePdfFromCustomer } from '@/lib/pdfService';
+import { sendWhatsAppSummary } from '@/lib/reminderService';
+import { shareInvoiceViaWhatsApp, sendReminderWhatsApp } from '@/lib/whatsappUtils';
 
 export default function CustomerDetail() {
   const params = useParams();
@@ -46,7 +50,6 @@ export default function CustomerDetail() {
 
   const handleGeneratePdfSafe = async () => {
     try {
-      const { generatePdfFromCustomer } = await import('@/lib/pdfService');
       await generatePdfFromCustomer(customerId, customers, deliveries, payments, businessInfo);
       alert('PDF generated safely!');
     } catch (e) {
@@ -55,20 +58,22 @@ export default function CustomerDetail() {
     }
   };
 
-  const handleSendWhatsAppSummary = async () => {
+  const handleSendWhatsAppSummary = () => {
     try {
-      alert('Opening WhatsApp...');
-      const { sendWhatsAppSummary } = await import('@/lib/reminderService');
+      const phone = customer.phone || '';
+      if (!phone.replace(/\D/g, '')) {
+        alert('Invalid phone');
+        return;
+      }
       sendWhatsAppSummary(customer, businessInfo);
     } catch (e) {
       console.error(e);
     }
   };
 
-  const handleGenerateBill = async () => {
+  const handleGenerateBill = () => {
     try {
-      const { generateInvoicePDF } = await import('@/lib/pdfGenerator');
-      const { doc, invoiceNo } = generateInvoicePDF(customer, customerDeliveries, customerPayments, businessInfo);
+      const { doc } = generateInvoicePDF(customer, customerDeliveries, customerPayments, businessInfo);
       
       // Save locally
       doc.save(`Invoice_${customer.name}_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.pdf`);
@@ -82,8 +87,11 @@ export default function CustomerDetail() {
 
   const handleShareWhatsApp = async () => {
     try {
-      const { generateInvoicePDF } = await import('@/lib/pdfGenerator');
-      const { shareInvoiceViaWhatsApp, sendReminderWhatsApp } = await import('@/lib/whatsappUtils');
+      const phone = customer.phone || '';
+      if (!phone.replace(/\D/g, '')) {
+        alert('Invalid phone');
+        return;
+      }
       const { doc, invoiceNo } = generateInvoicePDF(customer, customerDeliveries, customerPayments, businessInfo);
       
       // Get Blob
@@ -96,9 +104,13 @@ export default function CustomerDetail() {
     }
   };
   
-  const handleSendReminder = async () => {
+  const handleSendReminder = () => {
     try {
-      const { sendReminderWhatsApp } = await import('@/lib/whatsappUtils');
+      const phone = customer.phone || '';
+      if (!phone.replace(/\D/g, '')) {
+        alert('Invalid phone');
+        return;
+      }
       sendReminderWhatsApp(customer, businessInfo);
     } catch (e) {
       console.error(e);
