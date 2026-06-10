@@ -4,7 +4,7 @@
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { useState, useEffect, useMemo } from 'react';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { useAppContext } from '@/app/context/AppContext';
 import { 
@@ -77,7 +77,7 @@ export default function ActivityLogDashboard() {
     try {
       setIsLoading(true);
       const logsRef = collection(db, 'workspaces', workspaceId, 'activity_logs');
-      const q = query(logsRef);
+      const q = query(logsRef, where("businessId", "==", workspaceId));
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const fetchedLogs: ActivityLog[] = [];
@@ -85,8 +85,12 @@ export default function ActivityLogDashboard() {
           fetchedLogs.push(doc.data() as ActivityLog);
         });
 
-        // Sort latest first
-        fetchedLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        // Sort latest first safely handling both String dates and Firestore Timestamps
+        fetchedLogs.sort((a, b) => {
+          const timeA = a.timestamp && typeof a.timestamp.toDate === 'function' ? a.timestamp.toDate().getTime() : new Date(a.timestamp).getTime();
+          const timeB = b.timestamp && typeof b.timestamp.toDate === 'function' ? b.timestamp.toDate().getTime() : new Date(b.timestamp).getTime();
+          return timeB - timeA;
+        });
         
         setLogs(fetchedLogs);
         setIsLoading(false);
@@ -113,22 +117,11 @@ export default function ActivityLogDashboard() {
   // 1. RBAC Gating on Data: Filter logs list based on who is logged in!
   const scopeFilteredLogs = useMemo(() => {
     return activeLogs.filter(log => {
-      if (userRole === 'owner') {
-        // Owner has absolute visibility (Managers + Staff + Owner logs)
-        return true;
-      }
-      if (userRole === 'manager') {
-        // Manager can view:
-        // - Their own logs: log.user_id === currentUserId
-        // - Logs of staff members they created or manage: log.managed_by === currentUserId
-        const isOwnLog = String(log.user_id) === String(currentUserId);
-        const isManagedStaffLog = String(log.managed_by) === String(currentUserId);
-        return isOwnLog || isManagedStaffLog;
-      }
-      // Staff has no access, but just in case, only show their own logs
-      return String(log.user_id) === String(currentUserId);
+      // Owner, Manager, and Staff all see full organization activities of their own business.
+      // Cross-business isolation is strictly enforced via query-side "businessId" filtering.
+      return true;
     });
-  }, [activeLogs, userRole, currentUserId]);
+  }, [activeLogs]);
 
   // 2. Interactive Page Filters Analysis (Action Type & Performer search)
   const finalLogs = useMemo(() => {
@@ -194,12 +187,16 @@ export default function ActivityLogDashboard() {
     };
   }, [finalLogs]);
 
-  const formatTime = (isoString: string) => {
+  const formatTime = (isoString: any) => {
     try {
+      if (isoString && typeof isoString.toDate === 'function') {
+        const d = isoString.toDate();
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ', ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      }
       const d = new Date(isoString);
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ', ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
     } catch (e) {
-      return isoString;
+      return String(isoString);
     }
   };
 

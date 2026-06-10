@@ -1,9 +1,9 @@
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/firebase';
 
 export interface ActivityLog {
   log_id: string;
-  timestamp: string;
+  timestamp: any;
   user_id: string;
   user_name: string;
   user_role: string;
@@ -12,6 +12,10 @@ export interface ActivityLog {
   description: string;
   metadata: any | null;
   workspaceId: string;
+  businessId?: string;
+  userId?: string;
+  role?: string;
+  action?: string;
 }
 
 /**
@@ -74,7 +78,7 @@ export async function logActivity(
 
       const activityData: ActivityLog = {
         log_id: logDocRef.id,
-        timestamp: new Date().toISOString(),
+        timestamp: serverTimestamp(),
         user_id: userId,
         user_name: userName,
         user_role: userRole,
@@ -83,6 +87,10 @@ export async function logActivity(
         description: description,
         metadata: metadata,
         workspaceId: workspaceId,
+        businessId: workspaceId,
+        userId: userId,
+        role: userRole,
+        action: description,
       };
 
       await setDoc(logDocRef, activityData);
