@@ -8,10 +8,6 @@ import { Phone, Truck, Wallet, Droplet, ArrowLeftRight, AlertTriangle, ArrowRigh
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
-import { generateInvoicePDF } from '@/lib/pdfGenerator';
-import { generatePdfFromCustomer } from '@/lib/pdfService';
-import { sendWhatsAppSummary } from '@/lib/reminderService';
-import { shareInvoiceViaWhatsApp, sendReminderWhatsApp } from '@/lib/whatsappUtils';
 
 export default function CustomerDetail() {
   const params = useParams();
@@ -50,6 +46,11 @@ export default function CustomerDetail() {
 
   const handleGeneratePdfSafe = async () => {
     try {
+      if (!customer) {
+        alert('Customer data is not available.');
+        return;
+      }
+      const { generatePdfFromCustomer } = await import('@/lib/pdfService');
       await generatePdfFromCustomer(customerId, customers, deliveries, payments, businessInfo);
       alert('PDF generated safely!');
     } catch (e) {
@@ -58,22 +59,36 @@ export default function CustomerDetail() {
     }
   };
 
-  const handleSendWhatsAppSummary = () => {
+  const handleSendWhatsAppSummary = async () => {
     try {
+      if (!customer) {
+        alert('Customer data is not available.');
+        return;
+      }
       const phone = customer.phone || '';
       if (!phone.replace(/\D/g, '')) {
         alert('Invalid phone');
         return;
       }
+      const { sendWhatsAppSummary } = await import('@/lib/reminderService');
       sendWhatsAppSummary(customer, businessInfo);
     } catch (e) {
       console.error(e);
+      alert('Failed to send WhatsApp summary');
     }
   };
 
-  const handleGenerateBill = () => {
+  const handleGenerateBill = async () => {
     try {
+      if (!customer) {
+        alert('Customer data is not available.');
+        return;
+      }
+      const { generateInvoicePDF } = await import('@/lib/pdfGenerator');
       const { doc } = generateInvoicePDF(customer, customerDeliveries, customerPayments, businessInfo);
+      if (!doc) {
+        throw new Error('Could not instantiate PDF document.');
+      }
       
       // Save locally
       doc.save(`Invoice_${customer.name}_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.pdf`);
@@ -87,13 +102,22 @@ export default function CustomerDetail() {
 
   const handleShareWhatsApp = async () => {
     try {
+      if (!customer) {
+        alert('Customer data is not available.');
+        return;
+      }
       const phone = customer.phone || '';
       if (!phone.replace(/\D/g, '')) {
         alert('Invalid phone');
         return;
       }
+      const { generateInvoicePDF } = await import('@/lib/pdfGenerator');
+      const { shareInvoiceViaWhatsApp } = await import('@/lib/whatsappUtils');
       const { doc, invoiceNo } = generateInvoicePDF(customer, customerDeliveries, customerPayments, businessInfo);
       
+      if (!doc) {
+        throw new Error('Could not generate PDF invoice.');
+      }
       // Get Blob
       const pdfBlob = doc.output('blob');
       
@@ -104,13 +128,18 @@ export default function CustomerDetail() {
     }
   };
   
-  const handleSendReminder = () => {
+  const handleSendReminder = async () => {
     try {
+      if (!customer) {
+        alert('Customer data is not available.');
+        return;
+      }
       const phone = customer.phone || '';
       if (!phone.replace(/\D/g, '')) {
         alert('Invalid phone');
         return;
       }
+      const { sendReminderWhatsApp } = await import('@/lib/whatsappUtils');
       sendReminderWhatsApp(customer, businessInfo);
     } catch (e) {
       console.error(e);
@@ -270,19 +299,19 @@ export default function CustomerDetail() {
 
         {/* Invoice Actions */}
         <div className="grid grid-cols-4 gap-3 mb-6">
-          <button onClick={handleGeneratePdfSafe} className="bg-emerald-100 text-emerald-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-emerald-200">
+          <button onClick={() => handleGeneratePdfSafe()} className="bg-emerald-100 text-emerald-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-emerald-200">
             <FileText className="w-5 h-5 text-emerald-600" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-center">Gen PDF</span>
           </button>
-          <button onClick={handleGenerateBill} className="bg-emerald-100 text-emerald-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-emerald-200">
+          <button onClick={() => handleGenerateBill()} className="bg-emerald-100 text-emerald-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-emerald-200">
             <FileText className="w-5 h-5 text-emerald-600" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-center">PDF Bill</span>
           </button>
-          <button onClick={handleShareWhatsApp} className="bg-green-100 text-green-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-green-200">
+          <button onClick={() => handleShareWhatsApp()} className="bg-green-100 text-green-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-green-200">
             <Share2 className="w-5 h-5 text-green-600" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-center">WhatsApp</span>
           </button>
-          <button onClick={handleSendReminder} className="bg-orange-100 text-orange-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-orange-200">
+          <button onClick={() => handleSendReminder()} className="bg-orange-100 text-orange-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-orange-200">
             <Bell className="w-5 h-5 text-orange-600" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-center">Remind</span>
           </button>
