@@ -74,8 +74,8 @@ export default function MyRoute() {
     };
   });
 
-  const pendingList = mappedDeliveries.filter(m => m.delivery.status === 'Pending');
-  const completedList = mappedDeliveries.filter(m => m.delivery.status !== 'Pending');
+  const pendingList = mappedDeliveries.filter(m => m.delivery.status?.toLowerCase() !== 'delivered' && m.delivery.status !== 'Skipped');
+  const completedList = mappedDeliveries.filter(m => m.delivery.status?.toLowerCase() === 'delivered' || m.delivery.status === 'Skipped');
 
   const displayList = activeTab === 'Pending' ? pendingList : completedList;
 
@@ -247,7 +247,7 @@ export default function MyRoute() {
                       </div>
 
                       <div className="flex gap-2 ml-4">
-                        {delivery.status === 'Pending' ? (
+                        {delivery.status?.toLowerCase() !== 'delivered' && delivery.status !== 'Skipped' ? (
                           <>
                             <button onClick={(e) => handleSkipDelivery(customer.id, e)} className="w-20 bg-orange-100 text-orange-700 font-bold rounded-xl flex items-center justify-center text-xs active:scale-95 transition-transform flex-col gap-0.5">
                               <XCircle className="w-4 h-4" /> Skip
@@ -277,7 +277,7 @@ export default function MyRoute() {
                         }} className="w-12 bg-green-50 border border-green-200 text-green-600 rounded-xl flex items-center justify-center active:scale-95 transition-transform shrink-0">
                            <MessageCircle className="w-5 h-5" />
                         </button>
-                        {delivery.status === 'Pending' && (
+                        {delivery.status?.toLowerCase() !== 'delivered' && delivery.status !== 'Skipped' && (
                           <a href={`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`} target="_blank" rel="noopener noreferrer" className="w-12 bg-white border border-slate-200 text-slate-700 rounded-xl flex items-center justify-center active:scale-95 transition-transform shrink-0">
                             <MapPin className="w-5 h-5" />
                           </a>

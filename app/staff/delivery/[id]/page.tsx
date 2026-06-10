@@ -134,7 +134,7 @@ export default function DeliveryEntry() {
         const updatedDeliveries = deliveries.map(d => 
         d.id === deliveryId ? { 
           ...d, 
-          status: 'Delivered', 
+          status: 'delivered', 
           deliveredQty: delivered, 
           returnedEmpty: empties, 
           date: date,

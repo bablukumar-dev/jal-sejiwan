@@ -11,7 +11,7 @@ import { sendReminderWhatsApp } from '@/lib/whatsappUtils';
 import { wrapRoute } from '@/lib/permissionGuard';
 
 function CustomersList() {
-  const { customers, businessInfo } = useAppContext();
+  const { customers, deliveries = [], businessInfo } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('All');
   const [isReminding, setIsReminding] = useState(false);
@@ -52,6 +52,13 @@ function CustomersList() {
   };
 
   const filteredCustomers = customers.filter(c => {
+    const today = new Date().toISOString().split('T')[0];
+    const latestDelivery = deliveries.find(d => d.customerId === c.id && d.date === today);
+    const isDelivered = latestDelivery?.status?.toLowerCase() === 'delivered';
+
+    if (filter === 'Pending' && isDelivered) return false;
+    if (filter === 'Done' && !isDelivered) return false;
+
     if (filter === 'Dues Only' && c.due === 0) return false;
     if (filter === 'Pending Empties' && c.emptyBalance === 0) return false;
     
@@ -106,6 +113,18 @@ function CustomersList() {
             All
           </button>
           <button 
+            onClick={() => setFilter('Pending')}
+            className={`px-6 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-colors ${filter === 'Pending' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
+          >
+            Pending
+          </button>
+          <button 
+            onClick={() => setFilter('Done')}
+            className={`px-6 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-colors ${filter === 'Done' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
+          >
+            Done
+          </button>
+          <button 
             onClick={() => setFilter('Dues Only')}
             className={`px-6 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-colors ${filter === 'Dues Only' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
           >
@@ -150,56 +169,71 @@ function CustomersList() {
               )}
             </div>
           ) : (
-            filteredCustomers.map(customer => (
-              <Link href={`/owner/customers/${customer.id}`} key={customer.id} className="block bg-white rounded-2xl p-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-transform">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900">{customer.name}</h3>
-                    <div className="flex items-center gap-1 text-slate-500 text-sm mt-1">
-                      <MapPin className="w-3 h-3" />
-                      {customer.address}
+            filteredCustomers.map(customer => {
+              const today = new Date().toISOString().split('T')[0];
+              const latestDelivery = deliveries.find(d => d.customerId === customer.id && d.date === today);
+              const isDelivered = latestDelivery?.status?.toLowerCase() === 'delivered';
+
+              return (
+                <Link href={`/owner/customers/${customer.id}`} key={customer.id} className="block bg-white rounded-2xl p-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-transform">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">{customer.name}</h3>
+                      <div className="flex items-center gap-1 text-slate-500 text-sm mt-1">
+                        <MapPin className="w-3 h-3" />
+                        {customer.address}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          sendReminderWhatsApp(customer, businessInfo);
+                        }}
+                        className="p-3 bg-green-50 text-green-600 rounded-full active:scale-90 transition-transform"
+                      >
+                        <MessageCircle className="w-5 h-5 fill-current" />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.location.href = `tel:${customer.phone}`;
+                        }}
+                        className="p-3 bg-blue-50 text-blue-600 rounded-full active:scale-90 transition-transform"
+                      >
+                        <Phone className="w-5 h-5 fill-current" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        sendReminderWhatsApp(customer, businessInfo);
-                      }}
-                      className="p-3 bg-green-50 text-green-600 rounded-full active:scale-90 transition-transform"
-                    >
-                      <MessageCircle className="w-5 h-5 fill-current" />
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        window.location.href = `tel:${customer.phone}`;
-                      }}
-                      className="p-3 bg-blue-50 text-blue-600 rounded-full active:scale-90 transition-transform"
-                    >
-                      <Phone className="w-5 h-5 fill-current" />
-                    </button>
+                  <div className="flex flex-wrap gap-2">
+                    {isDelivered ? (
+                      <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-[10px] font-bold uppercase tracking-tight border border-green-200">
+                        ✅ Delivered
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold uppercase tracking-tight border border-amber-200">
+                        ⏳ Pending
+                      </span>
+                    )}
+                    {customer.due > 0 ? (
+                      <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-bold uppercase tracking-tight border border-orange-200">
+                        Due ₹{customer.due}
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase tracking-tight">
+                        Paid
+                      </span>
+                    )}
+                    <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-[10px] font-bold uppercase tracking-tight">
+                      Empties {customer.emptyBalance}
+                    </span>
+                    <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-bold uppercase tracking-tight">
+                      {customer.type}
+                    </span>
                   </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {customer.due > 0 ? (
-                    <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-bold uppercase tracking-tight border border-orange-200">
-                      Due ₹{customer.due}
-                    </span>
-                  ) : (
-                    <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase tracking-tight">
-                      Paid
-                    </span>
-                  )}
-                  <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-[10px] font-bold uppercase tracking-tight">
-                    Empties {customer.emptyBalance}
-                  </span>
-                  <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-bold uppercase tracking-tight">
-                    {customer.type}
-                  </span>
-                </div>
-              </Link>
-            ))
+                </Link>
+              );
+            })
           )}
         </div>
       </main>

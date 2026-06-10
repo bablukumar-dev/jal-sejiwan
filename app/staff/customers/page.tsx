@@ -87,12 +87,12 @@ export default function StaffCustomers() {
 
   const displayList = useMemo(() => {
     if (activeTab === 'All') return mappedDeliveries;
-    if (activeTab === 'Pending') return mappedDeliveries.filter(m => m.delivery.status === 'Pending');
-    return mappedDeliveries.filter(m => m.delivery.status !== 'Pending');
+    if (activeTab === 'Pending') return mappedDeliveries.filter(m => m.delivery.status?.toLowerCase() !== 'delivered');
+    return mappedDeliveries.filter(m => m.delivery.status?.toLowerCase() === 'delivered');
   }, [activeTab, mappedDeliveries]);
 
-  const pendingCount = mappedDeliveries.filter(m => m.delivery.status === 'Pending').length;
-  const completedCount = mappedDeliveries.filter(m => m.delivery.status !== 'Pending').length;
+  const pendingCount = mappedDeliveries.filter(m => m.delivery.status?.toLowerCase() !== 'delivered').length;
+  const completedCount = mappedDeliveries.filter(m => m.delivery.status?.toLowerCase() === 'delivered').length;
 
   const handleRecordDelivery = (customerId: number, e: React.MouseEvent) => {
     e.preventDefault();

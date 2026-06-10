@@ -56,7 +56,7 @@ function StaffManagement() {
     });
     
     const total = staffDeliveries.length;
-    const completed = staffDeliveries.filter(d => d.status === 'Delivered').length;
+    const completed = staffDeliveries.filter(d => d.status?.toLowerCase() === 'delivered').length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
     
     let feedbackSummary = "No data available";

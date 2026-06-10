@@ -66,12 +66,13 @@ function DeliveriesList() {
 
   const todaysDeliveries = deliveries.filter(d => d.date === date && (routeFilter === 'All Routes' || customers.find(c => c.id === d.customerId)?.route === routeFilter));
   
-  const completedCount = todaysDeliveries.filter(d => d.status === 'Delivered').length;
+  const completedCount = todaysDeliveries.filter(d => d.status?.toLowerCase() === 'delivered').length;
   const pendingCount = todaysDeliveries.filter(d => d.status === 'Pending').length;
   const skippedCount = todaysDeliveries.filter(d => d.status === 'Skipped').length;
 
   const filteredDeliveries = todaysDeliveries.filter(d => {
     if (filter === 'All') return true;
+    if (filter === 'Delivered') return d.status?.toLowerCase() === 'delivered';
     return d.status === filter;
   });
 
@@ -234,7 +235,7 @@ function DeliveriesList() {
                     );
                   }
 
-                  if (delivery.status === 'Delivered') {
+                  if (delivery.status?.toLowerCase() === 'delivered') {
                     return (
                       <div key={delivery.id} className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex items-center gap-4 opacity-70">
                         <div className="w-12 h-12 rounded-xl bg-white border-2 border-slate-200 flex items-center justify-center shrink-0">

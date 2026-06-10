@@ -41,7 +41,7 @@ export const generateInvoicePDF = (
   let transactions: { date: string, desc: string, qty: number | string, rate: number | string, amount: number, type: string }[] = [];
   
   deliveries.forEach(d => {
-    if (d.status === 'Delivered') {
+    if (d.status?.toLowerCase() === 'delivered') {
        const amount = d.deliveredQty * customer.rate;
        transactions.push({
          date: d.date,

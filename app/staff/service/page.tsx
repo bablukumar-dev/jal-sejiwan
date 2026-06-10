@@ -137,7 +137,7 @@ export default function CustomerService() {
           </div>
           <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-4">
             <div className="text-2xl font-bold text-emerald-700">
-              {deliveries.filter(d => d.date === today && d.status === 'Delivered').length}
+              {deliveries.filter(d => d.date === today && d.status?.toLowerCase() === 'delivered').length}
             </div>
             <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mt-1">Completed Today</div>
           </div>
