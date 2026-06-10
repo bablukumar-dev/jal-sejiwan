@@ -18,6 +18,8 @@ import {
   Search, 
   SlidersHorizontal,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Database,
   Calendar,
   Layers,
@@ -68,6 +70,14 @@ export default function ActivityLogDashboard() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLive, setIsLive] = useState(false);
+  const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (logId: string) => {
+    setExpandedLogs(prev => ({
+      ...prev,
+      [logId]: !prev[logId]
+    }));
+  };
   
   // Filtering & Search
   const [selectedActionType, setSelectedActionType] = useState<string>('ALL');
@@ -473,11 +483,59 @@ export default function ActivityLogDashboard() {
                       </div>
                     )}
 
-                    {/* Timestamp */}
-                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{formatTime(log.timestamp)}</span>
+                    {/* Timestamp & Expand trigger */}
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-50">
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{formatTime(log.timestamp)}</span>
+                      </div>
+                      
+                      <button 
+                        onClick={() => toggleExpand(log.log_id)}
+                        className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-bold uppercase tracking-wider transition-colors"
+                      >
+                        {expandedLogs[log.log_id] ? (
+                          <>
+                            Hide Params <ChevronUp className="w-3.5 h-3.5" />
+                          </>
+                        ) : (
+                          <>
+                            Expand Raw <ChevronDown className="w-3.5 h-3.5" />
+                          </>
+                        )}
+                      </button>
                     </div>
+
+                    {/* Raw Metadata panel */}
+                    {expandedLogs[log.log_id] && (
+                      <div className="mt-3 bg-slate-50 rounded-2xl p-3.5 border border-slate-100 font-mono text-[11px] text-slate-600 space-y-1.5">
+                        <div className="font-bold text-slate-400 text-[9px] uppercase tracking-wider mb-1 border-b border-slate-200/60 pb-1">Raw Database Fields</div>
+                        <div className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5">
+                          <span className="text-slate-400">log_id:</span>
+                          <span className="text-slate-800 text-right font-semibold break-all">{log.log_id}</span>
+                        </div>
+                        <div className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5">
+                          <span className="text-slate-400">action_type:</span>
+                          <span className="text-slate-800 text-right font-semibold break-all">{log.action_type || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5">
+                          <span className="text-slate-400">user_id:</span>
+                          <span className="text-slate-800 text-right font-semibold break-all">{log.user_id || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5">
+                          <span className="text-slate-400">businessId:</span>
+                          <span className="text-slate-800 text-right font-semibold break-all">{log.businessId || 'N/A'}</span>
+                        </div>
+                        {log.metadata && Object.keys(log.metadata).map((key) => (
+                          <div key={key} className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5 last:border-0 last:pb-0">
+                            <span className="text-slate-400">meta.{key}:</span>
+                            <span className="text-slate-800 text-right font-semibold break-all">
+                              {typeof log.metadata[key] === 'object' ? JSON.stringify(log.metadata[key]) : String(log.metadata[key])}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
