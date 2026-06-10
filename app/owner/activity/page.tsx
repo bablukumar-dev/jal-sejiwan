@@ -51,7 +51,7 @@ export default function ActivityLogDashboard() {
 
   const [workspaceId, setWorkspaceId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('ownerId');
+      return localStorage.getItem('businessId') || localStorage.getItem('ownerId');
     }
     return null;
   });

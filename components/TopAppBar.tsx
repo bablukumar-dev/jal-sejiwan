@@ -19,6 +19,27 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
   const handleLogout = async () => {
     try {
       await auth.signOut();
+      
+      // Clear all local auth credentials, role settings, and cached business data completely
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('pinAuth');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('staffUserId');
+        localStorage.removeItem('staffUserName');
+        localStorage.removeItem('ownerId');
+        localStorage.removeItem('businessId');
+        
+        localStorage.removeItem('customers');
+        localStorage.removeItem('deliveries');
+        localStorage.removeItem('payments');
+        localStorage.removeItem('inventory');
+        localStorage.removeItem('inventoryHistory');
+        localStorage.removeItem('staff');
+        localStorage.removeItem('routes');
+        localStorage.removeItem('areas');
+        localStorage.removeItem('businessInfo');
+      }
+      
       router.push('/login');
     } catch (error) {
       console.error('Error signing out', error);

@@ -60,10 +60,12 @@ function AddStaff() {
         };
 
         const currentOwnerId = safeGet('ownerId') || 'default_owner';
+        const currentBusinessId = safeGet('businessId') || 'default_business';
         
         await setDoc(doc(db, 'staff_users', phone.trim()), {
             ...newStaff,
-            ownerId: currentOwnerId
+            ownerId: currentOwnerId,
+            businessId: currentBusinessId
         });
 
         setStaff([...staff, newStaff]);

@@ -28,9 +28,9 @@ export async function logActivity(
     try {
       if (typeof window === 'undefined') return;
 
-      const workspaceId = localStorage.getItem('ownerId');
+      const workspaceId = localStorage.getItem('businessId') || localStorage.getItem('ownerId');
       if (!workspaceId) {
-        console.warn('Activity Logging: No active workspace (ownerId) found in localStorage.');
+        console.warn('Activity Logging: No active workspace found in localStorage.');
         return;
       }
 

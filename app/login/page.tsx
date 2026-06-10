@@ -193,6 +193,25 @@ export default function Login() {
       localStorage.setItem('pinAuth', 'true');
       localStorage.setItem('staffUserId', String(s.id));
       localStorage.setItem('staffUserName', s.name);
+      
+      let businessId = 'default_business';
+      if (s.businessId) {
+        businessId = s.businessId;
+      } else if (ownerIdFromFirestore) {
+        try {
+          const { query, collection, where, getDocs } = await import('firebase/firestore');
+          const q = query(collection(db, "businesses"), where("ownerId", "==", ownerIdFromFirestore));
+          const qSnapshot = await getDocs(q);
+          if (!qSnapshot.empty) {
+            businessId = qSnapshot.docs[0].id;
+            await setDoc(doc(db, 'staff_users', cleanPhone), { businessId }, { merge: true });
+          }
+        } catch (err) {
+          console.error("Staff login businessId resolution error", err);
+        }
+      }
+
+      localStorage.setItem('businessId', businessId);
       if (ownerIdFromFirestore) {
          localStorage.setItem('ownerId', ownerIdFromFirestore);
       }

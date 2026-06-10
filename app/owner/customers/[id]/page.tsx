@@ -12,7 +12,7 @@ import { useAppContext } from '@/app/context/AppContext';
 export default function CustomerDetail() {
   const params = useParams();
   const router = useRouter();
-  const { customers, deliveries, payments, setCustomers, businessInfo } = useAppContext();
+  const { customers, deliveries, payments, setCustomers, setDeliveries, staff, businessInfo } = useAppContext();
   
   const customerId = parseInt(params.id as string);
   const customer = customers.find(c => c.id === customerId);
@@ -106,6 +106,52 @@ export default function CustomerDetail() {
     }
   };
 
+  const handleDeliverWater = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const today = new Date().toISOString().split('T')[0];
+    const existing = deliveries.find(d => d.customerId === customer.id && d.date === today);
+    if (existing) {
+      router.push(`/staff/delivery/${existing.id}`);
+    } else {
+      let currentStaffId = 0;
+      let currentStaffName = '';
+      
+      if (typeof window !== 'undefined') {
+        const localStaffId = localStorage.getItem('staffUserId');
+        const localStaffName = localStorage.getItem('staffUserName');
+        if (localStaffId) {
+          currentStaffId = parseInt(localStaffId) || 0;
+          currentStaffName = localStaffName || '';
+        } else {
+          currentStaffName = 'Owner/Manager';
+        }
+      }
+
+      const getUniqueId = () => {
+        return Date.now() + Math.floor(Math.random() * 1000);
+      };
+
+      const newDelivery = {
+        id: getUniqueId(),
+        customerId: customer.id,
+        customerName: customer.name || '',
+        date: today,
+        status: 'Pending',
+        staffId: currentStaffId,
+        staffName: currentStaffName,
+        deliveredQty: 0,
+        returnedEmpty: 0,
+        paymentReceived: false,
+        paymentAmount: 0,
+        paymentMode: 'Cash',
+        note: ''
+      };
+
+      setDeliveries([...deliveries, newDelivery]);
+      router.push(`/staff/delivery/${newDelivery.id}`);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
       <TopAppBar title="JalSejiwan" showBack={true} />
@@ -130,7 +176,7 @@ export default function CustomerDetail() {
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className={`grid ${['owner', 'manager', 'staff'].includes(userRole) ? 'grid-cols-4 gap-2' : 'grid-cols-3 gap-3'} mb-6`}>
           <Link href={`/owner/customers/edit/${customer.id}`} className="bg-slate-100 text-slate-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
             <Edit className="w-5 h-5 text-blue-600" />
             <span className="text-[10px] font-bold uppercase tracking-wider">Edit</span>
@@ -156,6 +202,15 @@ export default function CustomerDetail() {
             <Wallet className="w-5 h-5" />
             <span className="text-[10px] font-bold uppercase tracking-wider">Pay</span>
           </Link>
+          {['owner', 'manager', 'staff'].includes(userRole) && (
+            <button 
+              onClick={handleDeliverWater}
+              className="bg-blue-600 text-white rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform"
+            >
+              <Truck className="w-5 h-5 text-white" />
+              <span className="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">Deliver Water</span>
+            </button>
+          )}
         </div>
 
         {/* Dues Card */}
