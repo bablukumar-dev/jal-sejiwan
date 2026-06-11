@@ -2,6 +2,8 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { Customer, Delivery, Payment, BusinessInfo } from '@/app/context/AppContext';
 
+const LOGO_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAB4CAMAAAAOusbgAAAAHlBMVEW90Nu/0dz///8BTbbU4Of0+PiCps+kv9hNgMIjYbn2IWTvAAAACXBIWXMAAC4jAAAuIwF4pT92AAAEUElEQVRo3u2a63akMAiAoRN0fP8XXrWaACEo0bP7Y5OettPq+E0It0Dg5x8NGOABHuABHuABHuABHmA96PZ4D0wpJYyMlOg5mBKCGNuT1x/HH+sXYL7CXl+yL8Aaqz6Ed+0C7YLJxXrU7Y1IveDkz8nj7gsCqQ+cbhB+l9ya8b78qQecXDmymaE94/1VioNTi5kfyi1IfCSEcleKgomvLx4y5Zzjhf4Xn/X+QSgITlyvsDyHSfrkMD6zsvM/KQZOasnYep44kCIHZHfkVWkLuwHGyjiQT1B4kIIty3sKf/uOgEkKubWQV0779y4KgJOyVP1AhBvs85Z0H0yXD1YxA7x7bNcJF7YkTEY91OZxNXNkDZ6kj6hXPdXyKVmlzzeAL2sHfLl41U31uzrBp7GK+VqeOYcLNfdOMLdKMKbLp1gLKHvtEDinMXICxS1sv+aZezRgnlN+ghC4iupFr/K1ZQHhpVsWEBM1SuUxYu/38/miis6GSnatsaPQOH3WMTHh5AghXFx4xkqXK481f/YxoaHQPJh0rLHhi8rsYPkFL0XBoOiCVP3gjPOHzwbMBf39HOOLUvUBVWraB0ZUaQBf4CJsJZoHYBR5VlYctcBC2EyvnoDR0+ki6EPYjjPv8FxQh7ta0FrYShfiWm0ns4egFwnehG2vMXZotQKzR0pBm8KWSV+/AxHbEqFZx5hrjQDsB0vBtScspwxPfbWVWhiaJfQL6ll3JAJHDiEsef29WOAFlXcH5sniYdHKLM0JVyb1MB5b4K8N/r4HNh2XpdK1YsMTsE1uTdiZ8ht59ZZntcCLsTh96W0O6yzqtCW9y/pNMLMpR6cPvVZ52hlHw+CS0+QE6hIsHTa+sHeCGJgL6q+A2ZYmv3wENnKeO8rVBQZrK+6a00t2bAk75kCOtD6cc1ngyVniN8C6vnUnSJwmz6pfv39Ho5OZ3VaZHkuuVU74KDrBTYuamP2IovXjRKCUEi3yVO8oz+1bl3LVKf3+qEnn1dZelb2nA9woqcxyC3O6jkYI7wLbHgFX9Lk/XrHolsQ682qwKoa74szTOua67lFvQp56Lhnr1ovJLmqCrrPFy01o1PWw7kUJH4OsIAadQQLKfo3VIxC0gWV/hdWGvqcGYu2PW1v1VlUxOmOSm7YrrFNP339QrEJve0yoA4e9RWTVG4r0JLBuqKkOMrryYPlx+omBQVe+bbGCbessQ42ACZsdB7P5AeqKiJAU7rTpMjTrpCWUXZQsPGNqggmFY2jK1erDqTI+RZuawBsNXn+Jt3YBZTM73NQs6Q8/hlAsW6iA0ZUBv83mgYlvmXRzVlq1cVoDLwTtteqphAOj41d35c0OO/UcTiDUfXdLd6DFbfqs6+MYlACsHi6KLNI+i7JvXaj75Auhki7C7ZMwmJ4cuTmO+oTOGN077APX56lS+PjLSqVXznPRdrLq9rh3pGscnRvgAR7gAR7g/wj8BzxBWqkgwlZwAAAAAElFTkSuQmCC';
+
 export const generateInvoicePDF = (
   customer: Customer,
   deliveries: Delivery[],
@@ -13,15 +15,8 @@ export const generateInvoicePDF = (
   const doc = new jsPDF();
   
   // --- Custom Premium Header with Business Logo & Contact Details ---
-  // Draw premium vector water droplet logo inside a blue circle
-  doc.setFillColor(41, 128, 185); // Theme Blue
-  doc.circle(22, 22, 8, 'F');
-  
-  doc.setFillColor(255, 255, 255);
-  // Triangle pointing up for droplet
-  doc.triangle(18.5, 23, 25.5, 23, 22, 16.5, 'F');
-  // Small white circle for droplet base
-  doc.circle(22, 23, 3.5, 'F');
+  // Draw official brand logo at top-left
+  doc.addImage(LOGO_BASE64, 'PNG', 14, 14, 16, 16);
   
   // Business Info Text
   doc.setFont("Helvetica", "bold");
@@ -176,15 +171,8 @@ export const generatePaymentReceiptPDF = (
   const doc = new jsPDF();
   
   // --- Custom Premium Header with Business Logo & Contact Details ---
-  // Draw premium vector water droplet logo inside a blue circle
-  doc.setFillColor(41, 128, 185); // Theme Blue
-  doc.circle(22, 22, 8, 'F');
-  
-  doc.setFillColor(255, 255, 255);
-  // Triangle pointing up for droplet
-  doc.triangle(18.5, 23, 25.5, 23, 22, 16.5, 'F');
-  // Small white circle for droplet base
-  doc.circle(22, 23, 3.5, 'F');
+  // Draw official brand logo at top-left
+  doc.addImage(LOGO_BASE64, 'PNG', 14, 14, 16, 16);
   
   // Business Info Text
   doc.setFont("Helvetica", "bold");

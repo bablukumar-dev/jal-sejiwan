@@ -25,22 +25,25 @@ export const metadata: Metadata = {
   description: 'JalSejiwan is a Water Delivery Management Software India built for 20 litre water jar businesses. Manage billing, delivery tracking, inventory and WhatsApp reminders in one powerful digital platform.',
   keywords: [
     'Water Delivery Management Software India',
+    '20 litre water jar software',
+    'Water distribution app',
+    'Water supply business app',
     '20 Litre Water Jar Delivery System',
-    'Water Supply Business Management App',
     'Water Can Billing Software',
     'Water Distribution Management System',
     'Water Delivery ERP India',
     'Digital Solution for Water Suppliers',
-    'JalSejiwan',
-    'water can billing system',
-    'water jar delivery software',
-    'mineral water supply software'
+    'JalSejiwan'
   ],
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" className={`${inter.variable} ${sourceSerif.variable}`}>
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+        <meta name="keywords" content="Water Delivery Management Software India, 20 litre water jar software, Water distribution app, Water supply business app" />
+      </head>
       <body suppressHydrationWarning className="antialiased">
         <AppProvider>
           <AuthGuard>

@@ -49,15 +49,16 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
   return (
     <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 w-full">
       <div className="flex justify-between items-center px-4 h-16 max-w-md mx-auto">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-[10px]">
           {showBack && (
             <button 
               onClick={() => router.back()}
-              className="hover:bg-slate-100 transition-colors p-2 -ml-2 rounded-full active:scale-95 duration-150"
+              className="hover:bg-slate-100 transition-colors p-2 -ml-2 rounded-full active:scale-95 duration-150 mr-1"
             >
               <ArrowLeft className="w-6 h-6 text-blue-700" />
             </button>
           )}
+          <img src="/logo.png" alt="JalSejiwan - Advanced Water Delivery Management Software India Logo" className="h-8 w-8 object-contain flex-shrink-0" referrerPolicy="no-referrer" />
           <div className="flex flex-col">
             {subtitle && <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{subtitle}</span>}
             <h1 className="text-xl font-bold text-slate-900">{title}</h1>

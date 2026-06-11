@@ -7,7 +7,10 @@ export default function LandingPage() {
       {/* Header */}
       <header className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-slate-200 z-50">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="text-xl font-bold text-blue-700">JalSejiwan</div>
+          <div className="flex items-center gap-[10px]">
+            <img src="/logo.png" alt="JalSejiwan - Water Delivery Management Software India Logo" className="h-[32px] w-[32px] object-contain" referrerPolicy="no-referrer" />
+            <span className="text-xl font-bold text-blue-700">JalSejiwan</span>
+          </div>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Login</Link>
             <Link href="/login" className="text-sm font-bold bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors">Get Started</Link>
@@ -183,6 +186,43 @@ export default function LandingPage() {
           </div>
           <p className="text-slate-600 leading-relaxed text-sm pt-2">
             Employing our modern <strong>Water Distribution Management System</strong> lets you scale from 100 to over 10,000 active clients seamlessly, making JalSejiwan the premier <strong>Digital Solution for Water Suppliers</strong> across any city in India.
+          </p>
+        </section>
+
+        {/* Section: Business Advantages & ROI */}
+        <section className="bg-slate-50 p-8 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h2 className="text-2xl font-bold text-slate-900">Quantifiable Business Advantages & ROI</h2>
+          <p className="text-slate-600 leading-relaxed text-sm">
+            For drinking water distribution agencies in India serving anywhere from 500 to 3,000 active clients, transitioning to JalSejiwan—a premium <strong>Water Delivery Management Software India</strong>—delivers a direct, highly quantifiable return on investment (ROI) within the first month of implementation. Adopting our specialized <strong>Water Supply Business Management App</strong> translates into four principal advantages that directly foster enterprise-level expansion:
+          </p>
+          <div className="grid md:grid-cols-2 gap-6 pt-2">
+            <div>
+              <h4 className="font-bold text-slate-800 text-sm mb-1">1. Brand Preservation and Zero Asset Loss</h4>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                By enforcing a strict <strong>20 Litre Water Jar Delivery System</strong> tracking mechanism, you completely eliminate empty blue jar losses. Businesses typically save up to ₹25,000 monthly by preventing can displacement and keeping clear staff accountability.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-800 text-sm mb-1">2. Leak-Proof Collections and Cash Flow</h4>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Our advanced <strong>Water Can Billing Software</strong> plugs accounting gaps. Every single jar supply action is logged securely on our system, improving recovery rates by up to 18% and avoiding billing disputes common with manual paper registers.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-800 text-sm mb-1">3. Maximized Fleet Efficiency</h4>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Intelligent route scheduling mapping diminishes petrol charges and minimizes delivery vehicle repair costs by up to 15%. Directing drivers logically reduces idle fuel burn and avoids tedious overlapping routes on Indian roads.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-800 text-sm mb-1">4. Single-Click Operational Invoicing</h4>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Automating monthly billing saves up to 30 administrative hours each week. Instead of adding up paper card records manually, generate digital PDF invoices and automate client alerts instantly, freeing up your valuable time for business expansion.
+              </p>
+            </div>
+          </div>
+          <p className="text-slate-600 leading-relaxed text-sm pt-2">
+            Adopting this specialized <strong>Water Distribution Management System</strong> turns a chaotic delivery setup into a highly profitable digital service.
           </p>
         </section>
 

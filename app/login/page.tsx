@@ -457,9 +457,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center border border-slate-100">
-        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4">
-          <Droplet className="w-8 h-8 fill-current" />
-        </div>
+        <img src="/logo.png" alt="JalSejiwan - Premium Water Delivery Management Software India Logo" className="h-[60px] w-[60px] object-contain mb-5" referrerPolicy="no-referrer" />
         <h1 className="text-3xl font-bold text-blue-700 mb-1">JalSejiwan</h1>
         <p className="text-slate-500 mb-8 text-center">Smart Water Management</p>
 

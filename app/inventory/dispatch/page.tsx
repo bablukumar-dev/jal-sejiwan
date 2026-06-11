@@ -71,7 +71,7 @@ export default function DispatchScreen() {
                   </div>
                 )}
                 <div className={`w-16 h-16 rounded-full overflow-hidden mb-3 relative ${selectedStaffId === s.id ? 'bg-blue-100 border-2 border-blue-200' : 'bg-slate-200 grayscale'}`}>
-                  <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${s.name}`} alt={`${s.name} - Fleet Member tracked under Water Distribution Management System`} fill className="object-cover" />
+                  <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${s.name}`} alt={`${s.name} - Fleet Member tracked under JalSejiwan, India's leading Water Delivery Management Software India`} fill className="object-cover" />
                 </div>
                 <h3 className={`font-bold ${selectedStaffId === s.id ? 'text-blue-700' : 'text-slate-700'}`}>{s.name}</h3>
                 <div className={`text-[8px] font-bold uppercase tracking-wider mt-1 ${selectedStaffId === s.id ? 'text-blue-600' : 'text-slate-500'}`}>Route: {s.route}</div>
