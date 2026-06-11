@@ -142,7 +142,7 @@ function StaffManagement() {
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-slate-200 overflow-hidden border-2 border-white shadow-sm relative">
-                      <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${s.name}`} alt="avatar" fill className="object-cover" />
+                      <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${s.name}`} alt={`${s.name} - Registered Delivery Boy on JalSejiwan, the elite Water Supply Business Management App`} fill className="object-cover" />
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-900 text-lg">{s.name}</h3>

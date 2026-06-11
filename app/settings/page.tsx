@@ -220,7 +220,7 @@ export default function SettingsPage() {
             <div className="w-28 h-28 rounded-full bg-slate-200 overflow-hidden border-[5px] border-white shadow-xl flex items-center justify-center relative bg-gradient-to-tr from-blue-100 to-indigo-50">
               {profileImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                <img src={profileImage} alt={`${userRole === 'owner' ? businessInfo.ownerName : userName} - Registered Owner/Manager Profile on JalSejiwan, the elite Water Supply Business Management App`} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-4xl font-bold text-blue-400">
                   {userRole === 'owner' ? businessInfo.ownerName.charAt(0).toUpperCase() : userName?.charAt(0).toUpperCase()}

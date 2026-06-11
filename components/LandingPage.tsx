@@ -149,6 +149,43 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Section: SEO Benefits */}
+        <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h2 className="text-2xl font-bold text-slate-900">Key Benefits of Implementing Water Delivery Management Software India</h2>
+          <p className="text-slate-600 leading-relaxed text-sm">
+            Transitioning your traditional operations to a digital <strong>Water Delivery Management Software India</strong> like JalSejiwan unlocks immense operational advantages that directly improve your bottom line. By digitizing delivery boy routes and setting up an automated <strong>20 Litre Water Jar Delivery System</strong>, you instantly eliminate daily recording mismatches and ensure 100% service accuracy.
+          </p>
+          <div className="grid md:grid-cols-2 gap-6 pt-2">
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm mb-1">Boost Daily Profit Margins</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Using specialized <strong>Water Can Billing Software</strong> protects your business from leakage. Keep real-time counts of filled jars and prevent delivery boys from skipping entries or pocketing cash collections unaccounted.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm mb-1">Prevent Costly Jar Losses</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                In India, empty 20-litre blue cans represent a major capital asset. JalSejiwan acts as an elegant <strong>Water Supply Business Management App</strong>, logging every incoming and outgoing empty jar so you know exactly who owes what.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm mb-1">Streamline Client Communications</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Ditch manual calling. Distribute monthly ledgers, payment receipts, and automated outstanding payment reminders with a single click via WhatsApp, enhancing customer satisfaction and professional brand identity.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm mb-1">Empower Field Representatives</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Enable delivery partners to work efficiently using dedicated routes. A streamlined, field-ready mobile dashboard removes confusion, automates inventory handovers, and tracks collections transparently under our cohesive ERP system.
+              </p>
+            </div>
+          </div>
+          <p className="text-slate-600 leading-relaxed text-sm pt-2">
+            Employing our modern <strong>Water Distribution Management System</strong> lets you scale from 100 to over 10,000 active clients seamlessly, making JalSejiwan the premier <strong>Digital Solution for Water Suppliers</strong> across any city in India.
+          </p>
+        </section>
+
         {/* Section 5: Screen Preview */}
         <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm text-center">
           <h2 className="text-2xl font-bold mb-6 text-slate-900">See JalSejiwan in Action</h2>
