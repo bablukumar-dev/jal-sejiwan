@@ -16,7 +16,7 @@ export default function StaffDashboard() {
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
-  const [showDailySummary, setShowDailySummary] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
   const [showLedger, setShowLedger] = useState(false);
   
   useEffect(() => {
@@ -139,7 +139,7 @@ export default function StaffDashboard() {
 
         {/* Primary Action Button */}
         <div className="mb-6">
-          <button onClick={() => setShowRoute(!showRoute)} className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-2xl p-5 flex items-center justify-between transition-colors shadow-sm">
+          <button onClick={() => setShowRoute(prev => !prev)} className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-2xl p-5 flex items-center justify-between transition-colors shadow-sm">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                 <Route className="w-6 h-6 text-white" />
@@ -177,16 +177,16 @@ export default function StaffDashboard() {
           <div className="space-y-3">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               <button 
-                onClick={() => setShowDailySummary(!showDailySummary)}
+                onClick={() => setShowSummary(prev => !prev)}
                 className="w-full p-4 flex items-center justify-between focus:outline-none"
               >
                 <div className="flex items-center gap-3">
                    <FileText className="w-5 h-5 text-blue-700" />
                    <span className="font-bold text-slate-900">Daily Summary</span>
                 </div>
-                <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${showDailySummary ? 'rotate-90' : ''}`} />
+                <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${showSummary ? 'rotate-90' : ''}`} />
               </button>
-              {showDailySummary && (
+              {showSummary && (
                 <div className="p-4 pt-0 border-t border-slate-100 bg-slate-50">
                    <div className="flex justify-between items-center mb-2">
                      <span className="text-sm text-slate-600">Completed Deliveries</span>
@@ -206,7 +206,7 @@ export default function StaffDashboard() {
             
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               <button 
-                onClick={() => setShowLedger(!showLedger)}
+                onClick={() => setShowLedger(prev => !prev)}
                 className="w-full p-4 flex items-center justify-between focus:outline-none"
               >
                 <div className="flex items-center gap-3">
