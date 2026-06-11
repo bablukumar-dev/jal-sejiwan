@@ -31,10 +31,7 @@ export function RoleGuard({ children }: { children: React.ReactNode }) {
 
     // Permissions logic
     if (role === 'MANAGER') {
-       if (pathname.includes('/staff/add') || 
-           pathname.includes('/owner/staff/add') ||
-           pathname.includes('/owner/dashboard/prices')
-       ) {
+       if (pathname.includes('/owner/dashboard/prices')) {
            isAllowed = false;
        }
     } else if (role === 'STAFF') {
