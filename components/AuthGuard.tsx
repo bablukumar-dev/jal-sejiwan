@@ -30,22 +30,70 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         // Check if there is a local non-Firebase session (PIN login for staff/manager)
         const localRole = safeGet('userRole');
         const localPinLogin = safeGet('pinAuth');
+        const staffPhone = safeGet('staffPhone');
         
-        if (localPinLogin === 'true' && (localRole === 'staff' || localRole === 'manager')) {
-           // Allowed by local PIN login
-           if (localRole === 'staff' && pathname.startsWith('/owner') && !pathname.includes('/owner/customers/add')) {
-             router.replace('/staff/dashboard');
-           } else if (localRole === 'staff' && pathname.startsWith('/inventory')) {
-             router.replace('/staff/dashboard');
-           } else {
-             setLoading(false);
-           }
+        if (localPinLogin === 'true' && (localRole === 'staff' || localRole === 'manager') && staffPhone) {
+          try {
+            const staffRef = doc(db, 'staff_users', staffPhone);
+            const staffSnap = await getDoc(staffRef);
+            
+            if (staffSnap.exists()) {
+              const sData = staffSnap.data();
+              if (!sData.active) {
+                // Account is disabled/inactive
+                if (typeof window !== 'undefined') {
+                  localStorage.clear();
+                }
+                router.replace('/login');
+                return;
+              }
+
+              const realBusinessId = sData.businessId;
+              if (!realBusinessId) {
+                if (typeof window !== 'undefined') {
+                  localStorage.clear();
+                }
+                router.replace('/login');
+                return;
+              }
+
+              // Enforce match, block/prevent localStorage tampering
+              const cachedBusinessId = safeGet('businessId');
+              if (cachedBusinessId !== realBusinessId) {
+                console.warn("BusinessId mismatch/tampering detected. Overriding with authenticated businessId.");
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('businessId', realBusinessId);
+                  localStorage.setItem('ownerId', sData.ownerId || '');
+                }
+              }
+              
+              if (localRole === 'staff' && pathname.startsWith('/owner') && !pathname.includes('/owner/customers/add')) {
+                router.replace('/staff/dashboard');
+              } else if (localRole === 'staff' && pathname.startsWith('/inventory')) {
+                router.replace('/staff/dashboard');
+              } else {
+                setLoading(false);
+              }
+            } else {
+              // Staff account does not exist in DB
+              if (typeof window !== 'undefined') {
+                localStorage.clear();
+              }
+              router.replace('/login');
+            }
+          } catch (e) {
+            console.error("Secure staff session validation failed", e);
+            router.replace('/login');
+          }
         } else {
-           // Not logged in and not on a public path
-           router.push('/login');
+          // Not logged in and not on a public path
+          if (typeof window !== 'undefined') {
+            localStorage.clear();
+          }
+          router.push('/login');
         }
       } else {
-        // Enforce role-based routing
+        // Enforce role-based routing for authenticated owners
         let targetRole = safeGet('userRole');
         
         try {
@@ -62,23 +110,43 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
               targetRole = firestoreRole;
             }
             
-            // Migration: Assign resolved or default businessId
-            if (!data.businessId) {
+            // Reconcile and resolve precise businessId
+            let realBusinessId = data.businessId;
+            const isDefaultOwnerCandidate = user.uid === 'XSMGdqKBOIVTwFG4LnK1BitrEOp1'; // Chandani
+            
+            if (!realBusinessId || (realBusinessId === 'default_business' && !isDefaultOwnerCandidate)) {
               const { setDoc, query, collection, where, getDocs } = await import('firebase/firestore');
               const q = query(collection(db, "businesses"), where("ownerId", "==", user.uid));
               const qSnapshot = await getDocs(q);
-              let resolvedBusinessId = 'default_business';
+              let resolvedBusinessId = '';
               if (!qSnapshot.empty) {
                 resolvedBusinessId = qSnapshot.docs[0].id;
+              } else {
+                const newRef = doc(collection(db, 'businesses'));
+                resolvedBusinessId = newRef.id;
+                await setDoc(newRef, {
+                  businessId: resolvedBusinessId,
+                  businessName: `${data.name || 'My'}'s Business`,
+                  ownerId: user.uid,
+                  createdAt: new Date().toISOString()
+                });
               }
               await setDoc(doc(db, 'users', user.uid), { businessId: resolvedBusinessId }, { merge: true });
-              if (typeof window !== 'undefined') localStorage.setItem('businessId', resolvedBusinessId);
-            } else {
-              if (typeof window !== 'undefined') localStorage.setItem('businessId', data.businessId);
+              realBusinessId = resolvedBusinessId;
+            }
+
+            // Enforce match, block/prevent localStorage tampering
+            const cachedBusinessId = safeGet('businessId');
+            if (cachedBusinessId !== realBusinessId) {
+              console.warn("BusinessId mismatch/tampering detected. Overriding with authenticated businessId.");
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('businessId', realBusinessId);
+                localStorage.setItem('ownerId', user.uid);
+              }
             }
             
-            // Create default business document if user is owner
-            if (targetRole === 'owner') {
+            // Create default business document if user is default owner and it does not exist
+            if (targetRole === 'owner' && isDefaultOwnerCandidate) {
                const { setDoc } = await import('firebase/firestore');
                const businessDoc = await getDoc(doc(db, 'businesses', 'default_business'));
                if (!businessDoc.exists()) {
@@ -90,9 +158,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
                  }, { merge: true });
                }
             }
+          } else {
+            // User entry missing in Firestore users collection
+            await auth.signOut();
+            if (typeof window !== 'undefined') {
+              localStorage.clear();
+            }
+            router.push('/login');
+            return;
           }
         } catch (e) {
-          console.error("Could not verify role or run migration", e);
+          console.error("Could not verify role or validate owner session", e);
         }
 
         if (targetRole === 'staff' && pathname.startsWith('/owner') && !pathname.includes('/owner/customers/add')) {

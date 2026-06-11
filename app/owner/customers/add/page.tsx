@@ -46,6 +46,7 @@ export default function AddCustomer() {
 
         const customersArray = Array.isArray(customers) ? customers : [];
         const newId = Math.max(0, ...customersArray.map(c => c.id || 0), 0) + 1;
+        const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
         const newCustomer = {
         id: newId,
         name,
@@ -65,7 +66,8 @@ export default function AddCustomer() {
         deposit,
         walletBalance,
         subscriptionPlan,
-        riskLevel
+        riskLevel,
+        businessId: currentBusinessId
         };
 
         setCustomers([...customersArray, newCustomer]);

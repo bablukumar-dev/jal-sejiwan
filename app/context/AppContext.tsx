@@ -26,6 +26,7 @@ export type Customer = {
   walletBalance?: number;
   subscriptionPlan?: 'None' | 'Monthly' | 'Unlimited' | 'Custom';
   riskLevel?: 'Low' | 'Medium' | 'High';
+  businessId?: string;
 };
 
 export type Delivery = {
@@ -45,6 +46,7 @@ export type Delivery = {
   skipReason?: string;
   skipRemarks?: string;
   priority?: 'High' | 'Medium' | 'Low';
+  businessId?: string;
 };
 
 export type Payment = {
@@ -56,6 +58,7 @@ export type Payment = {
   mode: string;
   collectedBy: string;
   note: string;
+  businessId?: string;
 };
 
 export type Inventory = {
@@ -65,6 +68,7 @@ export type Inventory = {
   cansWithCustomers: number;
   cansInDelivery: number;
   refillInProcess: number;
+  businessId?: string;
 };
 
 export type InventoryHistory = {
@@ -188,12 +192,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const snapshotReceivedRef = useRef(false);
   const isSaving = useRef(false);
 
-  // Poll localStorage for ownerId/businessId changes to detect logins/logouts dynamically
+  // Poll localStorage for businessId changes to detect logins/logouts dynamically
   useEffect(() => {
     const checkOwner = () => {
-      const id = safeGet('businessId') || safeGet('ownerId') || 'default_business';
+      const id = safeGet('businessId');
+      
+      if (!id) {
+        if (ownerId !== null) {
+          // Clear everything
+          setCustomers(initialCustomers);
+          setDeliveries(initialDeliveries);
+          setPayments(initialPayments);
+          setInventory(initialInventory);
+          setInventoryHistory(initialInventoryHistory);
+          setStaff(initialStaff);
+          setRoutes(initialRoutes);
+          setAreas(initialAreas);
+          setBusinessInfo(initialBusinessInfo);
+          setOwnerId(null);
+          snapshotReceivedRef.current = false;
+        }
+        return;
+      }
+
       if (id !== ownerId && safeGet('userRole')) {
-        // If owner changing mid-session, clear local state immediately
+        // If owner/business changing mid-session, clear local state/cache immediately
         if (ownerId !== null) {
           localStorage.removeItem('customers');
           localStorage.removeItem('deliveries');
@@ -214,6 +237,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setRoutes(initialRoutes);
           setAreas(initialAreas);
           setBusinessInfo(initialBusinessInfo);
+          snapshotReceivedRef.current = false;
         }
         setOwnerId(id);
       }

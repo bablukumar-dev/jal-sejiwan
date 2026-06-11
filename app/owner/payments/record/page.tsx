@@ -84,6 +84,7 @@ export default function RecordPayment() {
         return;
       }
 
+      const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
       const newPayment = {
         id: Math.max(0, ...payments.map(p => p.id)) + 1,
         customerId: selectedCustomerId,
@@ -92,7 +93,8 @@ export default function RecordPayment() {
         date,
         mode,
         collectedBy: 'Owner', // Or whoever is logged in
-        note: ''
+        note: '',
+        businessId: currentBusinessId
       };
 
       setPayments([...payments, newPayment]);

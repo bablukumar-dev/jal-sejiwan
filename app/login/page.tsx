@@ -193,9 +193,10 @@ export default function Login() {
       localStorage.setItem('pinAuth', 'true');
       localStorage.setItem('staffUserId', String(s.id));
       localStorage.setItem('staffUserName', s.name);
+      localStorage.setItem('staffPhone', cleanPhone);
       
       let businessId = 'default_business';
-      if (s.businessId) {
+      if (s.businessId && s.businessId !== 'default_business') {
         businessId = s.businessId;
       } else if (ownerIdFromFirestore) {
         try {
@@ -297,7 +298,7 @@ export default function Login() {
             if (data.role) {
               targetRole = data.role;
             }
-            if (data.businessId) {
+            if (data.businessId && data.businessId !== 'default_business') {
               businessId = data.businessId;
             } else {
               const { query, collection, where, getDocs } = await import('firebase/firestore');
@@ -306,7 +307,14 @@ export default function Login() {
               if (!qSnapshot.empty) {
                 businessId = qSnapshot.docs[0].id;
               } else {
-                businessId = 'default_business';
+                const newRef = doc(collection(db, 'businesses'));
+                businessId = newRef.id;
+                await setDoc(newRef, {
+                  businessId: businessId,
+                  businessName: `${data.name || 'My'}'s Business`,
+                  ownerId: userCredential.user.uid,
+                  createdAt: new Date().toISOString()
+                });
               }
               await setDoc(doc(db, 'users', userCredential.user.uid), { businessId }, { merge: true });
             }
@@ -374,7 +382,7 @@ export default function Login() {
           if (data.role) {
             targetRole = data.role;
           }
-          if (data.businessId) {
+          if (data.businessId && data.businessId !== 'default_business') {
             businessId = data.businessId;
           } else {
             const { query, collection, where, getDocs } = await import('firebase/firestore');
@@ -383,7 +391,14 @@ export default function Login() {
             if (!qSnapshot.empty) {
               businessId = qSnapshot.docs[0].id;
             } else {
-              businessId = 'default_business';
+              const newRef = doc(collection(db, 'businesses'));
+              businessId = newRef.id;
+              await setDoc(newRef, {
+                businessId: businessId,
+                businessName: `${result.user.displayName || 'New'}'s Business`,
+                createdAt: new Date().toISOString(),
+                ownerId: result.user.uid
+              });
             }
             await setDoc(doc(db, 'users', result.user.uid), { businessId }, { merge: true });
           }

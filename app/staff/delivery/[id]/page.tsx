@@ -162,6 +162,7 @@ export default function DeliveryEntry() {
           newDue += (subtotal - parsedAmount);
 
           if (parsedAmount > 0) {
+            const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
             const newPayment = {
               id: Date.now(),
               customerId: customer.id,
@@ -170,7 +171,8 @@ export default function DeliveryEntry() {
               amount: parsedAmount,
               mode: paymentType,
               collectedBy: 'Staff',
-              note: `DEL-${deliveryId}`
+              note: `DEL-${deliveryId}`,
+              businessId: currentBusinessId
             };
             setPayments(prev => [newPayment, ...prev]);
           }

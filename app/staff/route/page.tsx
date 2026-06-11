@@ -80,6 +80,7 @@ export default function MyRoute() {
   const displayList = activeTab === 'Pending' ? pendingList : completedList;
 
   const generateDelivery = useCallback((customerId: number) => {
+    const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
     return {
       id: Date.now() + Math.floor(Math.random() * 1000),
       customerId: customerId,
@@ -93,7 +94,8 @@ export default function MyRoute() {
       paymentReceived: false,
       paymentAmount: 0,
       paymentMode: 'Cash',
-      note: ''
+      note: '',
+      businessId: currentBusinessId
     };
   }, [customers, today, currentStaffId, staff]);
 

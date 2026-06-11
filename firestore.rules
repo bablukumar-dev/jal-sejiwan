@@ -2,9 +2,43 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    /*
+    ===================================================================
+    RECOMMENDED PRODUCTION MULTI-TENANT FIREBASE SECURITY RULES
+    ===================================================================
+    To deploy these rules, uncomment this block and replace the top-level wildcard rules.
+
+    // 1. Users Collection: Strictly read/written by the authenticated user
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 2. Businesses Collection: Managed by the business owner
+    match /businesses/{businessId} {
+      allow read, write: if request.auth != null && (
+        resource == null || resource.data.ownerId == request.auth.uid
+      );
+    }
+
+    // 3. Workspaces (Tenant Core): Restricted to the authenticated owner's businessId
+    match /workspaces/{workspaceId} {
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == workspaceId;
+    }
+
+    // 4. Staff Users: Creation/modification restricted to the business owner
+    match /staff_users/{phone} {
+      allow read: if true; // Public-read allows lookup for PIN authentication
+      allow write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == request.resource.data.businessId;
+    }
+    ===================================================================
+    */
+
+    // Active Sandbox Sandbox Rule (Kept open for preview environment testing, do not auto-deploy to production)
     match /{document=**} {
       allow read, write: if true;
     }
   }
 }
-

@@ -50,6 +50,7 @@ export default function EditCustomer() {
         return;
         }
 
+        const currentBusinessId = customer?.businessId || (typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business');
         const updatedCustomer = {
         ...customer,
         name,
@@ -68,7 +69,8 @@ export default function EditCustomer() {
         deposit,
         walletBalance,
         subscriptionPlan,
-        riskLevel
+        riskLevel,
+        businessId: currentBusinessId
         };
 
         setCustomers(customers.map(c => c.id === customerId ? updatedCustomer : c));

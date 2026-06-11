@@ -64,12 +64,16 @@ function AddStaff() {
         failedPinAttempts: 0
         };
 
-        const currentOwnerId = safeGet('ownerId') || 'default_owner';
-        const currentBusinessId = safeGet('businessId') || 'default_business';
+        const currentOwnerId = safeGet('ownerId');
+        const currentBusinessId = safeGet('businessId');
+        
+        if (!currentBusinessId) {
+             throw new Error("Action Blocked: businessId is missing from session.");
+        }
         
         await setDoc(doc(db, 'staff_users', phone.trim()), {
             ...newStaff,
-            ownerId: currentOwnerId,
+            ownerId: currentOwnerId || '',
             businessId: currentBusinessId
         });
 

@@ -200,6 +200,9 @@ function StaffManagement() {
                           
                           // Update Firestore staff_users doc & reset locks
                           try {
+                            if (!safeGet('businessId')) {
+                              throw new Error("Action Blocked: businessId is missing from session.");
+                            }
                             const cleanPhone = s.phone.trim();
                             await setDoc(doc(db, 'staff_users', cleanPhone), {
                               encryptedPin: encrypted,

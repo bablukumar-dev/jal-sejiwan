@@ -100,6 +100,7 @@ export default function StaffCustomers() {
     if (existing) {
       router.push(`/staff/delivery/${existing.id}`);
     } else {
+      const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
       const newDelivery = {
         id: getUniqueId(),
         customerId: customerId,
@@ -113,7 +114,8 @@ export default function StaffCustomers() {
         paymentReceived: false,
         paymentAmount: 0,
         paymentMode: 'Cash',
-        note: ''
+        note: '',
+        businessId: currentBusinessId
       };
       setDeliveries([...deliveries, newDelivery]);
       router.push(`/staff/delivery/${newDelivery.id}`);
@@ -126,6 +128,7 @@ export default function StaffCustomers() {
     if (existing) {
       router.push(`/staff/skip/${existing.id}`);
     } else {
+      const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
       const newDelivery = {
         id: getUniqueId(),
         customerId: customerId,
@@ -139,7 +142,8 @@ export default function StaffCustomers() {
         paymentReceived: false,
         paymentAmount: 0,
         paymentMode: 'Cash',
-        note: ''
+        note: '',
+        businessId: currentBusinessId
       };
       setDeliveries([...deliveries, newDelivery]);
       router.push(`/staff/skip/${newDelivery.id}`);
