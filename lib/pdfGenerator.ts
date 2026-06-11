@@ -12,30 +12,72 @@ export const generateInvoicePDF = (
 ) => {
   const doc = new jsPDF();
   
-  // Header
-  doc.setFontSize(20);
-  doc.text(businessInfo.name, 14, 22);
+  // --- Custom Premium Header with Business Logo & Contact Details ---
+  // Draw premium vector water droplet logo inside a blue circle
+  doc.setFillColor(41, 128, 185); // Theme Blue
+  doc.circle(22, 22, 8, 'F');
   
-  doc.setFontSize(10);
-  doc.text(`Phone: ${businessInfo.phone || 'N/A'}`, 14, 30);
-  doc.text(`Address: ${businessInfo.address || 'N/A'}`, 14, 35);
+  doc.setFillColor(255, 255, 255);
+  // Triangle pointing up for droplet
+  doc.triangle(18.5, 23, 25.5, 23, 22, 16.5, 'F');
+  // Small white circle for droplet base
+  doc.circle(22, 23, 3.5, 'F');
   
-  // Invoice Details
-  doc.setFontSize(12);
+  // Business Info Text
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(41, 128, 185); // Theme Blue
+  doc.text(businessInfo.name, 34, 21);
+  
+  doc.setFont("Helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(110, 110, 110);
+  
+  const phoneStr = `Phone: ${businessInfo.phone || 'N/A'}`;
+  const addressStr = `Address: ${businessInfo.address || 'N/A'}`;
+  const gstStr = businessInfo.gstNumber ? `GSTIN: ${businessInfo.gstNumber}` : '';
+  
+  let contactLine = `${phoneStr}  |  ${addressStr}`;
+  if (gstStr) {
+    contactLine += `  |  ${gstStr}`;
+  }
+  doc.text(contactLine, 34, 27);
+
+  // Invoice Details / Header Right
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(41, 128, 185);
+  doc.text('INVOICE', 196, 20, { align: 'right' });
+
+  doc.setFont("Helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(110, 110, 110);
   const invoiceNo = `INV-${Date.now()}`;
-  doc.text(`Invoice No: ${invoiceNo}`, 196, 22, { align: 'right' });
-  doc.text(`Date: ${new Date().toLocaleDateString()}`, 196, 28, { align: 'right' });
+  doc.text(`Invoice No: ${invoiceNo}`, 196, 25, { align: 'right' });
+  doc.text(`Date: ${new Date().toLocaleDateString()}`, 196, 29, { align: 'right' });
   if (startDate && endDate) {
-    doc.text(`Period: ${startDate} to ${endDate}`, 196, 34, { align: 'right' });
+    doc.text(`Period: ${startDate} to ${endDate}`, 196, 33, { align: 'right' });
   }
 
-  // Customer Details
-  doc.setFontSize(14);
-  doc.text('Bill To:', 14, 50);
+  // Beautiful Accent Divider Line
+  doc.setDrawColor(220, 225, 230);
+  doc.setLineWidth(0.5);
+  doc.line(14, 36, 196, 36);
+
+  // Customer Details / BILL TO Section
+  doc.setFont("Helvetica", "bold");
   doc.setFontSize(11);
-  doc.text(`Name: ${customer.name}`, 14, 56);
-  doc.text(`Phone: ${customer.phone}`, 14, 61);
-  doc.text(`Address: ${customer.address || ''}`, 14, 66);
+  doc.setTextColor(41, 128, 185);
+  doc.text('BILL TO:', 14, 46);
+
+  doc.setFont("Helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(50, 50, 50);
+  doc.text(customer.name, 14, 52);
+  doc.setTextColor(110, 110, 110);
+  doc.setFontSize(9);
+  doc.text(`Phone: ${customer.phone}`, 14, 57);
+  doc.text(`Address: ${customer.address || 'N/A'}`, 14, 62);
 
   // Parse transactions (deliveries and payments)
   let transactions: { date: string, desc: string, qty: number | string, rate: number | string, amount: number, type: string }[] = [];
@@ -133,30 +175,69 @@ export const generatePaymentReceiptPDF = (
 ) => {
   const doc = new jsPDF();
   
-  // Header
-  doc.setFontSize(20);
-  doc.text(businessInfo.name, 14, 22);
+  // --- Custom Premium Header with Business Logo & Contact Details ---
+  // Draw premium vector water droplet logo inside a blue circle
+  doc.setFillColor(41, 128, 185); // Theme Blue
+  doc.circle(22, 22, 8, 'F');
   
-  doc.setFontSize(10);
-  doc.text(`Phone: ${businessInfo.phone || 'N/A'}`, 14, 30);
-  doc.text(`Address: ${businessInfo.address || 'N/A'}`, 14, 35);
+  doc.setFillColor(255, 255, 255);
+  // Triangle pointing up for droplet
+  doc.triangle(18.5, 23, 25.5, 23, 22, 16.5, 'F');
+  // Small white circle for droplet base
+  doc.circle(22, 23, 3.5, 'F');
   
-  // Receipt Details
-  doc.setFontSize(15);
-  doc.text('PAYMENT RECEIPT', 140, 22);
+  // Business Info Text
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(41, 128, 185); // Theme Blue
+  doc.text(businessInfo.name, 34, 21);
   
-  doc.setFontSize(12);
-  const receiptNo = `REC-${payment.id}`;
-  doc.text(`Receipt No: ${receiptNo}`, 140, 30);
-  doc.text(`Date: ${payment.date}`, 140, 36);
+  doc.setFont("Helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(110, 110, 110);
+  
+  const phoneStr = `Phone: ${businessInfo.phone || 'N/A'}`;
+  const addressStr = `Address: ${businessInfo.address || 'N/A'}`;
+  const gstStr = businessInfo.gstNumber ? `GSTIN: ${businessInfo.gstNumber}` : '';
+  
+  let contactLine = `${phoneStr}  |  ${addressStr}`;
+  if (gstStr) {
+    contactLine += `  |  ${gstStr}`;
+  }
+  doc.text(contactLine, 34, 27);
 
-  // Customer Details
-  doc.setFontSize(12);
-  doc.text(`Received from:`, 14, 50);
+  // Receipt Details / Header Right
+  doc.setFont("Helvetica", "bold");
   doc.setFontSize(14);
-  doc.text(payment.customerName, 14, 56);
+  doc.setTextColor(41, 128, 185);
+  doc.text('PAYMENT RECEIPT', 196, 20, { align: 'right' });
   
+  doc.setFont("Helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(110, 110, 110);
+  const receiptNo = `REC-${payment.id}`;
+  doc.text(`Receipt No: ${receiptNo}`, 196, 25, { align: 'right' });
+  doc.text(`Date: ${payment.date}`, 196, 29, { align: 'right' });
+
+  // Beautiful Accent Divider Line
+  doc.setDrawColor(220, 225, 230);
+  doc.setLineWidth(0.5);
+  doc.line(14, 36, 196, 36);
+
+  // Customer Details / RECEIVED FROM Section
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(41, 128, 185);
+  doc.text('RECEIVED FROM:', 14, 46);
+
+  doc.setFont("Helvetica", "normal");
   doc.setFontSize(12);
+  doc.setTextColor(50, 50, 50);
+  doc.text(payment.customerName, 14, 52);
+  
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(41, 128, 185);
   doc.text('Payment Details:', 14, 75);
   
   const transactions = [

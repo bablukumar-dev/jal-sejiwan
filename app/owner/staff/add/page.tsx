@@ -35,6 +35,11 @@ function AddStaff() {
            return;
         }
 
+        if (currentUserRole === 'manager' && (role === 'Manager' || role === 'owner')) {
+           alert("Managers are not authorized to create Manager or Owner roles.");
+           return;
+        }
+
         if (!name || !phone || !pin) {
         alert("Please fill all required fields");
         return;
@@ -124,7 +129,7 @@ function AddStaff() {
                 onChange={(e) => setRole(e.target.value)}
               >
                 <option value="Delivery Partner">Delivery Partner</option>
-                <option value="Manager">Manager</option>
+                {currentUserRole === 'owner' && <option value="Manager">Manager</option>}
               </select>
             </div>
 
@@ -218,4 +223,4 @@ function AddStaff() {
   );
 }
 
-export default wrapRoute(AddStaff, { requiredRole: 'owner' });
+export default wrapRoute(AddStaff, { requiredRole: 'manager' });
