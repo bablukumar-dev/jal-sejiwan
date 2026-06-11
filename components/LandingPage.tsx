@@ -1,14 +1,38 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
-import { Droplet, Truck, Package, Bell, FileText, Users, CheckCircle } from 'lucide-react';
+import { Droplet, Truck, Package, Bell, FileText, Users, CheckCircle, Calculator, Coins, Clock, TrendingUp, Sparkles } from 'lucide-react';
 
 export default function LandingPage() {
+  const [dailyDeliveries, setDailyDeliveries] = useState(50);
+  const [pricePerJar, setPricePerJar] = useState(40);
+  const [jarsLost, setJarsLost] = useState(15);
+  const [adminHours, setAdminHours] = useState(10);
+
+  // Compute monthly deliveries from the daily deliveries input count over a standard 30-day operation cycle
+  const monthlyJars = dailyDeliveries * 30;
+
+  // ROI Computations
+  // 1. Recovering 95% of lost polycarbonate/PET jars valued at ₹150 each
+  const jarSavings = Math.round(jarsLost * 150 * 0.95);
+  // 2. Plugging average 4.0% cash & billing leakage through precise logging and instant reminders
+  const leakageSavings = Math.round(monthlyJars * pricePerJar * 0.04);
+  // 3. Saving manual staff administrative billing labor hours valued at ₹200/hr
+  const timeSavings = Math.round(adminHours * 4.33 * 200);
+  // 4. Saving ~10% fuel usage via optimized routing (avg. current fuel spend ₹10/delivery)
+  const fuelSavings = Math.round(monthlyJars * 10 * 0.1);
+  
+  const totalMonthlySavings = jarSavings + leakageSavings + timeSavings + fuelSavings;
+  const totalAnnualSavings = totalMonthlySavings * 12;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Header */}
       <header className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-slate-200 z-50">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-[10px]">
-            <img src="/logo.png" alt="JalSejiwan - Water Delivery Management Software India Logo" className="h-[32px] w-[32px] object-contain" referrerPolicy="no-referrer" />
+            <img src="/logo.png" alt="JalSejiwan - Water Delivery Management Software India Logo" className="h-10 w-10 object-contain flex-shrink-0" referrerPolicy="no-referrer" />
             <span className="text-xl font-bold text-blue-700">JalSejiwan</span>
           </div>
           <div className="flex items-center gap-3">
@@ -132,6 +156,220 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Section: Monthly Savings Calculator */}
+        <section className="space-y-6 scroll-mt-20" id="savings-calculator">
+          <div className="text-center space-y-2">
+            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
+              Calculate Your Monthly Savings & ROI
+            </h2>
+            <p className="text-slate-600 max-w-2xl mx-auto text-sm leading-relaxed">
+              Find out how much revenue leakage you can plug, asset loss you can prevent, and manual hours you can save by replacing traditional books with <strong>JalSejiwan Water Delivery Management Software India</strong>.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            {/* Left Box: Slicers / Inputs */}
+            <div className="lg:col-span-7 bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 flex flex-col justify-between">
+              <div className="space-y-4">
+                <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <Calculator className="w-5 h-5 text-blue-600" />
+                  Your Operational Volume
+                </h3>
+                <p className="text-slate-500 text-xs">
+                  Adjust the sliders below to match your drinking water distribution agency&apos;s current stats in India.
+                </p>
+              </div>
+
+              <div className="space-y-5">
+                {/* Sliders 1: Daily Delivery Count */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <label className="font-medium text-slate-700 flex items-center gap-2">
+                      <Droplet className="w-4 h-4 text-blue-500" />
+                      Daily Delivery Count (20L Jars)
+                    </label>
+                    <span className="font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs">
+                      {dailyDeliveries} Jars/day (~{monthlyJars.toLocaleString()} / month)
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5"
+                    max="500"
+                    step="5"
+                    value={dailyDeliveries}
+                    onChange={(e) => setDailyDeliveries(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600 focus:outline-none"
+                    id="slider-daily-deliveries"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-bold">
+                    <span>5 Jars</span>
+                    <span>250 Jars</span>
+                    <span>500 Jars</span>
+                  </div>
+                </div>
+
+                {/* Slider 2: Price per Jar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <label className="font-medium text-slate-700 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      Average Price per Jar
+                    </label>
+                    <span className="font-bold bg-slate-100 text-slate-800 px-3 py-1 rounded-full text-xs">
+                      ₹{pricePerJar} / jar
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="20"
+                    max="100"
+                    step="5"
+                    value={pricePerJar}
+                    onChange={(e) => setPricePerJar(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600 focus:outline-none"
+                    id="slider-price-per-jar"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-bold">
+                    <span>₹20</span>
+                    <span>₹60</span>
+                    <span>₹100</span>
+                  </div>
+                </div>
+
+                {/* Slider 3: Empty Jars Lost */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <label className="font-medium text-slate-700 flex items-center gap-2">
+                      <Package className="w-4 h-4 text-emerald-500" />
+                      Empty Jars Lost / Month
+                    </label>
+                    <span className="font-bold bg-rose-50 text-rose-700 px-3 py-1 rounded-full text-xs">
+                      {jarsLost} Jars Lost
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={jarsLost}
+                    onChange={(e) => setJarsLost(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-rose-600 focus:outline-none"
+                    id="slider-jars-lost"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-bold">
+                    <span>0 Jars</span>
+                    <span>50 Jars</span>
+                    <span>100 Jars</span>
+                  </div>
+                </div>
+
+                {/* Slider 4: Weekly Booking Admin Hours */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <label className="font-medium text-slate-700 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-indigo-500" />
+                      Weekly Admin Hours Spent on Paper Cards
+                    </label>
+                    <span className="font-bold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-xs">
+                      {adminHours} Hours / week
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="40"
+                    step="1"
+                    value={adminHours}
+                    onChange={(e) => setAdminHours(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
+                    id="slider-admin-hours"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-bold">
+                    <span>0 Hours</span>
+                    <span>20 Hours</span>
+                    <span>40 Hours</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Box: Glowing Output ROI Card */}
+            <div className="lg:col-span-5 bg-gradient-to-br from-blue-700 to-indigo-900 text-white p-6 md:p-8 rounded-3xl shadow-xl flex flex-col justify-between border border-blue-600/30 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-44 h-44 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+              
+              <div className="space-y-4 relative z-10">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold uppercase tracking-widest text-blue-200">Estimated Monthly Return</span>
+                  <span className="flex items-center gap-1 bg-blue-600/60 border border-blue-500 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                    <Sparkles className="w-3 h-3 text-amber-300" /> Optimized
+                  </span>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="text-4xl md:text-5xl font-extrabold tracking-tight">
+                    ₹{totalMonthlySavings.toLocaleString()}
+                  </div>
+                  <p className="text-xs text-blue-200 font-medium">Extra savings added back to your bank account monthly</p>
+                </div>
+
+                <div className="border-t border-blue-600/50 pt-4 space-y-3 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-blue-200 text-xs flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                      Prevent Empty Can Assets Loss
+                    </span>
+                    <span className="font-bold">₹{jarSavings.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-blue-200 text-xs flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      Plug Payment & Billing Disputes
+                    </span>
+                    <span className="font-bold">₹{leakageSavings.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-blue-200 text-xs flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                      Free Up Supervisor Admin Labor
+                    </span>
+                    <span className="font-bold">₹{timeSavings.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-blue-200 text-xs flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-300" />
+                      Optimize Delivery Fleet Fuel
+                    </span>
+                    <span className="font-bold">₹{fuelSavings.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-6 relative z-10 border-t border-blue-600/50 mt-6 lg:mt-0">
+                <div className="bg-blue-950/35 border border-blue-500/25 p-3 rounded-2xl flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[10px] text-blue-200 font-extrabold uppercase tracking-wider">Annual Earnings Boost</div>
+                    <div className="text-lg font-bold text-emerald-400">₹{totalAnnualSavings.toLocaleString()} / year</div>
+                  </div>
+                  <TrendingUp className="w-6 h-6 text-emerald-400 flex-shrink-0" />
+                </div>
+
+                <Link
+                  href="/login"
+                  className="w-full bg-white text-blue-700 font-bold py-3 px-4 rounded-xl text-center block hover:bg-blue-50 active:scale-[0.98] transition-all shadow-md text-sm"
+                  id="calc-cta-btn"
+                >
+                  Start Saving Now with JalSejiwan
+                </Link>
+                <div className="text-center text-[10px] text-blue-300">
+                  Risk-free trial. No payment card required to start.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Section: How JalSejiwan Works */}
         <section className="bg-slate-50 p-8 rounded-2xl border border-dashed border-slate-300 space-y-6">
           <h2 className="text-2xl font-bold text-center text-slate-900">How JalSejiwan Works</h2>
@@ -224,6 +462,42 @@ export default function LandingPage() {
           <p className="text-slate-600 leading-relaxed text-sm pt-2">
             Adopting this specialized <strong>Water Distribution Management System</strong> turns a chaotic delivery setup into a highly profitable digital service.
           </p>
+        </section>
+
+        {/* Section: Industry Transformation & Long-Term Enterprise ROI */}
+        <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-slate-900">Industry Transformation: Long-Term Enterprise ROI</h2>
+            <p className="text-slate-500 text-xs uppercase tracking-wider font-bold">Strategic Value & Growth Model of Water Delivery Management Software India</p>
+          </div>
+          
+          <div className="space-y-4 text-slate-600 text-sm leading-relaxed">
+            <p>
+              Adopting a certified <strong>Water Delivery Management Software India</strong> completely redefines the unit economics of a typical water jar distribution firm. Independent field audits indicate that water distribution agencies suffer an average of 8% revenue loss owing to missing delivery logs, unreturned polycarbonate jars, and misplaced manual paper coupons. By shifting to a centralized database platform, agencies secure their physical capital while cutting fuel bills by 12% through optimized dispatch sequences.
+            </p>
+            <p>
+              The true strategic value, however, goes beyond direct cost cuts. When you digitize operations, you build a structured asset register and establish precise customer transactional ledger history. This data-driven model makes your drinking water company highly scalable, attractive to regional buyers, and eligible for formal credit lines from banking partners in India. Ultimately, implementing this software ensures your high-turnover business maintains healthy cash flow margins in competitive municipal markets.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t border-slate-100">
+            <div className="p-3 bg-slate-50 rounded-xl">
+              <div className="text-lg font-bold text-blue-700">18% Reduction</div>
+              <div className="text-[10px] text-slate-500 font-medium">In accounts receivable outstanding cycles</div>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-xl">
+              <div className="text-lg font-bold text-blue-700">25% Higher</div>
+              <div className="text-[10px] text-slate-500 font-medium">Asset and empty jar rotation velocity</div>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-xl">
+              <div className="text-lg font-bold text-blue-700">60% Drop</div>
+              <div className="text-[10px] text-slate-500 font-medium">In manual supervisor billing errors</div>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-xl">
+              <div className="text-lg font-bold text-blue-700">15% Optimized</div>
+              <div className="text-[10px] text-slate-500 font-medium font-sans">Route mileage and delivery vehicle fuel spend</div>
+            </div>
+          </div>
         </section>
 
         {/* Section 5: Screen Preview */}

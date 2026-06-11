@@ -58,7 +58,7 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
               <ArrowLeft className="w-6 h-6 text-blue-700" />
             </button>
           )}
-          <img src="/logo.png" alt="JalSejiwan - Advanced Water Delivery Management Software India Logo" className="h-8 w-8 object-contain flex-shrink-0" referrerPolicy="no-referrer" />
+          <img src="/logo.png" alt="JalSejiwan - Advanced Water Delivery Management Software India Logo" className="h-10 w-10 object-contain flex-shrink-0" referrerPolicy="no-referrer" />
           <div className="flex flex-col">
             {subtitle && <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{subtitle}</span>}
             <h1 className="text-xl font-bold text-slate-900">{title}</h1>
