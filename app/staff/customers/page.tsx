@@ -19,9 +19,17 @@ export default function StaffCustomers() {
   const { deliveries, setDeliveries, customers, staff, businessInfo } = useAppContext();
   const [activeTab, setActiveTab] = useState<'All' | 'Pending' | 'Completed'>('Pending');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
   const userRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') || '' : '';
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
   
   useEffect(() => {
     const fetchStaffRoute = async () => {
@@ -62,11 +70,11 @@ export default function StaffCustomers() {
 
   const today = new Date().toISOString().split('T')[0];
   
-  const searchedCustomers = customers.filter(c => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
+  const searchedCustomers = useMemo(() => customers.filter(c => {
+    if (!debouncedSearchQuery) return true;
+    const q = debouncedSearchQuery.toLowerCase();
     return c.name?.toLowerCase().includes(q) || c.phone?.includes(q) || c.route?.toLowerCase().includes(q) || c.area?.toLowerCase().includes(q);
-  });
+  }), [customers, debouncedSearchQuery]);
 
   const mappedDeliveries = useMemo(() => {
     return searchedCustomers.map(customer => {

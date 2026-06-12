@@ -12,6 +12,15 @@ export default function RecordPayment() {
   const { customers, payments, setPayments, setCustomers } = useAppContext();
   const [amount, setAmount] = useState('0');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [mode, setMode] = useState('Cash');
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -43,9 +52,9 @@ export default function RecordPayment() {
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
 
   const filteredCustomers = customers.filter(c => {
-    if (!searchQuery) return false;
-    const query = searchQuery.toLowerCase();
-    return c.name?.toLowerCase().includes(query) || c.phone?.includes(searchQuery);
+    if (!debouncedSearchQuery) return false;
+    const query = debouncedSearchQuery.toLowerCase();
+    return c.name?.toLowerCase().includes(query) || c.phone?.includes(debouncedSearchQuery);
   });
 
   const handleNumberClick = (num: string) => {

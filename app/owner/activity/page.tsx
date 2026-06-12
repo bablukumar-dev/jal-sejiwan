@@ -26,6 +26,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { ActivityLog } from '@/lib/activityLogger';
+import { GroupedVirtuoso } from 'react-virtuoso';
 
 export default function ActivityLogDashboard() {
   const { staff } = useAppContext();
@@ -180,7 +181,7 @@ export default function ActivityLogDashboard() {
     });
   }, [scopeFilteredLogs, selectedActionType, selectedUserFilter, searchQuery, currentUserId]);
 
-  const groupedLogs = useMemo(() => {
+  const { groupedLogs, groupCounts, flattenedLogs } = useMemo(() => {
     const groups: Record<string, ActivityLog[]> = {};
     
     // Sort just in case to be 100% compliant with DESC order
@@ -213,7 +214,7 @@ export default function ActivityLogDashboard() {
       groups[dateKey].push(log);
     });
 
-    return Object.keys(groups)
+    const parsedGroups = Object.keys(groups)
       .sort((a, b) => b.localeCompare(a))
       .map(key => {
         let formattedDate = key;
@@ -230,6 +231,12 @@ export default function ActivityLogDashboard() {
           logs: groups[key]
         };
       });
+
+    return { 
+      groupedLogs: parsedGroups, 
+      groupCounts: parsedGroups.map(g => g.logs.length), 
+      flattenedLogs: parsedGroups.flatMap(g => g.logs) 
+    };
   }, [finalLogs]);
 
   // 3. User Dropdown list based on RBAC scope
@@ -472,27 +479,31 @@ export default function ActivityLogDashboard() {
               <p className="text-xs text-slate-500 max-w-xs mx-auto">No logs matched the selected search or scope filters.</p>
             </div>
           ) : (
-            groupedLogs.map((group) => (
-              <div key={group.dateKey} className="space-y-4">
-                {/* Visual Group Date Header with clean accents */}
-                <div className="flex items-center gap-2.5 pt-4 pb-1">
+            <GroupedVirtuoso
+              useWindowScroll
+              groupCounts={groupCounts}
+              groupContent={index => (
+                <div className="bg-slate-50 flex items-center gap-2.5 pt-4 pb-1">
                   <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 border border-blue-100/60 rounded-xl px-3 py-1 tracking-wider uppercase font-sans">
-                    {group.formattedDate}
+                    {groupedLogs[index].formattedDate}
                   </span>
                   <div className="flex-1 h-[1.5px] bg-slate-100" />
                 </div>
-
-                {group.logs.map((log) => (
-                  <MemoizedLogEntry
-                    key={log.log_id}
-                    log={log}
-                    isExpanded={!!expandedLogs[log.log_id]}
-                    onToggleExpand={toggleExpand}
-                    onFormatTime={formatTime}
-                  />
-                ))}
-              </div>
-            ))
+              )}
+              itemContent={index => {
+                const log = flattenedLogs[index];
+                return (
+                  <div className="py-2">
+                    <MemoizedLogEntry
+                      log={log}
+                      isExpanded={!!expandedLogs[log.log_id]}
+                      onToggleExpand={toggleExpand}
+                      onFormatTime={formatTime}
+                    />
+                  </div>
+                );
+              }}
+            />
           )}
         </div>
       </main>

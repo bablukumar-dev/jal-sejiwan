@@ -43,6 +43,18 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
       <head>
         <link rel="icon" href="/favicon.ico" />
         <meta name="keywords" content="Water Delivery Management Software India, 20 litre water jar software, Water distribution app, Water supply business app" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "JalSejiwan",
+              "url": "https://jalsejiwan.in",
+              "logo": "https://jalsejiwan.in/logo.png"
+            }),
+          }}
+        />
       </head>
       <body suppressHydrationWarning className="antialiased">
         <AppProvider>
