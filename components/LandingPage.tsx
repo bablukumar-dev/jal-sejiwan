@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Droplet, Truck, Package, Bell, FileText, Users, CheckCircle, Calculator, Coins, Clock, TrendingUp, Sparkles } from 'lucide-react';
 
 export default function LandingPage() {
@@ -32,7 +33,7 @@ export default function LandingPage() {
       <header className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-slate-200 z-50">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-[10px]">
-            <img src="/logo.png" alt="JalSejiwan - Water Delivery Management Software India Logo" className="h-10 w-10 object-contain flex-shrink-0" referrerPolicy="no-referrer" />
+            <Image src="/logo.png" alt="JalSejiwan Logo" width={40} height={40} className="object-contain flex-shrink-0" referrerPolicy="no-referrer" />
             <span className="text-xl font-bold text-blue-700">JalSejiwan</span>
           </div>
           <div className="flex items-center gap-3">

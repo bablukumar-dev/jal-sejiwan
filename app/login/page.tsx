@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Droplet, Store, Truck, Package, Mail, Lock, User, Phone } from 'lucide-react';
 import { auth, db } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification, signOut, browserPopupRedirectResolver, updateProfile } from 'firebase/auth';
@@ -457,7 +458,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center border border-slate-100">
-        <img src="/logo.png" alt="JalSejiwan - Premium Water Delivery Management Software India Logo" className="h-[60px] w-[60px] object-contain mb-5" referrerPolicy="no-referrer" />
+        <Image src="/logo.png" alt="JalSejiwan Logo" width={60} height={60} className="object-contain mb-5" referrerPolicy="no-referrer" />
         <h1 className="text-3xl font-bold text-blue-700 mb-1">JalSejiwan</h1>
         <p className="text-slate-500 mb-8 text-center">Smart Water Management</p>
 

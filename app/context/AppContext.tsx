@@ -175,6 +175,10 @@ const safeGet = (key: string): string | null => {
   }
 };
 
+// Lightweight caching layer for Firestore workspace queries to prevent redundant snapshot listeners
+let activeUnsubscribe: (() => void) | null = null;
+let activeWorkspaceId: string | null = null;
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [deliveries, setDeliveries] = useState<Delivery[]>(initialDeliveries);
@@ -191,6 +195,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const lastRemoteData = useRef<string | null>(null);
   const snapshotReceivedRef = useRef(false);
   const isSaving = useRef(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Poll localStorage for businessId changes to detect logins/logouts dynamically
   useEffect(() => {
@@ -290,11 +295,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadCache();
   }, []);
 
-  // Set up Firebase onSnapshot listener when ownerId is active
+  // Set up Firebase onSnapshot listener when ownerId is active with lightweight caching layer
   useEffect(() => {
     if (!ownerId) {
       snapshotReceivedRef.current = false;
+      if (activeUnsubscribe) {
+        activeUnsubscribe();
+        activeUnsubscribe = null;
+        activeWorkspaceId = null;
+      }
       return;
+    }
+
+    // Caching layer: Avoid setting up redundant snapshot listeners if already alive for this workspace
+    if (ownerId === activeWorkspaceId && activeUnsubscribe) {
+      snapshotReceivedRef.current = true;
+      return;
+    }
+
+    // If we have an active listener for a different workspace, clean it up first
+    if (activeUnsubscribe) {
+      activeUnsubscribe();
+      activeUnsubscribe = null;
     }
 
     snapshotReceivedRef.current = false;
@@ -372,8 +394,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.error("Firestore real-time sync error:", error);
     });
 
+    activeUnsubscribe = unsubscribe;
+    activeWorkspaceId = ownerId;
+
     return () => {
-      unsubscribe();
+      // Keep listener cached across re-renders/quick remounts
     };
   }, [ownerId]);
 
@@ -411,7 +436,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const currentOwnerId = ownerId;
 
-    const saveToFirestore = async () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(async () => {
       if (!currentOwnerId || isSaving.current) return;
       isSaving.current = true;
       try {
@@ -431,9 +460,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } finally {
         isSaving.current = false;
       }
-    };
+    }, 1500);
 
-    saveToFirestore();
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isInitialized, ownerId]);
 
 

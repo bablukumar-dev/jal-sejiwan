@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import PullToRefresh from '@/components/PullToRefresh';
@@ -13,8 +13,29 @@ import { wrapRoute } from '@/lib/permissionGuard';
 function CustomersList() {
   const { customers, deliveries = [], businessInfo } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
   const [filter, setFilter] = useState('All');
   const [isReminding, setIsReminding] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('customerSearchHistory');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+    return [];
+  });
   const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('userRole');
@@ -22,6 +43,17 @@ function CustomersList() {
     }
     return 'owner';
   });
+
+  const saveSearch = (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setSearchHistory(prev => {
+      const filtered = prev.filter(item => item !== trimmed);
+      const updated = [trimmed, ...filtered].slice(0, 3);
+      localStorage.setItem('customerSearchHistory', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const handleBulkReminder = async () => {
     if (!confirm('Send Bulk WhatsApp reminder to all due customers?')) return;
@@ -51,28 +83,30 @@ function CustomersList() {
     window.location.reload();
   };
 
-  const filteredCustomers = customers.filter(c => {
+  const filteredCustomers = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    const latestDelivery = deliveries.find(d => d.customerId === c.id && d.date === today);
-    const isDelivered = latestDelivery?.status?.toLowerCase() === 'delivered';
+    return customers.filter(c => {
+      const latestDelivery = deliveries.find(d => d.customerId === c.id && d.date === today);
+      const isDelivered = latestDelivery?.status?.toLowerCase() === 'delivered';
 
-    if (filter === 'Pending' && isDelivered) return false;
-    if (filter === 'Done' && !isDelivered) return false;
+      if (filter === 'Pending' && isDelivered) return false;
+      if (filter === 'Done' && !isDelivered) return false;
 
-    if (filter === 'Dues Only' && c.due === 0) return false;
-    if (filter === 'Pending Empties' && c.emptyBalance === 0) return false;
-    
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchName = c.name?.toLowerCase().includes(query);
-      const matchPhone = c.phone?.includes(searchQuery);
-      const matchArea = c.area?.toLowerCase().includes(query);
-      const matchRoute = c.route?.toLowerCase().includes(query);
-      if (!matchName && !matchPhone && !matchArea && !matchRoute) return false;
-    }
-    
-    return true;
-  });
+      if (filter === 'Dues Only' && c.due === 0) return false;
+      if (filter === 'Pending Empties' && c.emptyBalance === 0) return false;
+      
+      if (debouncedSearchQuery) {
+        const query = debouncedSearchQuery.toLowerCase();
+        const matchName = c.name?.toLowerCase().includes(query);
+        const matchPhone = c.phone?.trim() && c.phone.includes(debouncedSearchQuery);
+        const matchArea = c.area?.toLowerCase().includes(query);
+        const matchRoute = c.route?.toLowerCase().includes(query);
+        if (!matchName && !matchPhone && !matchArea && !matchRoute) return false;
+      }
+      
+      return true;
+    });
+  }, [customers, deliveries, filter, debouncedSearchQuery]);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
@@ -81,7 +115,38 @@ function CustomersList() {
       <PullToRefresh onRefresh={handleRefresh}>
         <main className="max-w-md mx-auto px-4 py-6">
           {/* Search Bar */}
-        <form onSubmit={(e) => { e.preventDefault(); }} className="mb-6">
+        <form onSubmit={(e) => { e.preventDefault(); saveSearch(searchQuery); setDebouncedSearchQuery(searchQuery); }} className="mb-6">
+          {/* Quick Access Search History Component */}
+          {searchHistory.length > 0 && (
+            <div className="flex items-center gap-2 mb-3 flex-wrap text-xs font-sans">
+              <span className="text-slate-500 font-bold">Recent:</span>
+              {searchHistory.map((h, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery(h);
+                    setDebouncedSearchQuery(h);
+                  }}
+                  className="px-3 py-1 bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 rounded-full font-bold shadow-sm transition-all cursor-pointer active:scale-95 hover:border-slate-300"
+                >
+                  {h}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchHistory([]);
+                  localStorage.removeItem('customerSearchHistory');
+                }}
+                className="text-red-500 hover:text-red-700 font-bold ml-auto px-2 py-1"
+                aria-label="Clear search history"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+
           <div className="relative flex items-center">
             <Search className="absolute left-4 text-slate-400 w-5 h-5 pointer-events-none" />
             <input 
@@ -90,6 +155,12 @@ function CustomersList() {
               className="w-full pl-12 pr-12 py-4 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-blue-600 text-slate-900 placeholder:text-slate-500 font-medium font-sans"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onBlur={() => saveSearch(searchQuery)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  saveSearch(searchQuery);
+                }
+              }}
             />
             {searchQuery && (
               <button 

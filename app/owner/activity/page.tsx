@@ -3,7 +3,7 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { useAppContext } from '@/app/context/AppContext';
@@ -482,138 +482,15 @@ export default function ActivityLogDashboard() {
                   <div className="flex-1 h-[1.5px] bg-slate-100" />
                 </div>
 
-                {group.logs.map((log) => {
-                  // Icon selector
-                  let icon = <Activity className="w-4.5 h-4.5" />;
-                  let themeColor = 'bg-slate-100 text-slate-600 border-slate-200';
-                  
-                  if (log.action_type === 'delivery_completed') {
-                    icon = <Truck className="w-4.5 h-4.5" />;
-                    themeColor = 'bg-blue-100 text-blue-700 border-blue-200';
-                  } else if (log.action_type === 'payment_collected') {
-                    icon = <Coins className="w-4.5 h-4.5" />;
-                    themeColor = 'bg-emerald-100 text-emerald-700 border-emerald-200';
-                  } else if (log.action_type === 'staff_created') {
-                    icon = <UserPlus className="w-4.5 h-4.5" />;
-                    themeColor = 'bg-purple-100 text-purple-700 border-purple-200';
-                  }
-
-                  return (
-                    <div 
-                      key={log.log_id} 
-                      className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden flex gap-4 transition-all hover:border-slate-200 animate-in fade-in slide-in-from-bottom-2 duration-300"
-                    >
-                      {/* Visual Left Accent strip */}
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${themeColor}`}>
-                        {icon}
-                      </div>
-
-                      {/* Body Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
-                          {/* Name of performer */}
-                          <span className="font-bold text-slate-900 text-sm truncate">{log.user_name}</span>
-                          
-                          {/* Performer role tag */}
-                          <span className={`px-2 py-0.5 rounded text-[8px] font-sans font-bold uppercase tracking-wider ${
-                            log.user_role === 'owner' 
-                              ? 'bg-blue-100 text-blue-700' 
-                              : log.user_role === 'manager' 
-                                ? 'bg-purple-100 text-purple-700' 
-                                : 'bg-amber-100 text-amber-700'
-                          }`}>
-                            {log.user_role}
-                          </span>
-                        </div>
-
-                        {/* Description Text */}
-                        <p className="text-slate-700 text-sm leading-relaxed mb-2 break-words">
-                          {log.description}
-                        </p>
-
-                        {/* Metadata chips or expansion if present */}
-                        {log.metadata && Object.keys(log.metadata).length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mb-2.5">
-                            {log.metadata.delivered_qty !== undefined && (
-                              <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-slate-200">
-                                 Delivered: {log.metadata.delivered_qty} Cans
-                              </span>
-                            )}
-                            {log.metadata.returned_empty_qty !== undefined && (
-                              <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-slate-200">
-                                 Returned: {log.metadata.returned_empty_qty} Empties
-                              </span>
-                            )}
-                            {log.metadata.payment_mode !== undefined && (
-                              <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-emerald-200">
-                                Mode: {log.metadata.payment_mode}
-                              </span>
-                            )}
-                            {log.metadata.route && (
-                              <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-blue-200">
-                                Route: {log.metadata.route}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Timestamp & Expand trigger */}
-                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-50">
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{formatTime(log.timestamp)}</span>
-                          </div>
-                          
-                          <button 
-                            onClick={() => toggleExpand(log.log_id)}
-                            className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-bold uppercase tracking-wider transition-colors"
-                          >
-                            {expandedLogs[log.log_id] ? (
-                              <>
-                                Hide Params <ChevronUp className="w-3.5 h-3.5" />
-                              </>
-                            ) : (
-                              <>
-                                Expand Raw <ChevronDown className="w-3.5 h-3.5" />
-                              </>
-                            )}
-                          </button>
-                        </div>
-
-                        {/* Raw Metadata panel */}
-                        {expandedLogs[log.log_id] && (
-                          <div className="mt-3 bg-slate-50 rounded-2xl p-3.5 border border-slate-100 font-mono text-[11px] text-slate-600 space-y-1.5">
-                            <div className="font-bold text-slate-400 text-[9px] uppercase tracking-wider mb-1 border-b border-slate-200/60 pb-1">Raw Database Fields</div>
-                            <div className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5">
-                              <span className="text-slate-400">log_id:</span>
-                              <span className="text-slate-800 text-right font-semibold break-all">{log.log_id}</span>
-                            </div>
-                            <div className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5">
-                              <span className="text-slate-400">action_type:</span>
-                              <span className="text-slate-800 text-right font-semibold break-all">{log.action_type || 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5">
-                              <span className="text-slate-400">user_id:</span>
-                              <span className="text-slate-800 text-right font-semibold break-all">{log.user_id || 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5">
-                              <span className="text-slate-400">businessId:</span>
-                              <span className="text-slate-800 text-right font-semibold break-all">{log.businessId || 'N/A'}</span>
-                            </div>
-                            {log.metadata && Object.keys(log.metadata).map((key) => (
-                              <div key={key} className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5 last:border-0 last:pb-0">
-                                <span className="text-slate-400">meta.{key}:</span>
-                                <span className="text-slate-800 text-right font-semibold break-all">
-                                  {typeof log.metadata[key] === 'object' ? JSON.stringify(log.metadata[key]) : String(log.metadata[key])}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                {group.logs.map((log) => (
+                  <MemoizedLogEntry
+                    key={log.log_id}
+                    log={log}
+                    isExpanded={!!expandedLogs[log.log_id]}
+                    onToggleExpand={toggleExpand}
+                    onFormatTime={formatTime}
+                  />
+                ))}
               </div>
             ))
           )}
@@ -624,3 +501,144 @@ export default function ActivityLogDashboard() {
     </div>
   );
 }
+
+interface MemoizedLogEntryProps {
+  log: ActivityLog;
+  isExpanded: boolean;
+  onToggleExpand: (logId: string) => void;
+  onFormatTime: (isoString: any) => string;
+}
+
+const MemoizedLogEntry = memo(function MemoizedLogEntry({
+  log,
+  isExpanded,
+  onToggleExpand,
+  onFormatTime,
+}: MemoizedLogEntryProps) {
+  let icon = <Activity className="w-4.5 h-4.5" />;
+  let themeColor = 'bg-slate-100 text-slate-600 border-slate-200';
+  
+  if (log.action_type === 'delivery_completed') {
+    icon = <Truck className="w-4.5 h-4.5" />;
+    themeColor = 'bg-blue-100 text-blue-700 border-blue-200';
+  } else if (log.action_type === 'payment_collected') {
+    icon = <Coins className="w-4.5 h-4.5" />;
+    themeColor = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+  } else if (log.action_type === 'staff_created') {
+    icon = <UserPlus className="w-4.5 h-4.5" />;
+    themeColor = 'bg-purple-100 text-purple-700 border-purple-200';
+  }
+
+  return (
+    <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden flex gap-4 transition-all hover:border-slate-200 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      {/* Visual Left Accent strip */}
+      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${themeColor}`}>
+        {icon}
+      </div>
+
+      {/* Body Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+          {/* Name of performer */}
+          <span className="font-bold text-slate-900 text-sm truncate">{log.user_name}</span>
+          
+          {/* Performer role tag */}
+          <span className={`px-2 py-0.5 rounded text-[8px] font-sans font-bold uppercase tracking-wider ${
+            log.user_role === 'owner' 
+              ? 'bg-blue-100 text-blue-700' 
+              : log.user_role === 'manager' 
+                ? 'bg-purple-100 text-purple-700' 
+                : 'bg-amber-100 text-amber-700'
+          }`}>
+            {log.user_role}
+          </span>
+        </div>
+
+        {/* Description Text */}
+        <p className="text-slate-700 text-sm leading-relaxed mb-2 break-words">
+          {log.description}
+        </p>
+
+        {/* Metadata chips or expansion if present */}
+        {log.metadata && Object.keys(log.metadata).length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2.5">
+            {log.metadata.delivered_qty !== undefined && (
+              <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-slate-200">
+                 Delivered: {log.metadata.delivered_qty} Cans
+              </span>
+            )}
+            {log.metadata.returned_empty_qty !== undefined && (
+              <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-slate-200">
+                 Returned: {log.metadata.returned_empty_qty} Empties
+              </span>
+            )}
+            {log.metadata.payment_mode !== undefined && (
+              <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-emerald-200">
+                Mode: {log.metadata.payment_mode}
+              </span>
+            )}
+            {log.metadata.route && (
+              <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-blue-200">
+                Route: {log.metadata.route}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Timestamp & Expand trigger */}
+        <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-50">
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+            <span>{onFormatTime(log.timestamp)}</span>
+          </div>
+          
+          <button 
+            onClick={() => onToggleExpand(log.log_id)}
+            className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-bold uppercase tracking-wider transition-colors"
+          >
+            {isExpanded ? (
+              <>
+                Hide Params <ChevronUp className="w-3.5 h-3.5" />
+              </>
+            ) : (
+              <>
+                Expand Raw <ChevronDown className="w-3.5 h-3.5" />
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Raw Metadata panel */}
+        {isExpanded && (
+          <div className="mt-3 bg-slate-50 rounded-2xl p-3.5 border border-slate-100 font-mono text-[11px] text-slate-600 space-y-1.5">
+            <div className="font-bold text-slate-400 text-[9px] uppercase tracking-wider mb-1 border-b border-slate-200/60 pb-1">Raw Database Fields</div>
+            <div className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5">
+              <span className="text-slate-400">log_id:</span>
+              <span className="text-slate-800 text-right font-semibold break-all">{log.log_id}</span>
+            </div>
+            <div className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5">
+              <span className="text-slate-400">action_type:</span>
+              <span className="text-slate-800 text-right font-semibold break-all">{log.action_type || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5">
+              <span className="text-slate-400">user_id:</span>
+              <span className="text-slate-800 text-right font-semibold break-all">{log.user_id || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5">
+              <span className="text-slate-400">businessId:</span>
+              <span className="text-slate-800 text-right font-semibold break-all">{log.businessId || 'N/A'}</span>
+            </div>
+            {log.metadata && Object.keys(log.metadata).map((key) => (
+              <div key={key} className="flex justify-between gap-2 border-b border-slate-100/50 pb-0.5 last:border-0 last:pb-0">
+                <span className="text-slate-400">meta.{key}:</span>
+                <span className="text-slate-800 text-right font-semibold break-all">
+                  {typeof log.metadata[key] === 'object' ? JSON.stringify(log.metadata[key]) : String(log.metadata[key])}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});

@@ -5,13 +5,34 @@ import BottomNav from '@/components/BottomNav';
 import PullToRefresh from '@/components/PullToRefresh';
 import { Search, Calendar, Download, Plus, Wallet, QrCode, SlidersHorizontal, X } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import { wrapRoute } from '@/lib/permissionGuard';
 
 function PaymentsList() {
   const { payments, customers, businessInfo } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+  const [searchHistory, setSearchHistory] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('paymentsSearchHistory');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+    return [];
+  });
   const [userRole, setUserRole] = useState<'owner' | 'manager' | 'staff'>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('userRole');
@@ -26,68 +47,93 @@ function PaymentsList() {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
 
+  const saveSearch = (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setSearchHistory(prev => {
+      const filtered = prev.filter(item => item !== trimmed);
+      const updated = [trimmed, ...filtered].slice(0, 3);
+      localStorage.setItem('paymentsSearchHistory', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const today = new Date().toISOString().split('T')[0];
   const yz = new Date();
   yz.setDate(yz.getDate() - 1);
   const yesterday = yz.toISOString().split('T')[0];
+
+  // Helper date variables for presets
+  const sevenDaysAgoDate = new Date();
+  sevenDaysAgoDate.setDate(sevenDaysAgoDate.getDate() - 6);
+  const sevenDaysAgo = sevenDaysAgoDate.toISOString().split('T')[0];
+
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
 
   const handleRefresh = async () => {
     await new Promise(resolve => setTimeout(resolve, 800));
     window.location.reload();
   };
 
-  const filteredPayments = payments.filter(p => {
-    const customer = customers.find(c => c.id === p.customerId);
-    
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchMode = p.mode?.toLowerCase().includes(query);
-      const matchAmount = p.amount?.toString().includes(query);
+  const filteredPayments = useMemo(() => {
+    return payments.filter(p => {
+      const customer = customers.find(c => c.id === p.customerId);
       
-      let matchCustomer = false;
-      if (customer) {
-        const matchName = customer.name?.toLowerCase().includes(query);
-        const matchPhone = customer.phone?.toLowerCase().includes(query);
-        const matchArea = customer.area?.toLowerCase().includes(query);
-        const matchRoute = customer.route?.toLowerCase().includes(query);
-        matchCustomer = !!(matchName || matchPhone || matchArea || matchRoute);
+      if (debouncedSearchQuery) {
+        const query = debouncedSearchQuery.toLowerCase();
+        const matchMode = p.mode?.toLowerCase().includes(query);
+        const matchAmount = p.amount?.toString().includes(query);
+        
+        let matchCustomer = false;
+        if (customer) {
+          const matchName = customer.name?.toLowerCase().includes(query);
+          const matchPhone = customer.phone?.toLowerCase().includes(query);
+          const matchArea = customer.area?.toLowerCase().includes(query);
+          const matchRoute = customer.route?.toLowerCase().includes(query);
+          matchCustomer = !!(matchName || matchPhone || matchArea || matchRoute);
+        }
+        
+        if (!matchMode && !matchAmount && !matchCustomer) return false;
       }
       
-      if (!matchMode && !matchAmount && !matchCustomer) return false;
-    }
-    
-    if (filter === 'Today' && p.date !== today) return false;
-    if (filter === 'Yesterday' && p.date !== yesterday) return false;
-    if (filter === 'Cash Only' && p.mode !== 'Cash') return false;
-    if (filter === 'UPI Only' && p.mode !== 'UPI') return false;
-    if (filter === 'Custom Range') {
-      if (startDate && p.date < startDate) return false;
-      if (endDate && p.date > endDate) return false;
-    }
-    
-    return true;
-  });
+      if (filter === 'Today' && p.date !== today) return false;
+      if (filter === 'Yesterday' && p.date !== yesterday) return false;
+      if (filter === 'Last 7 Days' && (p.date < sevenDaysAgo || p.date > today)) return false;
+      if (filter === 'This Month' && (p.date < startOfMonth || p.date > today)) return false;
+      if (filter === 'Cash Only' && p.mode !== 'Cash') return false;
+      if (filter === 'UPI Only' && p.mode !== 'UPI') return false;
+      if (filter === 'Custom Range') {
+        if (startDate && p.date < startDate) return false;
+        if (endDate && p.date > endDate) return false;
+      }
+      
+      return true;
+    });
+  }, [payments, customers, debouncedSearchQuery, filter, today, yesterday, sevenDaysAgo, startOfMonth, startDate, endDate]);
 
-  const sortedPayments = [...filteredPayments].sort((a, b) => {
-    if (sortBy === 'newest') {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    }
-    if (sortBy === 'oldest') {
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
-    }
-    if (sortBy === 'amt-high') {
-      return b.amount - a.amount;
-    }
-    if (sortBy === 'amt-low') {
-      return a.amount - b.amount;
-    }
-    return 0;
-  });
+  const sortedPayments = useMemo(() => {
+    return [...filteredPayments].sort((a, b) => {
+      if (sortBy === 'newest') {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      }
+      if (sortBy === 'oldest') {
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      }
+      if (sortBy === 'amt-high') {
+        return b.amount - a.amount;
+      }
+      if (sortBy === 'amt-low') {
+        return a.amount - b.amount;
+      }
+      return 0;
+    });
+  }, [filteredPayments, sortBy]);
 
-  const totalCollected = filteredPayments.reduce((sum, p) => sum + p.amount, 0);
-  const upiCount = filteredPayments.filter(p => p.mode === 'UPI').length;
-  const cashInHand = filteredPayments.filter(p => p.mode === 'Cash').reduce((sum, p) => sum + p.amount, 0);
-  const pendingDues = customers.reduce((sum, c) => sum + c.due, 0);
+  const totalCollected = useMemo(() => filteredPayments.reduce((sum, p) => sum + p.amount, 0), [filteredPayments]);
+  const upiCount = useMemo(() => filteredPayments.filter(p => p.mode === 'UPI').length, [filteredPayments]);
+  const cashInHand = useMemo(() => filteredPayments.filter(p => p.mode === 'Cash').reduce((sum, p) => sum + p.amount, 0), [filteredPayments]);
+  const pendingDues = useMemo(() => customers.reduce((sum, c) => sum + c.due, 0), [customers]);
 
   const handleExportCSV = () => {
     if (sortedPayments.length === 0) {
@@ -119,7 +165,38 @@ function PaymentsList() {
       <PullToRefresh onRefresh={handleRefresh}>
         <main className="max-w-md mx-auto px-4 py-6">
           {/* Search Bar */}
-        <form onSubmit={(e) => { e.preventDefault(); }} className="mb-6">
+        <form onSubmit={(e) => { e.preventDefault(); saveSearch(searchQuery); setDebouncedSearchQuery(searchQuery); }} className="mb-6">
+          {/* Quick Access Search History Component */}
+          {searchHistory.length > 0 && (
+            <div className="flex items-center gap-2 mb-3 flex-wrap text-xs font-sans">
+              <span className="text-slate-500 font-bold">Recent:</span>
+              {searchHistory.map((h, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery(h);
+                    setDebouncedSearchQuery(h);
+                  }}
+                  className="px-3 py-1 bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 rounded-full font-bold shadow-sm transition-all cursor-pointer active:scale-95 hover:border-slate-300"
+                >
+                  {h}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchHistory([]);
+                  localStorage.removeItem('paymentsSearchHistory');
+                }}
+                className="text-red-500 hover:text-red-700 font-bold ml-auto px-2 py-1"
+                aria-label="Clear search history"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+
           <div className="relative flex items-center">
             <Search className="absolute left-4 text-slate-400 w-5 h-5 pointer-events-none" />
             <input 
@@ -128,6 +205,12 @@ function PaymentsList() {
               className="w-full pl-12 pr-12 py-4 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 text-slate-900 placeholder:text-slate-500 font-medium"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onBlur={() => saveSearch(searchQuery)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  saveSearch(searchQuery);
+                }
+              }}
             />
             {searchQuery && (
               <button 
@@ -150,12 +233,16 @@ function PaymentsList() {
               setShowCustomDateRange(!showCustomDateRange);
               setShowFilterPanel(false);
             }}
-            className={`flex-1 font-sans font-bold py-3 text-sm rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all ${showCustomDateRange || filter === 'Custom Range' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
+            className={`flex-1 font-sans font-bold py-3 text-sm rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all ${showCustomDateRange || filter === 'Custom Range' || filter === 'Last 7 Days' || filter === 'This Month' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
           >
             <Calendar className="w-5 h-5" />
             <span className="text-sm uppercase tracking-wider text-ellipsis overflow-hidden whitespace-nowrap max-w-[200px]">
               {filter === 'Custom Range' && startDate && endDate 
                 ? `${startDate} to ${endDate}` 
+                : filter === 'Last 7 Days'
+                ? 'Last 7 Days'
+                : filter === 'This Month'
+                ? 'This Month'
                 : 'Date Range'}
             </span>
           </button>
@@ -176,6 +263,33 @@ function PaymentsList() {
           <div className="overflow-hidden mb-6 transition-all duration-300 animate-in fade-in slide-in-from-top-4 font-sans">
             <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
               <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Custom Date Range</div>
+              
+              {/* Presets in Date Range Picker */}
+              <div className="grid grid-cols-2 gap-2 mb-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStartDate(sevenDaysAgo);
+                    setEndDate(today);
+                    setFilter('Last 7 Days');
+                  }}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold border transition-colors text-center ${filter === 'Last 7 Days' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-100'}`}
+                >
+                  Last 7 Days
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStartDate(startOfMonth);
+                    setEndDate(today);
+                    setFilter('This Month');
+                  }}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold border transition-colors text-center ${filter === 'This Month' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-100'}`}
+                >
+                  This Month
+                </button>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase">From</label>
@@ -266,12 +380,18 @@ function PaymentsList() {
 
         {/* Quick Filters */}
         <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-2 font-sans">
-          {['Today', 'Yesterday', 'Cash Only', 'UPI Only', 'All', ...(filter === 'Custom Range' ? ['Custom Range'] : [])].map(f => (
+          {['Today', 'Yesterday', 'Last 7 Days', 'This Month', 'Cash Only', 'UPI Only', 'All', ...(filter === 'Custom Range' ? ['Custom Range'] : [])].map(f => (
             <button 
               key={f}
               onClick={() => {
                 setFilter(f);
-                if (f !== 'Custom Range') {
+                if (f === 'Last 7 Days') {
+                  setStartDate(sevenDaysAgo);
+                  setEndDate(today);
+                } else if (f === 'This Month') {
+                  setStartDate(startOfMonth);
+                  setEndDate(today);
+                } else if (f !== 'Custom Range') {
                   setStartDate('');
                   setEndDate('');
                 }

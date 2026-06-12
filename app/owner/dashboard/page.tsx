@@ -5,7 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import { Truck, Wallet, Droplet, Package, AlertTriangle, UserPlus, FileText, Users, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { wrapRoute } from '@/lib/permissionGuard';
 import OnboardingOverlay from '@/components/OnboardingOverlay';
 import OnlineStatusBadge from '@/components/OnlineStatusBadge';
@@ -29,7 +29,7 @@ function OwnerDashboard() {
     }
   });
 
-  const pendingCustomers = customers.filter(c => c.due > 0).length;
+  const pendingCustomers = useMemo(() => customers.filter(c => c.due > 0).length, [customers]);
 
   useEffect(() => {
     const role = safeGet('userRole');
@@ -107,18 +107,18 @@ function OwnerDashboard() {
     }
   };
 
-  const today = new Date().toISOString().split('T')[0];
-  const todaysDeliveries = deliveries.filter(d => d.date === today);
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todaysDeliveries = useMemo(() => deliveries.filter(d => d.date === today), [deliveries, today]);
   const todayDeliveriesCount = todaysDeliveries.length;
-  const pendingDeliveriesCount = todaysDeliveries.filter(d => d.status === 'Pending').length;
-  const cansDelivered = todaysDeliveries.reduce((sum, d) => sum + d.deliveredQty, 0);
-  const emptyReturned = todaysDeliveries.reduce((sum, d) => sum + d.returnedEmpty, 0);
+  const pendingDeliveriesCount = useMemo(() => todaysDeliveries.filter(d => d.status === 'Pending').length, [todaysDeliveries]);
+  const cansDelivered = useMemo(() => todaysDeliveries.reduce((sum, d) => sum + d.deliveredQty, 0), [todaysDeliveries]);
+  const emptyReturned = useMemo(() => todaysDeliveries.reduce((sum, d) => sum + d.returnedEmpty, 0), [todaysDeliveries]);
   
-  const cashCollected = payments.filter(p => p.date === today).reduce((sum, p) => sum + p.amount, 0);
-  const totalDue = customers.reduce((sum, c) => sum + c.due, 0);
+  const cashCollected = useMemo(() => payments.filter(p => p.date === today).reduce((sum, p) => sum + p.amount, 0), [payments, today]);
+  const totalDue = useMemo(() => customers.reduce((sum, c) => sum + c.due, 0), [customers]);
 
-  const targetDeliveries = customers.length > 0 ? customers.length : 0;
-  const deliveryPercentage = targetDeliveries > 0 ? Math.round((todayDeliveriesCount / targetDeliveries) * 100) : (todayDeliveriesCount > 0 ? 100 : 0);
+  const targetDeliveries = customers.length;
+  const deliveryPercentage = useMemo(() => targetDeliveries > 0 ? Math.round((todayDeliveriesCount / targetDeliveries) * 100) : (todayDeliveriesCount > 0 ? 100 : 0), [todayDeliveriesCount, targetDeliveries]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-24">
