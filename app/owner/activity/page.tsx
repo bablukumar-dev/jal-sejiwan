@@ -23,7 +23,8 @@ import {
   Database,
   Calendar,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  Download
 } from 'lucide-react';
 import { ActivityLog } from '@/lib/activityLogger';
 import { GroupedVirtuoso } from 'react-virtuoso';
@@ -316,18 +317,36 @@ export default function ActivityLogDashboard() {
             </span>
           </div>
 
-          <button 
-            onClick={() => {
-              setIsLive(false);
-              setIsLoading(true);
-              // Safely manual re-attach trigger + fallback window reload
-              setRefreshKey(prev => prev + 1);
-            }}
-            className="text-slate-400 hover:text-blue-700 p-1 bg-white hover:bg-blue-50 border border-slate-200 rounded-xl transition-all"
-            title="Refresh feeds"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => {
+                const csvHeaders = "Timestamp,User Name,User Role,Action Type,Description\n";
+                const csvRows = flattenedLogs.map(log => `"${formatTime(log.timestamp)}","${log.user_name}","${log.user_role}","${log.action_type}","${log.description.replace(/"/g, '""')}"`).join("\n");
+                const blob = new Blob([csvHeaders + csvRows], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.setAttribute('href', url);
+                a.setAttribute('download', 'activity_logs.csv');
+                a.click();
+              }}
+              className="text-slate-400 hover:text-emerald-700 p-1 bg-white hover:bg-emerald-50 border border-slate-200 rounded-xl transition-all"
+              title="Export CSV"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
+            <button 
+              onClick={() => {
+                setIsLive(false);
+                setIsLoading(true);
+                // Safely manual re-attach trigger + fallback window reload
+                setRefreshKey(prev => prev + 1);
+              }}
+              className="text-slate-400 hover:text-blue-700 p-1 bg-white hover:bg-blue-50 border border-slate-200 rounded-xl transition-all"
+              title="Refresh feeds"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
 
         {/* Dynamic KPI Stats Row */}

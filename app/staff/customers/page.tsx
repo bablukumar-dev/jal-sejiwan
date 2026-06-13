@@ -301,9 +301,13 @@ export default function StaffCustomers() {
                       <button onClick={(e) => handleSkipDelivery(customer.id, e)} className="w-20 bg-orange-100 text-orange-700 font-bold rounded-xl flex items-center justify-center text-xs active:scale-95 transition-transform flex-col gap-0.5 border border-orange-200">
                         <XCircle className="w-4 h-4" /> Skip
                       </button>
-                      <button onClick={(e) => handleRecordDelivery(customer.id, e)} className={`flex-1 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform ${isFirstPending ? 'bg-blue-700 text-white shadow-md shadow-blue-600/20' : 'bg-slate-900 text-white'}`}>
+                      <motion.button 
+                        whileHover={{ scale: 1.02 }} 
+                        whileTap={{ scale: 0.95 }} 
+                        onClick={(e) => handleRecordDelivery(customer.id, e)} 
+                        className={`flex-1 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-transform ${isFirstPending ? 'bg-blue-700 text-white shadow-md shadow-blue-600/20' : 'bg-slate-900 text-white'}`}>
                         <Plus className="w-5 h-5" /> Record Drop
-                      </button>
+                      </motion.button>
                     </>
                   ) : (
                     <div className="flex-1 bg-slate-100 text-slate-500 font-bold py-3 rounded-xl flex flex-col items-center justify-center text-sm leading-tight border border-slate-200">

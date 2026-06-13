@@ -1,6 +1,7 @@
 'use client';
 
 import TopAppBar from '@/components/TopAppBar';
+import { motion } from 'motion/react';
 import { MapPin, Phone, Droplet, Package, Plus, Minus, CheckCircle2, AlertTriangle, WifiOff, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -524,12 +525,14 @@ export default function DeliveryEntry() {
               <div className="font-bold text-blue-800">{delivered} Jars / {empties} Empties</div>
             </div>
           </div>
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.01 }} 
+            whileTap={{ scale: 0.98 }}
             onClick={handleConfirm}
-            className={`w-full text-white font-bold py-4 rounded-xl text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform ${otpSent ? 'bg-emerald-600' : 'bg-blue-700'}`}
+            className={`w-full text-white font-bold py-4 rounded-xl text-lg flex items-center justify-center gap-2 transition-transform ${otpSent ? 'bg-emerald-600' : 'bg-blue-700'}`}
           >
             {otpSent ? 'VERIFY OTP & DELIVER' : 'SEND OTP'} <CheckCircle2 className="w-6 h-6" />
-          </button>
+          </motion.button>
         </div>
       </div>
     </div>

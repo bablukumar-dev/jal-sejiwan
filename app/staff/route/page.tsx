@@ -254,9 +254,13 @@ export default function MyRoute() {
                             <button onClick={(e) => handleSkipDelivery(customer.id, e)} className="w-20 bg-orange-100 text-orange-700 font-bold rounded-xl flex items-center justify-center text-xs active:scale-95 transition-transform flex-col gap-0.5">
                               <XCircle className="w-4 h-4" /> Skip
                             </button>
-                            <button onClick={(e) => handleRecordDelivery(customer.id, e)} className={`flex-1 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform ${isFirstPending ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                            <motion.button 
+                              whileHover={{ scale: 1.02 }} 
+                              whileTap={{ scale: 0.95 }} 
+                              onClick={(e) => handleRecordDelivery(customer.id, e)} 
+                              className={`flex-1 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-transform ${isFirstPending ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
                               <Plus className="w-5 h-5" /> Record
-                            </button>
+                            </motion.button>
                           </>
                         ) : (
                           <div className="flex-1 bg-slate-100 text-slate-500 font-bold py-3 rounded-xl flex flex-col items-center justify-center text-sm leading-tight">
