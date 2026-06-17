@@ -1,6 +1,6 @@
 {
   "name": "JalSejiwan",
   "description": "Smart Water Management App",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -229,7 +229,7 @@ export default function SettingsPage() {
             </div>
             <label className="absolute bottom-0 right-0 bg-blue-600 outline outline-4 outline-white text-white p-2.5 rounded-full shadow-lg cursor-pointer active:scale-95 transition-transform hover:bg-blue-700">
               <Camera className="w-4 h-4" />
-              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} />
             </label>
           </div>
           <div className="mt-4 flex items-center gap-2">

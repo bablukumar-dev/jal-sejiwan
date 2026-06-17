@@ -196,6 +196,35 @@ function Reports() {
             </div>
           )}
 
+          {(userRole === 'owner' || userRole === 'manager') && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+              <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
+                <FileText className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-lg mb-1">Consolidated Monthly Report</h3>
+              <p className="text-sm text-slate-500 mb-4">A high-level summary of all monthly sales, deliveries, and collections for a complete operational overview.</p>
+              <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PDF • Generated</span>
+                <button 
+                  onClick={async () => {
+                     try {
+                       const { generateConsolidatedMonthlyReportPDF } = await import('@/lib/pdfGenerator');
+                       const { doc } = generateConsolidatedMonthlyReportPDF(customers, deliveries, payments, businessInfo);
+                       doc.save(`Consolidated_Report_${new Date().toLocaleDateString('en-GB')}.pdf`);
+                       alert('PDF Generated Successfully');
+                     } catch (e) {
+                       console.error(e);
+                       alert('Failed to generate PDF');
+                     }
+                  }} 
+                  className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 active:scale-95 transition-transform"
+                >
+                  <FileText className="w-4 h-4" /> GENERATE PDF
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
             <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
               <Users className="w-5 h-5" />

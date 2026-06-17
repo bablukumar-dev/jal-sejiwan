@@ -252,3 +252,54 @@ export const generatePaymentReceiptPDF = (
   
   return { doc, receiptNo };
 };
+
+export const generateConsolidatedMonthlyReportPDF = (
+  customers: Customer[],
+  deliveries: Delivery[],
+  payments: Payment[],
+  businessInfo: BusinessInfo
+) => {
+  const doc = new jsPDF();
+  const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  // Header Logic (reuse logo/business info logic)
+  doc.addImage(LOGO_BASE64, 'PNG', 14, 14, 16, 16);
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(41, 128, 185);
+  doc.text(businessInfo.name, 34, 21);
+  
+  doc.setFont("Helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(50, 50, 50);
+  doc.text(`Consolidated Operational Report - ${currentMonth}`, 14, 35);
+
+  // Aggregate Data
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const monthDeliveries = deliveries.filter(d => new Date(d.date) >= monthStart);
+  const monthPayments = payments.filter(p => new Date(p.date) >= monthStart);
+  
+  const totalCans = monthDeliveries.reduce((sum, d) => sum + d.deliveredQty, 0);
+  const totalRevenue = monthPayments.reduce((sum, p) => sum + p.amount, 0);
+  const totalDue = customers.reduce((sum, c) => sum + c.due, 0);
+  const activeCustomers = customers.filter(c => c.due > 0 || monthDeliveries.some(d => d.customerId === c.id)).length;
+
+  const summaryData = [
+    ['Metric', 'Value'],
+    ['Total Deliveries (Cans)', totalCans.toString()],
+    ['Total Revenue Collected', `Rs ${totalRevenue}`],
+    ['Total Outstanding Due', `Rs ${totalDue}`],
+    ['Active Customers Served', activeCustomers.toString()],
+  ];
+
+  // @ts-ignore
+  doc.autoTable({
+    startY: 45,
+    head: [summaryData[0]],
+    body: summaryData.slice(1),
+    theme: 'grid',
+    headStyles: { fillColor: [41, 128, 185] }
+  });
+
+  return { doc };
+};
