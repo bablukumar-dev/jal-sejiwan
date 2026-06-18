@@ -1,11 +1,13 @@
 'use client';
 
-import { ArrowLeft, UserCircle, LogOut } from 'lucide-react';
+import { ArrowLeft, UserCircle, LogOut, Bell } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/firebase';
 import OnlineStatusBadge from '@/components/OnlineStatusBadge';
+import { useAppContext } from '@/app/context/AppContext';
+import { useMemo } from 'react';
 
 interface TopAppBarProps {
   title: string;
@@ -16,6 +18,13 @@ interface TopAppBarProps {
 
 export default function TopAppBar({ title, subtitle, showBack = false, showProfile = true }: TopAppBarProps) {
   const router = useRouter();
+  const { inventory, customers } = useAppContext();
+
+  const hasAlerts = useMemo(() => {
+    const isLowInventory = inventory.fullCans < 10;
+    const hasMissedPayments = customers.some(c => c.due > 0);
+    return isLowInventory || hasMissedPayments;
+  }, [inventory.fullCans, customers]);
 
   const handleLogout = async () => {
     try {
@@ -59,13 +68,25 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
               <ArrowLeft className="w-6 h-6 text-blue-700" />
             </button>
           )}
-          <Image src="/logo.png" alt="JalSejiwan Logo" width={40} height={40} className="object-contain flex-shrink-0" referrerPolicy="no-referrer" />
+          <Image
+            src="/logo.png"
+            alt="JalSejiwan Logo"
+            width={36}
+            height={36}
+            priority
+          />
           <div className="flex flex-col">
             {subtitle && <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{subtitle}</span>}
             <h1 className="text-xl font-bold text-slate-900">{title}</h1>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {hasAlerts && (
+            <div className="relative">
+              <Bell className="w-5 h-5 text-amber-500" />
+              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+            </div>
+          )}
           <OnlineStatusBadge />
           <button 
             onClick={handleLogout}
