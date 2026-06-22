@@ -43,8 +43,8 @@ export default function BottomNav({ role: propRole, activeTab }: BottomNavProps)
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 w-full z-50 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe">
-      <div className="flex justify-around items-center px-2 py-2 max-w-md mx-auto">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-50 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe md:rounded-b-3xl">
+      <div className="flex justify-around items-center px-2 py-2 max-w-[480px] mx-auto">
         {links.map((link) => {
           const Icon = link.icon;
           const isActive = activeTab === link.id;

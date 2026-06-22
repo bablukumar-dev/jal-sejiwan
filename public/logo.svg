@@ -1,8 +1,8 @@
 
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <!-- Rounded Squircle Background -->
-  <rect x="32" y="32" width="960" height="960" rx="270" fill="#e0ebf9" />
+  <rect x="32" y="32" width="960" height="960" rx="270" fill="#E6EEF8" />
   
   <!-- Centered, sleek water droplet scaled and positioned for perfect visual centering -->
-  <path d="M 512,250 C 512,250 290,530 290,670 C 290,790 390,890 512,890 C 634,890 734,790 734,670 C 734,530 512,250 512,250 Z" fill="#1e62ec" />
+  <path d="M 512,250 C 512,250 290,530 290,670 C 290,790 390,890 512,890 C 634,890 734,790 734,670 C 734,530 512,250 512,250 Z" fill="#1E40AF" />
 </svg>

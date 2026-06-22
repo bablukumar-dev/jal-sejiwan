@@ -79,10 +79,11 @@ export default function StaffDashboard() {
   const emptiesCount = todaysDeliveries.reduce((sum, d) => sum + (d.returnedEmpty || 0), 0);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-24">
-      <TopAppBar title="JalSejiwan" />
-      
-      <main className="max-w-md mx-auto p-4">
+    <div className="min-h-screen bg-[#F4F7FB] text-slate-900 antialiased pb-12 flex flex-col justify-start">
+      <div className="w-full max-w-[480px] mx-auto bg-white min-h-screen shadow-[0_8px_30px_rgba(0,0,0,0.04)] border-x border-slate-100 flex flex-col relative rounded-t-3xl md:rounded-b-3xl overflow-visible pb-24">
+        <TopAppBar title="JalSejiwan" showProfile={true} showBack={false} />
+        
+        <main className="w-full p-4 flex-1 flex flex-col gap-4">
         {/* Header Section */}
         <div className="pt-2 pb-6">
           <h1 className="text-2xl font-bold text-slate-900">{userName || 'Staff'}</h1>
@@ -240,6 +241,7 @@ export default function StaffDashboard() {
       {showOnboarding && (
         <OnboardingOverlay onClose={() => setShowOnboarding(false)} />
       )}
+      </div>
     </div>
   );
 }

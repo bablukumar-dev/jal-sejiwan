@@ -121,30 +121,16 @@ function OwnerDashboard() {
   const deliveryPercentage = useMemo(() => targetDeliveries > 0 ? Math.round((todayDeliveriesCount / targetDeliveries) * 100) : (todayDeliveriesCount > 0 ? 100 : 0), [todayDeliveriesCount, targetDeliveries]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-24">
-      <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 w-full">
-        <div className="flex justify-between items-center px-4 h-16 max-w-md mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Operational Overview</span>
-              <h1 className="text-xl font-bold text-slate-900">
-                Namaste, {(userName || 'User').split(' ')[0]} Ji{' '}
-                <span className="text-blue-600 font-normal">
-                  ({userRole === 'manager' ? 'Manager' : 'Owner'})
-                </span>
-              </h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <OnlineStatusBadge />
-            <Link href="/settings" className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 bg-slate-100 flex items-center justify-center">
-              <div className="w-full h-full bg-blue-600" />
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#F4F7FB] text-slate-900 antialiased pb-12 flex flex-col justify-start">
+      <div className="w-full max-w-[480px] mx-auto bg-white min-h-screen shadow-[0_8px_30px_rgba(0,0,0,0.04)] border-x border-slate-100 flex flex-col relative rounded-t-3xl md:rounded-b-3xl overflow-visible pb-24">
+        <TopAppBar 
+          title="JalSejiwan" 
+          subtitle={`Namaste, ${(userName || 'User').split(' ')[0]} Ji`} 
+          showBack={false} 
+          showProfile={true} 
+        />
 
-      <main className="max-w-md mx-auto p-4 space-y-4">
+        <main className="w-full p-4 flex-1 flex flex-col gap-4">
         {/* Inventory Status */}
         <div>
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Inventory Status</h3>
@@ -301,6 +287,7 @@ function OwnerDashboard() {
       {showOnboarding && (
         <OnboardingOverlay onClose={() => setShowOnboarding(false)} />
       )}
+      </div>
     </div>
   );
 }
