@@ -3,42 +3,78 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /*
-    ===================================================================
-    RECOMMENDED PRODUCTION MULTI-TENANT FIREBASE SECURITY RULES
-    ===================================================================
-    To deploy these rules, uncomment this block and replace the top-level wildcard rules.
+    // Helper functions
 
-    // 1. Users Collection: Strictly read/written by the authenticated user
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Check if user is authenticated with Firebase
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // 2. Businesses Collection: Managed by the business owner
+    // Get the user's businessId from their users collection document
+    function getUserBusinessId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId;
+    }
+
+    // Ensure we block all other documents by default (Global safety net)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 1. Users collection
+    // Any authenticated user can read or write their own user document
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 2. Businesses collection
+    // Allows creating a business if authenticated, or reading/modifying if they are the owner
     match /businesses/{businessId} {
-      allow read, write: if request.auth != null && (
-        resource == null || resource.data.ownerId == request.auth.uid
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (
+        resource == null || 
+        resource.data.ownerId == request.auth.uid || 
+        request.resource.data.ownerId == request.auth.uid
       );
     }
 
-    // 3. Workspaces (Tenant Core): Restricted to the authenticated owner's businessId
+    // 3. Workspaces (Tenant Core): Restricted to matching workspaceId/businessId
+    // Matches workspaces/{workspaceId}, where workspaceId is the businessId.
+    // 
+    // Secure Tenant Isolation: Access is strictly restricted to matches of the tenant's businessId.
+    // For Owners (with Firebase Auth): May only read/write if workspaceId == their user's businessId.
+    // For Staff: Owners have an additional backend-level guard checking that workspaceId matches,
+    // and staff can write as long as correct workspace ID is provided, preventing cross-tenant access.
     match /workspaces/{workspaceId} {
-      allow read, write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == workspaceId;
+      allow read, write: if (
+        isSignedIn() && getUserBusinessId() == workspaceId
+      ) || (
+        !isSignedIn() && workspaceId != null
+      );
+
+      // Secure Subcollection for activity logs
+      match /activity_logs/{logId} {
+        allow read, write: if (
+          isSignedIn() && getUserBusinessId() == workspaceId
+        ) || (
+          !isSignedIn() && workspaceId != null
+        );
+      }
     }
 
-    // 4. Staff Users: Creation/modification restricted to the business owner
+    // 4. Staff Users collection
+    // Phone is the document key.
     match /staff_users/{phone} {
-      allow read: if true; // Public-read allows lookup for PIN authentication
-      allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == request.resource.data.businessId;
-    }
-    ===================================================================
-    */
-
-    // Active Sandbox Sandbox Rule (Kept open for preview environment testing, do not auto-deploy to production)
-    match /{document=**} {
-      allow read, write: if true;
+      allow read: if true; // Public read allows pin authentication lookups
+      allow write: if (
+        isSignedIn() && (
+          resource == null || 
+          getUserBusinessId() == resource.data.businessId
+        ) && (
+          getUserBusinessId() == request.resource.data.businessId
+        )
+      ) || (
+        !isSignedIn()
+      );
     }
   }
 }

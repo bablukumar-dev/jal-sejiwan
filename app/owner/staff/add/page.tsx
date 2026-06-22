@@ -11,6 +11,7 @@ import { db } from '@/firebase';
 import { logActivity } from '@/lib/activityLogger';
 import { wrapRoute } from '@/lib/permissionGuard';
 import { safeGet } from '@/lib/utils';
+import { sanitizeString, validateName, validatePhone } from '@/lib/validation';
 
 function AddStaff() {
   const router = useRouter();
@@ -40,28 +41,48 @@ function AddStaff() {
            return;
         }
 
-        if (!name || !phone || !pin) {
-        alert("Please fill all required fields");
-        return;
+        const nameVal = validateName(name);
+        if (!nameVal.valid) {
+          alert(`Name Error: ${nameVal.error}`);
+          return;
         }
-        
-        if (pin.length < 4) {
-            alert('Password must be at least 4 characters');
-            return;
+
+        const phoneVal = validatePhone(phone);
+        if (!phoneVal.valid) {
+          alert(`Phone Error: ${phoneVal.error}`);
+          return;
+        }
+
+        const cleanPin = sanitizeString(pin);
+        if (!cleanPin) {
+          alert("PIN is required");
+          return;
+        }
+
+        if (cleanPin.length < 4) {
+          alert('PIN must be at least 4 characters');
+          return;
+        }
+
+        if (cleanPin.length > 20) {
+          alert('PIN cannot exceed 20 characters');
+          return;
         }
 
         const creatorId = currentUserRole === 'owner' ? 'owner' : (safeGet('staffUserId') || 'manager');
+        const sanitizedRoute = sanitizeString(route);
+
         const newStaff = {
-        id: Date.now(),
-        name,
-        phone,
-        role,
-        route,
-        pin: 'HIDDEN', // don't expose raw PIN 
-        encryptedPin: hashPin(pin),
-        active: true,
-        createdBy: creatorId,
-        failedPinAttempts: 0
+          id: Date.now(),
+          name: nameVal.value,
+          phone: phoneVal.value,
+          role: sanitizeString(role),
+          route: sanitizedRoute,
+          pin: 'HIDDEN', // don't expose raw PIN 
+          encryptedPin: hashPin(cleanPin),
+          active: true,
+          createdBy: creatorId,
+          failedPinAttempts: 0
         };
 
         const currentOwnerId = safeGet('ownerId');
@@ -71,7 +92,7 @@ function AddStaff() {
              throw new Error("Action Blocked: businessId is missing from session.");
         }
         
-        await setDoc(doc(db, 'staff_users', phone.trim()), {
+        await setDoc(doc(db, 'staff_users', phoneVal.value), {
             ...newStaff,
             ownerId: currentOwnerId || '',
             businessId: currentBusinessId
@@ -82,8 +103,8 @@ function AddStaff() {
         // Log activity silently in background
         logActivity(
           'staff_created',
-          `Added new staff member: ${name} (${role})`,
-          { staff_id: newStaff.id, name, role, route }
+          `Added new staff member: ${nameVal.value} (${role})`,
+          { staff_id: newStaff.id, name: nameVal.value, role, route: sanitizedRoute }
         );
 
         alert("Staff Added Successfully!");

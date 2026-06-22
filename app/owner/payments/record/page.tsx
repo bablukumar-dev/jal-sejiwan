@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { logActivity } from '@/lib/activityLogger';
+import { validateAmount } from '@/lib/validation';
 
 export default function RecordPayment() {
   const router = useRouter();
@@ -39,10 +40,10 @@ export default function RecordPayment() {
     };
     
     const handleOffline = () => setIsOffline(true);
-
+ 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
+ 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -83,11 +84,13 @@ export default function RecordPayment() {
 
   const handleSave = () => {
     try {
-      const numAmount = parseInt(amount);
-      if (numAmount <= 0) {
-        alert('Amount must be greater than 0');
+      const parsedAmount = validateAmount(amount, false, 1000000);
+      if (!parsedAmount.valid) {
+        alert(parsedAmount.error || 'Invalid amount entered');
         return;
       }
+      
+      const numAmount = parsedAmount.value;
       if (!selectedCustomerId) {
         alert('Please select a customer');
         return;

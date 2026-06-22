@@ -5,6 +5,7 @@ import TopAppBar from '@/components/TopAppBar';
 import { User, MapPin, Save, Settings, IndianRupee } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
+import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
 
 export default function AddCustomer() {
   const router = useRouter();
@@ -35,39 +36,59 @@ export default function AddCustomer() {
   const handleSave = () => {
     try {
         const newErrors: {name?: string, phone?: string} = {};
-        if (!name.trim()) newErrors.name = 'Name is required';
-        if (!phone.trim()) newErrors.phone = 'Phone is required';
-        else if (phone.length < 10) newErrors.phone = 'Mobile must be at least 10 digits';
+        
+        // Use our sanitization / validation layer
+        const nameVal = validateName(name);
+        const phoneVal = validatePhone(phone);
+        const rateVal = validateAmount(rate, true, 10000);
+        const dueVal = validateAmount(due, true, 1000000);
+        const defaultQtyVal = validateQuantity(defaultQty, false, 500);
+        const emptyBalanceVal = validateQuantity(emptyBalance, true, 5000);
+        const depositVal = validateAmount(deposit, true, 1000000);
+        const walletBalanceVal = validateAmount(walletBalance, true, 1000000);
+
+        if (!nameVal.valid) {
+          newErrors.name = nameVal.error || 'Invalid name';
+        }
+        if (!phoneVal.valid) {
+          newErrors.phone = phoneVal.error || 'Invalid phone pattern';
+        }
 
         if (Object.keys(newErrors).length > 0) {
-        setErrors(newErrors);
-        return;
+          setErrors(newErrors);
+          return;
         }
+
+        const sanitizedAddress = sanitizeString(address);
+        const sanitizedNotes = sanitizeString(notes);
+        const sanitizedArea = sanitizeString(area);
+        const sanitizedRoute = sanitizeString(route);
 
         const customersArray = Array.isArray(customers) ? customers : [];
         const newId = Math.max(0, ...customersArray.map(c => c.id || 0), 0) + 1;
         const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
+        
         const newCustomer = {
-        id: newId,
-        name,
-        phone: phone.trim(),
-        address,
-        area,
-        route,
-        type,
-        deliveryType,
-        defaultQty,
-        rate,
-        due,
-        emptyBalance,
-        active,
-        lastDelivery: '',
-        notes,
-        deposit,
-        walletBalance,
-        subscriptionPlan,
-        riskLevel,
-        businessId: currentBusinessId
+          id: newId,
+          name: nameVal.value,
+          phone: phoneVal.value,
+          address: sanitizedAddress,
+          area: sanitizedArea,
+          route: sanitizedRoute,
+          type,
+          deliveryType,
+          defaultQty: defaultQtyVal.value,
+          rate: rateVal.value,
+          due: dueVal.value,
+          emptyBalance: emptyBalanceVal.value,
+          active,
+          lastDelivery: '',
+          notes: sanitizedNotes,
+          deposit: depositVal.value,
+          walletBalance: walletBalanceVal.value,
+          subscriptionPlan,
+          riskLevel,
+          businessId: currentBusinessId
         };
 
         setCustomers([...customersArray, newCustomer]);

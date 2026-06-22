@@ -9,6 +9,7 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithP
 import { doc, setDoc, getDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { useAppContext } from '@/app/context/AppContext';
 import { comparePin } from '@/lib/authHelper';
+import { checkClientRateLimit } from '@/lib/rateLimit';
 
 enum OperationType {
   CREATE = 'create',
@@ -85,6 +86,13 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleStaffLogin = async () => {
+    // Rate limit login attempts to max 5 within 60 seconds of any single session
+    const limitStatus = checkClientRateLimit('login_attempts', 5, 60);
+    if (limitStatus.limited) {
+      setError(limitStatus.msg || 'Too many sign-in attempts. Please try again after 1 minute.');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
     
@@ -238,6 +246,13 @@ export default function Login() {
   };
 
   const handleEmailAuth = async () => {
+    // Rate limit email auth attempts to max 5 within 60 seconds
+    const limitStatus = checkClientRateLimit('login_attempts', 5, 60);
+    if (limitStatus.limited) {
+      setError(limitStatus.msg || 'Too many sign-in attempts. Please try again after 1 minute.');
+      return;
+    }
+
     if (isLoading) return;
     if (isSignUp && !name.trim()) {
       setError('Please enter your name.');

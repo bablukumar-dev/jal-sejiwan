@@ -188,23 +188,32 @@ export default function SettingsPage() {
   };
 
   const handleSaveProfile = async () => {
-    if (userRole === 'owner') {
-      setBusinessInfo({ ...businessInfo, ownerName: newName });
-    } else {
-      setUserName(newName);
-      try {
+    try {
+      const { validateName } = await import('@/lib/validation');
+      const nameVal = validateName(newName);
+      if (!nameVal.valid) {
+        alert(nameVal.error || 'Invalid name');
+        return;
+      }
+      
+      const cleanName = nameVal.value;
+      if (userRole === 'owner') {
+        setBusinessInfo({ ...businessInfo, ownerName: cleanName });
+      } else {
+        setUserName(cleanName);
         const { updateProfile } = await import('firebase/auth');
         const { doc, updateDoc } = await import('firebase/firestore');
         const { db, auth } = await import('@/firebase');
         if (auth.currentUser) {
-          await updateProfile(auth.currentUser, { displayName: newName });
-          await updateDoc(doc(db, 'users', auth.currentUser.uid), { name: newName });
+          await updateProfile(auth.currentUser, { displayName: cleanName });
+          await updateDoc(doc(db, 'users', auth.currentUser.uid), { name: cleanName });
         }
-      } catch (e) {
-        console.error("Failed to update profile", e);
       }
+      setIsEditingProfile(false);
+    } catch (e) {
+      console.error("Failed to update profile", e);
+      alert("Failed to update profile. Please try again.");
     }
-    setIsEditingProfile(false);
   };
 
 

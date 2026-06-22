@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { logActivity } from '@/lib/activityLogger';
+import { validateAmount, validateQuantity } from '@/lib/validation';
 
 export default function DeliveryEntry() {
   const router = useRouter();
@@ -115,6 +116,31 @@ export default function DeliveryEntry() {
     const prevCustomers = [...customers];
 
     try {
+        // Enforce validations before otp/confirm cycle
+        const deliveredVal = validateQuantity(delivered, true, 500);
+        if (!deliveredVal.valid) {
+          alert(`Delivered Qty Error: ${deliveredVal.error}`);
+          return;
+        }
+
+        const emptiesVal = validateQuantity(empties, true, 500);
+        if (!emptiesVal.valid) {
+          alert(`Empty Cans Error: ${emptiesVal.error}`);
+          return;
+        }
+
+        const damagedVal = validateQuantity(damagedQty, true, 100);
+        if (!damagedVal.valid) {
+          alert(`Damaged Cans Error: ${damagedVal.error}`);
+          return;
+        }
+
+        const rateVal = validateAmount(currentRate, false, 10000);
+        if (!rateVal.valid) {
+          alert(`Rate error: ${rateVal.error}`);
+          return;
+        }
+
         if (!otpSent) {
            const randomOtp = Math.floor(1000 + Math.random() * 9000).toString();
            setGeneratedOtp(randomOtp);
@@ -129,7 +155,13 @@ export default function DeliveryEntry() {
             return;
         }
 
-        const parsedAmount = parseFloat(amountToDisplayStr) || 0;
+        const collectedAmountVal = validateAmount(amountToDisplayStr, true, 1000000);
+        if (!collectedAmountVal.valid) {
+          alert(`Payment amount error: ${collectedAmountVal.error}`);
+          return;
+        }
+
+        const parsedAmount = collectedAmountVal.value;
 
         // Update delivery
         const updatedDeliveries = deliveries.map(d => 

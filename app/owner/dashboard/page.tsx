@@ -11,6 +11,7 @@ import OnboardingOverlay from '@/components/OnboardingOverlay';
 import OnlineStatusBadge from '@/components/OnlineStatusBadge';
 import { safeGet } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { checkClientRateLimit } from '@/lib/rateLimit';
 
 function OwnerDashboard() {
   const router = useRouter();
@@ -88,6 +89,12 @@ function OwnerDashboard() {
   }, [businessInfo, pendingCustomers]);
 
   const handleRemindAll = async () => {
+    const limitStatus = checkClientRateLimit('bulk_reminders', 2, 600); // 2 times per 10 minutes
+    if (limitStatus.limited) {
+      alert(limitStatus.msg || 'Too many bulk reminder attempts. Please try again later.');
+      return;
+    }
+
     if (!confirm(`Are you sure you want to send reminders to ${pendingCustomers} customers?`)) return;
     
     setIsReminding(true);

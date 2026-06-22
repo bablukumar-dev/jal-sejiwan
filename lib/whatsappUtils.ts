@@ -1,4 +1,5 @@
 import { Customer, BusinessInfo, Payment } from '@/app/context/AppContext';
+import { checkClientRateLimit } from './rateLimit';
 
 export const shareInvoiceViaWhatsApp = async (
   customer: Customer,
@@ -6,6 +7,12 @@ export const shareInvoiceViaWhatsApp = async (
   invoiceNo: string,
   pdfBlob: Blob
 ) => {
+  const limitStatus = checkClientRateLimit('whatsapp_send', 10, 60);
+  if (limitStatus.limited) {
+    alert(limitStatus.msg || 'Too many WhatsApp message triggers. Please wait.');
+    return { success: false, method: 'error' };
+  }
+
   const fileName = `Invoice_${customer.name.replace(/\s+/g, '_')}_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.pdf`;
   
   const message = `Namaste ${customer.name} 👋\n\nAapka JalSejiwan bill ready hai.\n\n📄 Invoice Number: ${invoiceNo}\n💰 Total Due: ₹${customer.due}\n\nKripya PDF dekhkar payment karein.\n\nDhanyavaad 🙏\n${businessInfo.name}`;
@@ -45,6 +52,12 @@ export const sendPaymentReceiptWhatsApp = async (
   receiptNo: string,
   pdfBlob: Blob
 ) => {
+  const limitStatus = checkClientRateLimit('whatsapp_send', 10, 60);
+  if (limitStatus.limited) {
+    alert(limitStatus.msg || 'Too many WhatsApp message triggers. Please wait.');
+    return { success: false, method: 'error' };
+  }
+
   const fileName = `Receipt_${receiptNo}_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.pdf`;
   
   const message = `Namaste ${payment.customerName} 👋\n\nAapka payment (₹${payment.amount} via ${payment.mode}) receive ho gaya hai.\n\n📄 Receipt No: ${receiptNo}\n💰 Remaining Due: ₹${customer.due}\n\nDhanyavaad 🙏\n${businessInfo.name}`;
@@ -71,6 +84,12 @@ export const sendPaymentReceiptWhatsApp = async (
   return { success: true, method: 'wa_link' };
 };
 export const sendReminderWhatsApp = (customer: Customer, businessInfo: BusinessInfo) => {
+  const limitStatus = checkClientRateLimit('whatsapp_send', 10, 60);
+  if (limitStatus.limited) {
+    alert(limitStatus.msg || 'Too many WhatsApp message triggers. Please wait.');
+    return;
+  }
+
   const message = `Namaste ${customer.name} 👋\n\nYeh monthly payment reminder hai.\n\n💰 Aapka total due: ₹${customer.due}\n🔄 Pending Empty Cans: ${customer.emptyBalance}\n\nKripya apna due clear karein.\n\nDhanyavaad 🙏\n${businessInfo.name}`;
   
   const encodedMessage = encodeURIComponent(message);

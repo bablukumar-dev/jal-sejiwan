@@ -5,6 +5,7 @@ import TopAppBar from '@/components/TopAppBar';
 import { User, MapPin, Save, Settings, IndianRupee } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
+import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
 
 export default function EditCustomer() {
   const router = useRouter();
@@ -41,36 +42,56 @@ export default function EditCustomer() {
   const handleSave = () => {
     try {
         const newErrors: {name?: string, phone?: string} = {};
-        if (!name.trim()) newErrors.name = 'Name is required';
-        if (!phone.trim()) newErrors.phone = 'Phone is required';
-        else if (phone.length < 10) newErrors.phone = 'Mobile must be at least 10 digits';
+        
+        // Input validation checks via central layer
+        const nameVal = validateName(name);
+        const phoneVal = validatePhone(phone);
+        const rateVal = validateAmount(rate, true, 10000);
+        const dueVal = validateAmount(due, true, 1000000);
+        const defaultQtyVal = validateQuantity(defaultQty, false, 500);
+        const emptyBalanceVal = validateQuantity(emptyBalance, true, 5000);
+        const depositVal = validateAmount(deposit, true, 1000000);
+        const walletBalanceVal = validateAmount(walletBalance, true, 1000000);
 
-        if (Object.keys(newErrors).length > 0) {
-        setErrors(newErrors);
-        return;
+        if (!nameVal.valid) {
+          newErrors.name = nameVal.error || 'Invalid name';
+        }
+        if (!phoneVal.valid) {
+          newErrors.phone = phoneVal.error || 'Invalid phone pattern';
         }
 
+        if (Object.keys(newErrors).length > 0) {
+          setErrors(newErrors);
+          return;
+        }
+
+        const sanitizedAddress = sanitizeString(address);
+        const sanitizedNotes = sanitizeString(notes);
+        const sanitizedArea = sanitizeString(area);
+        const sanitizedRoute = sanitizeString(route);
+
         const currentBusinessId = customer?.businessId || (typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business');
+        
         const updatedCustomer = {
-        ...customer,
-        name,
-        phone,
-        address,
-        area,
-        route,
-        type,
-        deliveryType,
-        defaultQty,
-        rate,
-        due,
-        emptyBalance,
-        active,
-        notes,
-        deposit,
-        walletBalance,
-        subscriptionPlan,
-        riskLevel,
-        businessId: currentBusinessId
+          ...customer,
+          name: nameVal.value,
+          phone: phoneVal.value,
+          address: sanitizedAddress,
+          area: sanitizedArea,
+          route: sanitizedRoute,
+          type,
+          deliveryType,
+          defaultQty: defaultQtyVal.value,
+          rate: rateVal.value,
+          due: dueVal.value,
+          emptyBalance: emptyBalanceVal.value,
+          active,
+          notes: sanitizedNotes,
+          deposit: depositVal.value,
+          walletBalance: walletBalanceVal.value,
+          subscriptionPlan,
+          riskLevel,
+          businessId: currentBusinessId
         };
 
         setCustomers(customers.map(c => c.id === customerId ? updatedCustomer : c));
