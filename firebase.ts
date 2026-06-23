@@ -14,7 +14,10 @@ export const auth = getAuth(app);
 // Avoid "Firestore has already been initialized" exceptions in Next.js HMR/SSR cycles
 let dbInstance;
 try {
-  dbInstance = initializeFirestore(app, { experimentalForceLongPolling: true }, firebaseConfig.firestoreDatabaseId);
+  dbInstance = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+    useFetchStreams: false
+  } as any, firebaseConfig.firestoreDatabaseId);
 } catch (error) {
   // Fallback to retrieving the existing initialized database instance
   dbInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);

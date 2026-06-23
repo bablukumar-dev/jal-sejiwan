@@ -90,12 +90,13 @@ export default function ActivityLogDashboard() {
 
   // Load live activity logs from Firestore
   useEffect(() => {
-    const businessId = currentUser.businessId;
-    if (!businessId) {
+    if (!currentUser || !currentUser.businessId) {
       setIsLoading(false);
       setIsLoaded(true);
       return;
     }
+
+    const businessId = currentUser.businessId;
 
     try {
       setIsLoading(true);
@@ -126,8 +127,18 @@ export default function ActivityLogDashboard() {
 
         // Sort latest first safely handling both String dates and Firestore Timestamps
         fetchedLogs.sort((a, b) => {
-          const timeA = a.timestamp && typeof a.timestamp.toDate === 'function' ? a.timestamp.toDate().getTime() : new Date(a.timestamp).getTime();
-          const timeB = b.timestamp && typeof b.timestamp.toDate === 'function' ? b.timestamp.toDate().getTime() : new Date(b.timestamp).getTime();
+          const timeA = (() => {
+            if (!a.timestamp) return 0;
+            if (typeof a.timestamp.toDate === 'function') return a.timestamp.toDate().getTime();
+            const t = new Date(a.timestamp).getTime();
+            return isNaN(t) ? 0 : t;
+          })();
+          const timeB = (() => {
+            if (!b.timestamp) return 0;
+            if (typeof b.timestamp.toDate === 'function') return b.timestamp.toDate().getTime();
+            const t = new Date(b.timestamp).getTime();
+            return isNaN(t) ? 0 : t;
+          })();
           return timeB - timeA;
         });
         
@@ -135,7 +146,7 @@ export default function ActivityLogDashboard() {
         setIsLoading(false);
         setIsLive(true);
       }, (error) => {
-        console.error("Firestore listening error: ", error);
+        console.error("Firestore listener error:", error);
         setIsLoading(false);
         setIsLoaded(true);
       });
@@ -146,6 +157,7 @@ export default function ActivityLogDashboard() {
       setIsLoading(false);
       setIsLoaded(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.businessId]);
 
   // Seeding mock fallback logs if database is empty - ensures pristine UI immediately
@@ -202,8 +214,18 @@ export default function ActivityLogDashboard() {
     
     // Sort just in case to be 100% compliant with DESC order
     const sorted = [...finalLogs].sort((a, b) => {
-      const timeA = a.timestamp && typeof a.timestamp.toDate === 'function' ? a.timestamp.toDate().getTime() : new Date(a.timestamp).getTime();
-      const timeB = b.timestamp && typeof b.timestamp.toDate === 'function' ? b.timestamp.toDate().getTime() : new Date(b.timestamp).getTime();
+      const timeA = (() => {
+        if (!a.timestamp) return 0;
+        if (typeof a.timestamp.toDate === 'function') return a.timestamp.toDate().getTime();
+        const t = new Date(a.timestamp).getTime();
+        return isNaN(t) ? 0 : t;
+      })();
+      const timeB = (() => {
+        if (!b.timestamp) return 0;
+        if (typeof b.timestamp.toDate === 'function') return b.timestamp.toDate().getTime();
+        const t = new Date(b.timestamp).getTime();
+        return isNaN(t) ? 0 : t;
+      })();
       return timeB - timeA;
     });
 
