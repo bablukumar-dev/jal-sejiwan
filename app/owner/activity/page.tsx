@@ -577,6 +577,39 @@ interface MemoizedLogEntryProps {
   onFormatTime: (isoString: any) => string;
 }
 
+const getActionTypeBadgeProps = (actionType: string) => {
+  const normalized = actionType || 'unknown';
+  const label = normalized
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+
+  if (normalized.includes('delivery') || normalized.includes('dispatch')) {
+    return { label, classes: 'bg-indigo-50 text-indigo-700 border-indigo-100' };
+  }
+  if (normalized.includes('payment') || normalized.includes('collect')) {
+    return { label, classes: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
+  }
+  if (normalized.includes('customer')) {
+    return { label, classes: 'bg-rose-50 text-rose-700 border-rose-100' };
+  }
+  if (normalized.includes('staff')) {
+    return { label, classes: 'bg-purple-50 text-purple-700 border-purple-100' };
+  }
+  if (normalized.includes('reconciliation') || normalized.includes('reconcile') || normalized.includes('inventory')) {
+    return { label, classes: 'bg-amber-50 text-amber-700 border-amber-100' };
+  }
+  if (normalized.includes('reminder')) {
+    return { label, classes: 'bg-sky-50 text-sky-700 border-sky-100' };
+  }
+  if (normalized.includes('skip')) {
+    return { label, classes: 'bg-orange-50 text-orange-700 border-orange-100' };
+  }
+  if (normalized.includes('security') || normalized.includes('alert') || normalized.includes('blocked')) {
+    return { label, classes: 'bg-red-50 text-red-700 border-red-100' };
+  }
+  return { label, classes: 'bg-slate-50 text-slate-700 border-slate-100' };
+};
+
 const MemoizedLogEntry = memo(function MemoizedLogEntry({
   log,
   isExpanded,
@@ -620,6 +653,16 @@ const MemoizedLogEntry = memo(function MemoizedLogEntry({
           }`}>
             {log.user_role}
           </span>
+
+          {/* Color-coded Action Type Badge */}
+          {log.action_type && (() => {
+            const badge = getActionTypeBadgeProps(log.action_type);
+            return (
+              <span className={`px-2 py-0.5 rounded-lg border text-[8px] font-sans font-extrabold uppercase tracking-wider ${badge.classes}`}>
+                {badge.label}
+              </span>
+            );
+          })()}
         </div>
 
         {/* Description Text */}

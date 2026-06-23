@@ -19,34 +19,34 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
     {
       step: 1,
       title: "Welcome to Your Water Delivery Management System",
-      description: "Jal Sejiwan helps you manage customer records, track daily water delivery drops, monitor cylinder inventory, and record payments efficiently.",
+      description: "JalSejiwan helps you manage customer records, track daily water delivery drops, monitor cylinder inventory, and record payments efficiently.",
       targetId: null,
       tooltip: null
     },
     {
       step: 2,
-      title: "Add New Customers",
+      title: "Add your first customer",
       description: "Start by adding your first customer.",
       targetId: "onboarding-add-customer",
       tooltip: "Start by adding your first customer."
     },
     {
       step: 3,
-      title: "Fulfill Deliveries",
+      title: "Record your first delivery",
       description: "Record your daily deliveries here.",
       targetId: "onboarding-deliveries",
       tooltip: "Record your daily deliveries here."
     },
     {
       step: 4,
-      title: "Monitor Payments",
+      title: "Track payments",
       description: "Track dues and collect payments easily.",
       targetId: "onboarding-payments",
       tooltip: "Track dues and collect payments easily."
     },
     {
       step: 5,
-      title: "You are ready to use the system",
+      title: "You're ready!",
       description: "Explore the dashboards, setup delivery routes, manage your staff, and drive efficiency in your water delivery business.",
       targetId: null,
       tooltip: null
@@ -226,10 +226,10 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
             >
               <div className="flex justify-between items-center mb-3">
                 <span className="text-[10px] uppercase font-bold text-blue-600 tracking-wider bg-blue-50 px-2.5 py-1 rounded-full">
-                  Step {step - 1} of 3
+                  Step {step - 1} of 4
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
-                  {step - 1}/3
+                  {step - 1}/4
                 </span>
               </div>
 
@@ -246,7 +246,7 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
               <div className="w-full bg-slate-100 h-1.5 rounded-full mb-6 overflow-hidden">
                 <div 
                   className="bg-blue-600 h-full rounded-full transition-all duration-300"
-                  style={{ width: `${((step - 1) / 3) * 100}%` }}
+                  style={{ width: `${((step - 1) / 4) * 100}%` }}
                 />
               </div>
 

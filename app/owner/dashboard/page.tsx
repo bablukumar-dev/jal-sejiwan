@@ -94,6 +94,14 @@ function OwnerDashboard() {
   }, [businessInfo, pendingCustomers]);
 
   const handleRemindAll = async () => {
+    // Implement Max 1 time per day constraint tracking lastSentDate
+    const todayStr = new Date().toISOString().split('T')[0];
+    const lastSentDate = localStorage.getItem('lastSentDateRemindAll');
+    if (lastSentDate === todayStr) {
+      alert('🔔 WhatsApp reminders have already been sent today! Limit is max 1 time per day.');
+      return;
+    }
+
     const limitStatus = checkClientRateLimit('bulk_reminders', 2, 600); // 2 times per 10 minutes
     if (limitStatus.limited) {
       alert(limitStatus.msg || 'Too many bulk reminder attempts. Please try again later.');
@@ -107,6 +115,7 @@ function OwnerDashboard() {
       const { runBulkReminder } = await import('@/lib/reminderService');
       const result = await runBulkReminder(customers, businessInfo);
       if (result.success) {
+        localStorage.setItem('lastSentDateRemindAll', todayStr);
         alert(`Successfully sent reminders to ${result.count} customers!`);
       } else {
         alert('Failed to send some reminders.');
@@ -232,7 +241,7 @@ function OwnerDashboard() {
         </div>
 
         {/* Remind All Due button */}
-        {pendingCustomers > 0 && (
+        {pendingCustomers > 0 && userRole === 'owner' && (
           <button 
            onClick={handleRemindAll}
            disabled={isReminding}

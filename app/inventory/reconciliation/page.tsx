@@ -6,8 +6,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { logActivity } from '@/lib/activityLogger';
+import { wrapRoute } from '@/lib/permissionGuard';
 
-export default function ReturnReconciliation() {
+function ReturnReconciliation() {
   const router = useRouter();
   const { staff, setInventory } = useAppContext();
   const [emptyReturned, setEmptyReturned] = useState(105);
@@ -196,3 +197,5 @@ export default function ReturnReconciliation() {
     </div>
   );
 }
+
+export default wrapRoute(ReturnReconciliation, { requiredRole: 'manager' });

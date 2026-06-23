@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Droplet, Store, Truck, Package, Mail, Lock, User, Phone } from 'lucide-react';
@@ -10,6 +10,7 @@ import { doc, setDoc, getDoc, serverTimestamp, collection } from 'firebase/fires
 import { useAppContext } from '@/app/context/AppContext';
 import { comparePin } from '@/lib/authHelper';
 import { checkClientRateLimit } from '@/lib/rateLimit';
+import { logActivity } from '@/lib/activityLogger';
 
 enum OperationType {
   CREATE = 'create',
@@ -85,6 +86,18 @@ export default function Login() {
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('expired=true')) {
+      const timer = setTimeout(() => {
+        setError('Session expired due to 30 minutes of inactivity. Please log in again.');
+      }, 0);
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   const handleStaffLogin = async () => {
     // Rate limit login attempts to max 5 within 60 seconds of any single session
     const limitStatus = checkClientRateLimit('login_attempts', 5, 60);
@@ -153,6 +166,26 @@ export default function Login() {
       if (!isMatch) {
          const failedAttempts = (s.failedPinAttempts || 0) + 1;
          
+         // Temporary localStorage setup for logging purposes
+         if (s.businessId) {
+           localStorage.setItem('businessId', s.businessId);
+           localStorage.setItem('ownerId', s.ownerId || '');
+         }
+
+         if (failedAttempts >= 5) {
+           logActivity(
+             'account_locked',
+             `Account locked for ${cleanPhone} (${normalizedRole}) due to 5 failed PIN attempts`,
+             { phone: cleanPhone, role: normalizedRole }
+           );
+         } else {
+           logActivity(
+             'failed_login',
+             `Wrong PIN entered for ${cleanPhone} (${normalizedRole}). Attempt: ${failedAttempts}/5`,
+             { phone: cleanPhone, role: normalizedRole, failedAttempts }
+           );
+         }
+
          // Update both Firestore and local state
          if (docSnap.exists()) {
            const updateData: any = { failedPinAttempts: failedAttempts };

@@ -93,7 +93,7 @@ function StaffManagement() {
         </div>
 
         {/* Manage Workforce Action */}
-        {(currentRole === 'owner' || currentRole === 'manager') && (
+        {currentRole === 'owner' && (
           <div className="bg-blue-700 rounded-3xl p-6 text-white mb-6">
             <Users className="w-8 h-8 mb-4 text-blue-300" />
             <h2 className="text-xl font-bold mb-1">Manage Workforce</h2>

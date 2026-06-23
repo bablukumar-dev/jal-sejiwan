@@ -8,8 +8,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { logActivity } from '@/lib/activityLogger';
+import { wrapRoute } from '@/lib/permissionGuard';
 
-export default function DispatchScreen() {
+function DispatchScreen() {
   const router = useRouter();
   const { staff, setInventory } = useAppContext();
   const [dispatched, setDispatched] = useState(45);
@@ -175,3 +176,5 @@ export default function DispatchScreen() {
     </div>
   );
 }
+
+export default wrapRoute(DispatchScreen, { requiredRole: 'manager' });

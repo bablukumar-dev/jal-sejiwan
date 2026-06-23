@@ -23,6 +23,8 @@ function CustomersList() {
   }, [searchQuery]);
   const [filter, setFilter] = useState('All');
   const [isReminding, setIsReminding] = useState(false);
+  const [progressCount, setProgressCount] = useState<number | null>(null);
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<number[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('customerSearchHistory');
@@ -55,22 +57,63 @@ function CustomersList() {
     });
   };
 
+  const handleSelectToggle = (id: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedCustomerIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
   const handleBulkReminder = async () => {
-    if (!confirm('Send Bulk WhatsApp reminder to all due customers?')) return;
+    if (selectedCustomerIds.length === 0) {
+      alert('Please select at least one customer.');
+      return;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const countKey = `daily_reminder_count_${todayStr}`;
+    const sentToday = parseInt(localStorage.getItem(countKey) || '0', 10);
+
+    if (sentToday >= 100) {
+      alert('You have reached your daily limit of 100 WhatsApp reminders today.');
+      return;
+    }
+
+    const remainingToLimit = 100 - sentToday;
+    if (selectedCustomerIds.length > remainingToLimit) {
+      alert(`Daily remaining limit is ${remainingToLimit} reminders. Please select at most ${remainingToLimit} customers.`);
+      return;
+    }
+
+    if (!confirm(`Send WhatsApp reminders to ${selectedCustomerIds.length} selected customers?`)) return;
+    
     setIsReminding(true);
+    setProgressCount(0);
     try {
-      const { runBulkReminder } = await import('@/lib/reminderService');
-      const result = await runBulkReminder(customers, businessInfo);
-      if (result.success) {
-        alert(`Successfully sent ${result.count} reminders!`);
-      } else {
-        alert('Failed during bulk reminder process.');
+      const { sendWhatsAppSummary } = await import('@/lib/reminderService');
+      let successCount = 0;
+      
+      const selectedCustomers = customers.filter(c => selectedCustomerIds.includes(c.id));
+      
+      for (let i = 0; i < selectedCustomers.length; i++) {
+        const customer = selectedCustomers[i];
+        sendWhatsAppSummary(customer, businessInfo);
+        setProgressCount(i + 1);
+        successCount++;
+        // Polite delay for browser window popping
+        await new Promise(r => setTimeout(r, 600));
       }
+
+      localStorage.setItem(countKey, String(sentToday + successCount));
+      alert(`Process complete! Initiated reminders for ${successCount} customers.`);
+      setSelectedCustomerIds([]);
     } catch (e) {
       console.error(e);
-      alert('Error sharing bulk reminder');
+      alert('Failed during bulk reminder process.');
     } finally {
       setIsReminding(false);
+      setProgressCount(null);
     }
   };
 
@@ -209,15 +252,44 @@ function CustomersList() {
           </button>
         </div>
 
-        {filter === 'Dues Only' && filteredCustomers.length > 0 && (userRole === 'owner' || userRole === 'manager') && (
-          <div className="mb-4">
+        {filter === 'Dues Only' && filteredCustomers.length > 0 && userRole === 'owner' && (
+          <div className="mb-4 space-y-3">
+            {/* Select All / Deselect All Controls */}
+            <div className="flex justify-between items-center text-xs text-slate-500 font-bold px-1">
+              <span>Selected: {selectedCustomerIds.length} / {filteredCustomers.length}</span>
+              <div className="flex gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setSelectedCustomerIds(filteredCustomers.map(c => c.id))}
+                  className="text-blue-600 hover:text-blue-800 cursor-pointer"
+                >
+                  Select All
+                </button>
+                <span className="text-slate-300">|</span>
+                <button 
+                  type="button" 
+                  onClick={() => setSelectedCustomerIds([])}
+                  className="text-slate-500 hover:text-slate-700 cursor-pointer"
+                >
+                  Deselect All
+                </button>
+              </div>
+            </div>
+
+            {progressCount !== null && (
+              <div className="bg-orange-50 border border-orange-200 text-orange-850 text-xs py-2.5 px-3 rounded-xl font-bold flex justify-between items-center animate-pulse">
+                <span>Sending Progress...</span>
+                <span>{progressCount} / {selectedCustomerIds.length} Processed</span>
+              </div>
+            )}
+
             <button 
               onClick={handleBulkReminder}
               disabled={isReminding}
               className="w-full bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all text-sm border border-orange-300 disabled:opacity-50"
             >
               <Bell className="w-5 h-5 text-orange-600" />
-              {isReminding ? 'Sending Reminders...' : '🔔 Remind All Due Customers'}
+              {isReminding ? `Sending Reminders (${progressCount !== null ? progressCount : 0}/${selectedCustomerIds.length})...` : '🔔 Remind Selected Customers'}
             </button>
           </div>
         )}
@@ -247,36 +319,60 @@ function CustomersList() {
 
               return (
                 <Link href={`/owner/customers/${customer.id}`} key={customer.id} className="block bg-white rounded-2xl p-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-transform">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-900">{customer.name}</h3>
-                      <div className="flex items-center gap-1 text-slate-500 text-sm mt-1">
-                        <MapPin className="w-3 h-3" />
-                        {customer.address}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          sendReminderWhatsApp(customer, businessInfo);
-                        }}
-                        className="p-3 bg-green-50 text-green-600 rounded-full active:scale-90 transition-transform"
+                  <div className="flex items-start gap-3">
+                    {filter === 'Dues Only' && userRole === 'owner' && (
+                      <button
+                        onClick={(e) => handleSelectToggle(customer.id, e)}
+                        className="mt-1 flex-shrink-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-600 rounded-full"
+                        aria-label={`Toggle selection for ${customer.name}`}
                       >
-                        <MessageCircle className="w-5 h-5 fill-current" />
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                          selectedCustomerIds.includes(customer.id) 
+                            ? 'bg-blue-600 border-blue-600 text-white animate-scaleIn' 
+                            : 'border-slate-300 hover:border-slate-400 bg-white'
+                        }`}>
+                          {selectedCustomerIds.includes(customer.id) && (
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
                       </button>
-                      <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          window.location.href = `tel:${customer.phone}`;
-                        }}
+                    )}
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="text-lg font-bold text-slate-900 truncate">{customer.name}</h3>
+                          <div className="flex items-center gap-1 text-slate-500 text-sm mt-1">
+                            <MapPin className="w-3 h-3" />
+                            {customer.address}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              sendReminderWhatsApp(customer, businessInfo);
+                            }}
+                            className="p-3 bg-green-50 text-green-600 rounded-full active:scale-90 transition-transform"
+                          >
+                            <MessageCircle className="w-5 h-5 fill-current" />
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              window.location.href = `tel:${customer.phone}`;
+                            }}
                         className="p-3 bg-blue-50 text-blue-600 rounded-full active:scale-90 transition-transform"
                       >
                         <Phone className="w-5 h-5 fill-current" />
                       </button>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                </div> {/* Closes flex-1 min-w-0 */}
+              </div> {/* Closes flex items-start gap-3 */}
+              <div className="flex flex-wrap gap-2">
                     {isDelivered ? (
                       <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-[10px] font-bold uppercase tracking-tight border border-green-200">
                         ✅ Delivered

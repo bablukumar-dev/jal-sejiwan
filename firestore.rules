@@ -79,7 +79,15 @@ service cloud.firestore {
 
     // 5. Activities collection
     match /activities/{activityId} {
-      allow read, write: if (
+      allow read: if (
+        isSignedIn() && (
+          resource == null || 
+          getUserBusinessId() == resource.data.businessId
+        )
+      ) || (
+        !isSignedIn()
+      );
+      allow write: if (
         isSignedIn() && (
           resource == null || 
           getUserBusinessId() == resource.data.businessId

@@ -184,6 +184,53 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [pathname, router]);
 
+  // Inactivity auto-logout (30 minutes of complete inactivity)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (publicPaths.includes(pathname)) {
+      return;
+    }
+
+    const updateActivity = () => {
+      localStorage.setItem('lastSessionActivity', String(Date.now()));
+    };
+
+    // Initialize activity on mount if not there
+    if (!localStorage.getItem('lastSessionActivity')) {
+      updateActivity();
+    }
+
+    const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    events.forEach(event => {
+      window.addEventListener(event, updateActivity);
+    });
+
+    const interval = setInterval(async () => {
+      const lastActivity = localStorage.getItem('lastSessionActivity');
+      const userRole = localStorage.getItem('userRole');
+      if (userRole && lastActivity) {
+        const inactiveTime = Date.now() - parseInt(lastActivity, 10);
+        if (inactiveTime > 30 * 60 * 1000) { // 30 minutes in milliseconds
+          try {
+            await auth.signOut();
+          } catch (e) {
+            console.error('Failed to sign out on timeout:', e);
+          }
+          localStorage.clear();
+          window.location.href = '/login?expired=true';
+        }
+      }
+    }, 15000); // Check every 15 seconds
+
+    return () => {
+      events.forEach(event => {
+        window.removeEventListener(event, updateActivity);
+      });
+      clearInterval(interval);
+    };
+  }, [pathname]);
+
   if (loading) {
     const publicPaths = ['/login', '/'];
     if (!publicPaths.includes(pathname)) {

@@ -49,7 +49,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'single_reminder',
   ],
   manager: [
-    'create_user',
     'view_customers',
     'view_deliveries',
     'view_payments',

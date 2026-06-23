@@ -37,13 +37,8 @@ function AddStaff() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-        if (currentUserRole !== 'owner' && currentUserRole !== 'manager') {
-           alert("Only Owner or Manager can create users");
-           return;
-        }
-
-        if (currentUserRole === 'manager' && (role === 'Manager' || role === 'owner')) {
-           alert("Managers are not authorized to create Manager or Owner roles.");
+        if (currentUserRole !== 'owner') {
+           alert("Only the Owner is authorized to create accounts.");
            return;
         }
 
@@ -65,17 +60,13 @@ function AddStaff() {
           return;
         }
 
-        if (cleanPin.length < 4) {
-          alert('PIN must be at least 4 characters');
+        const pinRegex = /^\d{4,6}$/;
+        if (!pinRegex.test(cleanPin)) {
+          alert('PIN must be 4 to 6 numeric digits');
           return;
         }
 
-        if (cleanPin.length > 20) {
-          alert('PIN cannot exceed 20 characters');
-          return;
-        }
-
-        const creatorId = currentUserRole === 'owner' ? 'owner' : (safeGet('staffUserId') || 'manager');
+        const creatorId = 'owner';
         const sanitizedRoute = sanitizeString(route);
 
         const newStaff = {
@@ -283,4 +274,4 @@ function AddStaff() {
   );
 }
 
-export default wrapRoute(AddStaff, { requiredRole: 'manager' });
+export default wrapRoute(AddStaff, { requiredRole: 'owner' });
