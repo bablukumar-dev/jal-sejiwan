@@ -4,7 +4,7 @@
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { useState, useEffect, useMemo, memo } from 'react';
-import { collection, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, limit } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { useAppContext } from '@/app/context/AppContext';
 import { 
@@ -104,7 +104,6 @@ export default function ActivityLogDashboard() {
       const q = query(
         logsRef,
         where("businessId", "==", businessId),
-        orderBy("timestamp", "desc"),
         limit(100)
       );
 
