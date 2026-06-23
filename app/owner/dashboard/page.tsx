@@ -13,9 +13,12 @@ import { safeGet } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { checkClientRateLimit } from '@/lib/rateLimit';
 
+import { useLossDetection, LossDetectionWidget } from '@/components/LossDetectionWidget';
+import { AnalyticsDashboardSection } from '@/components/AnalyticsSection';
+
 function OwnerDashboard() {
   const router = useRouter();
-  const { customers, deliveries, payments, inventory, businessInfo } = useAppContext();
+  const { customers, deliveries, payments, inventory, businessInfo, staff } = useAppContext();
   const [isReminding, setIsReminding] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userRole, setUserRole] = useState<string>(() => {
@@ -29,6 +32,8 @@ function OwnerDashboard() {
       return safeGet('staffUserName') || 'Manager';
     }
   });
+
+  const warnings = useLossDetection(customers, deliveries, inventory, payments);
 
   const pendingCustomers = useMemo(() => customers.filter(c => c.due > 0).length, [customers]);
 
@@ -239,13 +244,14 @@ function OwnerDashboard() {
         )}
 
         {/* Smart Loss Detection */}
-        {inventory.cansWithCustomers > (inventory.fullCans + inventory.emptyCans + inventory.cansInDelivery) * 0.2 && (
-        <div className="bg-red-50 rounded-2xl p-4 border border-red-200 mt-2 mb-2">
-            <h3 className="text-[10px] font-bold text-red-800 uppercase tracking-wider mb-1 flex items-center gap-1">Loss Detection <AlertTriangle className="w-3 h-3"/></h3>
-            <div className="text-lg font-bold text-red-950">{inventory.cansWithCustomers} Empties</div>
-            <div className="text-[9px] text-red-700 mt-1">High number of empty cans stuck with customers</div>
-        </div>
-        )}
+        <LossDetectionWidget warnings={warnings} />
+
+        <AnalyticsDashboardSection 
+          customers={customers}
+          deliveries={deliveries}
+          payments={payments}
+          staff={staff}
+        />
 
 
         {/* Live Command Station */}

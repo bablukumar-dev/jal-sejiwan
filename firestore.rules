@@ -76,5 +76,19 @@ service cloud.firestore {
         !isSignedIn()
       );
     }
+
+    // 5. Activities collection
+    match /activities/{activityId} {
+      allow read, write: if (
+        isSignedIn() && (
+          resource == null || 
+          getUserBusinessId() == resource.data.businessId
+        ) && (
+          getUserBusinessId() == request.resource.data.businessId
+        )
+      ) || (
+        !isSignedIn()
+      );
+    }
   }
 }

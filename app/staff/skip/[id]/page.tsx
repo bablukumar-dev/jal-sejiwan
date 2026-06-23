@@ -5,6 +5,7 @@ import { MapPin, Lock, PackageMinus, Plane, MoreHorizontal, FileText, Ban } from
 import { useRouter, useParams } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState } from 'react';
+import { logActivity } from '@/lib/activityLogger';
 
 export default function SkipDelivery() {
   const router = useRouter();
@@ -28,6 +29,19 @@ export default function SkipDelivery() {
         d.id === deliveryId ? { ...d, status: 'Skipped' as const, skipReason: reason, skipRemarks: remarks } : d
         );
         setDeliveries(updatedDeliveries);
+        
+        logActivity(
+          'delivery_skipped',
+          `Skipped delivery for ${customer.name}. Reason: ${reason}${remarks ? ` (${remarks})` : ''}`,
+          {
+            delivery_id: deliveryId,
+            customer_id: customer.id,
+            customer_name: customer.name,
+            reason: reason,
+            remarks: remarks
+          }
+        );
+
         alert("Delivery marked as skipped.");
         router.back();
     } catch (e) {

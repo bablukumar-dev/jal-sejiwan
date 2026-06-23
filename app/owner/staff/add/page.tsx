@@ -22,6 +22,12 @@ function AddStaff() {
   const [role, setRole] = useState('Delivery Partner');
   const [route, setRoute] = useState(routes[0] || '');
   const [pin, setPin] = useState('');
+  const [permissions, setPermissions] = useState({
+    canCreateStaff: true,
+    canDeleteStaff: false,
+    canViewReports: true,
+    canAccessInventory: false
+  });
   const [currentUserRole, setCurrentUserRole] = useState<'owner' | 'manager'>(() => {
     const stored = safeGet('userRole');
     if (stored === 'owner' || stored === 'manager') return stored as 'owner' | 'manager';
@@ -82,7 +88,8 @@ function AddStaff() {
           encryptedPin: hashPin(cleanPin),
           active: true,
           createdBy: creatorId,
-          failedPinAttempts: 0
+          failedPinAttempts: 0,
+          permissions: role === 'Manager' ? permissions : undefined
         };
 
         const currentOwnerId = safeGet('ownerId');
@@ -232,6 +239,34 @@ function AddStaff() {
               />
               <p className="text-xs text-slate-500 mt-1">Staff will use this password to log in</p>
             </div>
+            
+            {role === 'Manager' && (
+              <div className="pt-4 border-t border-slate-100">
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 block">Manager Permissions</label>
+                <div className="space-y-3">
+                  {Object.entries(permissions).map(([key, value]) => (
+                    <label key={key} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                      <div className="relative flex items-center">
+                        <input 
+                          type="checkbox"
+                          checked={value}
+                          onChange={(e) => setPermissions(prev => ({ ...prev, [key]: e.target.checked }))}
+                          className="peer sr-only"
+                        />
+                        <div className="w-5 h-5 rounded border-2 border-slate-300 peer-checked:border-blue-600 peer-checked:bg-blue-600 transition-all flex items-center justify-center">
+                          <svg className={`w-3.5 h-3.5 text-white ${value ? 'opacity-100' : 'opacity-0 scale-50'} transition-all`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium text-slate-700 capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <button 

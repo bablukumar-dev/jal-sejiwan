@@ -2,18 +2,21 @@ import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/firebase';
 
 export interface ActivityLog {
+  id: string; // Standarized ID
   log_id: string;
   timestamp: any;
+  userId: string; // Standardized performer ID
   user_id: string;
   user_name: string;
+  userRole: string; // Standardized role
   user_role: string;
   managed_by: string | null;
+  actionType: string; // Standardized action type
   action_type: string;
   description: string;
   metadata: any | null;
   workspaceId: string;
-  businessId?: string;
-  userId?: string;
+  businessId: string; // Standardized business/tenant ID
   role?: string;
   action?: string;
 }
@@ -72,28 +75,37 @@ export async function logActivity(
         }
       }
 
-      // Generate a document ID
-      const logsCollectionRef = collection(db, 'workspaces', workspaceId, 'activity_logs');
-      const logDocRef = doc(logsCollectionRef); // Server auto-generates unique ID
+      // Generate a common document ID
+      const commonId = doc(collection(db, 'activities')).id;
+      const rootDocRef = doc(db, 'activities', commonId);
+      const workspaceDocRef = doc(db, 'workspaces', workspaceId, 'activity_logs', commonId);
 
       const activityData: ActivityLog = {
-        log_id: logDocRef.id,
+        id: commonId,
+        log_id: commonId,
         timestamp: serverTimestamp(),
+        userId: userId,
         user_id: userId,
         user_name: userName,
+        userRole: userRole,
         user_role: userRole,
         managed_by: managedBy,
+        actionType: actionType,
         action_type: actionType,
         description: description,
         metadata: metadata,
         workspaceId: workspaceId,
         businessId: workspaceId,
-        userId: userId,
         role: userRole,
         action: description,
       };
 
-      await setDoc(logDocRef, activityData);
+      // Set under both root "activities" and nested "workspaces/{workspaceId}/activity_logs" collections
+      await Promise.all([
+        setDoc(rootDocRef, activityData),
+        setDoc(workspaceDocRef, activityData)
+      ]);
+
       console.log(`Activity logged successfully in workspace ${workspaceId}: ${actionType}`);
     } catch (error) {
       // Ensure we fail silently so user flows are never blocked

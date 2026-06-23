@@ -92,6 +92,12 @@ export type Staff = {
   failedPinAttempts?: number;
   pinLockedUntil?: string;
   active: boolean;
+  permissions?: {
+    canCreateStaff?: boolean;
+    canDeleteStaff?: boolean;
+    canViewReports?: boolean;
+    canAccessInventory?: boolean;
+  };
 };
 
 export type BusinessInfo = {

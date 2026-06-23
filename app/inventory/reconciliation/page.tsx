@@ -5,6 +5,7 @@ import { Plus, Minus, AlertTriangle, Printer, CheckCircle2, Truck } from 'lucide
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
+import { logActivity } from '@/lib/activityLogger';
 
 export default function ReturnReconciliation() {
   const router = useRouter();
@@ -30,6 +31,21 @@ export default function ReturnReconciliation() {
       damagedCans: prev.damagedCans + damaged,
       cansInDelivery: prev.cansInDelivery - totalDispatched // Assuming all dispatched are accounted for
     }));
+
+    logActivity(
+      'inventory_updated',
+      `Reconciled stock for ${selectedStaff?.name || 'Staff'}: Empty returned ${emptyReturned}, unsold ${fullReturned}, damaged ${damaged}`,
+      {
+        action: 'reconciliation',
+        staff_id: selectedStaff?.id || '',
+        staff_name: selectedStaff?.name || '',
+        empty_returned: emptyReturned,
+        full_returned: fullReturned,
+        damaged: damaged,
+        missing: missing
+      }
+    );
+
     router.push('/inventory/dashboard');
   };
 

@@ -104,8 +104,10 @@ function Reports() {
                         for (const cust of dueCustomers) {
                            const custDeliveries = deliveries.filter(d => d.customerId === cust.id);
                            const custPayments = payments.filter(p => p.customerId === cust.id);
-                           const { doc } = generateInvoicePDF(cust, custDeliveries, custPayments, businessInfo);
-                           doc.save(`Invoice_${cust.name}_${new Date().toLocaleDateString('en-GB')}.pdf`);
+                           const { doc } = await generateInvoicePDF(cust, custDeliveries, custPayments, businessInfo);
+                           if (doc) {
+                             doc.save(`Invoice_${cust.name}_${new Date().toLocaleDateString('en-GB')}.pdf`);
+                           }
                         }
                         alert('Bulk PDFs generated successfully!');
                       } catch (e) {
@@ -209,8 +211,12 @@ function Reports() {
                   onClick={async () => {
                      try {
                        const { generateConsolidatedMonthlyReportPDF } = await import('@/lib/pdfGenerator');
-                       const { doc } = generateConsolidatedMonthlyReportPDF(customers, deliveries, payments, businessInfo);
-                       doc.save(`Consolidated_Report_${new Date().toLocaleDateString('en-GB')}.pdf`);
+                       const { doc } = await generateConsolidatedMonthlyReportPDF(customers, deliveries, payments, businessInfo);
+                       if (doc) {
+                        doc.save(`Consolidated_Report_${new Date().toLocaleDateString('en-GB')}.pdf`);
+                      } else {
+                        throw new Error('Could not instantiate PDF document.');
+                      }
                        alert('PDF Generated Successfully');
                      } catch (e) {
                        console.error(e);

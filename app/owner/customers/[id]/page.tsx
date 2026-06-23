@@ -85,7 +85,7 @@ export default function CustomerDetail() {
         return;
       }
       const { generateInvoicePDF } = await import('@/lib/pdfGenerator');
-      const { doc } = generateInvoicePDF(customer, customerDeliveries, customerPayments, businessInfo);
+      const { doc } = await generateInvoicePDF(customer, customerDeliveries, customerPayments, businessInfo);
       if (!doc) {
         throw new Error('Could not instantiate PDF document.');
       }
@@ -113,7 +113,7 @@ export default function CustomerDetail() {
       }
       const { generateInvoicePDF } = await import('@/lib/pdfGenerator');
       const { shareInvoiceViaWhatsApp } = await import('@/lib/whatsappUtils');
-      const { doc, invoiceNo } = generateInvoicePDF(customer, customerDeliveries, customerPayments, businessInfo);
+      const { doc, invoiceNo } = await generateInvoicePDF(customer, customerDeliveries, customerPayments, businessInfo);
       
       if (!doc) {
         throw new Error('Could not generate PDF invoice.');

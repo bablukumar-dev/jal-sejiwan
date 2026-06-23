@@ -6,7 +6,11 @@ export const generatePdfFromCustomer = async (customerId: any, customers: any[],
   const customerPayments = payments.filter(p => p.customerId === customerId);
   
   const { generateInvoicePDF } = await import('@/lib/pdfGenerator');
-  const { doc, invoiceNo } = generateInvoicePDF(customer, customerDeliveries, customerPayments, businessInfo);
+  const { doc, invoiceNo } = await generateInvoicePDF(customer, customerDeliveries, customerPayments, businessInfo);
+  
+  if (!doc) {
+    throw new Error('Could not instantiate PDF document.');
+  }
   
   // Create a log in localStorage
   try {

@@ -476,8 +476,12 @@ function PaymentsList() {
                          onClick={async () => {
                            try {
                              const { generatePaymentReceiptPDF } = await import('@/lib/pdfGenerator');
-                             const { doc, receiptNo } = generatePaymentReceiptPDF(payment, businessInfo);
-                             doc.save(`Receipt_${customer.name}_${payment.date}.pdf`);
+                             const { doc, receiptNo } = await generatePaymentReceiptPDF(payment, businessInfo);
+                             if (doc) {
+                               doc.save(`Receipt_${customer.name}_${payment.date}.pdf`);
+                             } else {
+                               throw new Error('Could not instantiate PDF document.');
+                             }
                            } catch (e) {
                              console.error(e);
                              alert('Failed to generate Receipt');
@@ -492,9 +496,13 @@ function PaymentsList() {
                            try {
                              const { generatePaymentReceiptPDF } = await import('@/lib/pdfGenerator');
                              const { sendPaymentReceiptWhatsApp } = await import('@/lib/whatsappUtils');
-                             const { doc, receiptNo } = generatePaymentReceiptPDF(payment, businessInfo);
-                             const pdfBlob = doc.output('blob');
-                             await sendPaymentReceiptWhatsApp(payment, customer, businessInfo, receiptNo, pdfBlob);
+                             const { doc, receiptNo } = await generatePaymentReceiptPDF(payment, businessInfo);
+                             if (doc) {
+                               const pdfBlob = doc.output('blob');
+                               await sendPaymentReceiptWhatsApp(payment, customer, businessInfo, receiptNo, pdfBlob);
+                             } else {
+                               throw new Error('Could not instantiate PDF document.');
+                             }
                            } catch (e) {
                              console.error(e);
                              alert('Failed to share to WhatsApp');

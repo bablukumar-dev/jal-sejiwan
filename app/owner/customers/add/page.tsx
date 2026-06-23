@@ -6,6 +6,7 @@ import { User, MapPin, Save, Settings, IndianRupee } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
+import { logActivity } from '@/lib/activityLogger';
 
 export default function AddCustomer() {
   const router = useRouter();
@@ -92,6 +93,22 @@ export default function AddCustomer() {
         };
 
         setCustomers([...customersArray, newCustomer]);
+        
+        logActivity(
+          'customer_added',
+          `Added new customer: ${nameVal.value} (${type}) with default quantity ${defaultQtyVal.value} and rate ₹${rateVal.value}`,
+          {
+            customer_id: newId,
+            name: nameVal.value,
+            phone: phoneVal.value,
+            route: sanitizedRoute,
+            area: sanitizedArea,
+            type,
+            rate: rateVal.value,
+            defaultQty: defaultQtyVal.value
+          }
+        );
+
         alert('Customer Successfully Added');
         const role = localStorage.getItem('userRole');
         if (role === 'staff') {

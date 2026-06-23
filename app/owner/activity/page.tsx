@@ -4,7 +4,7 @@
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { useState, useEffect, useMemo, memo } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { useAppContext } from '@/app/context/AppContext';
 import { 
@@ -96,8 +96,13 @@ export default function ActivityLogDashboard() {
 
     try {
       setIsLoading(true);
-      const logsRef = collection(db, 'workspaces', currentUser.businessId, 'activity_logs');
-      const q = query(logsRef, where("businessId", "==", currentUser.businessId));
+      const logsRef = collection(db, 'activities');
+      const q = query(
+        logsRef,
+        where("businessId", "==", currentUser.businessId),
+        orderBy("timestamp", "desc"),
+        limit(100)
+      );
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
         // Prevent empty false state by wrapping exists check
@@ -157,10 +162,13 @@ export default function ActivityLogDashboard() {
     return scopeFilteredLogs.filter(log => {
       // Action Type filter
       if (selectedActionType !== 'ALL') {
-        if (selectedActionType === 'DELIVERY' && log.action_type !== 'delivery_completed') return false;
-        if (selectedActionType === 'PAYMENT' && log.action_type !== 'payment_collected') return false;
-        if (selectedActionType === 'STAFF' && log.action_type !== 'staff_created') return false;
-        if (selectedActionType === 'OTHER' && ['delivery_completed', 'payment_collected', 'staff_created'].includes(log.action_type)) return false;
+        const actionType = log.actionType || log.action_type || '';
+        if (selectedActionType === 'DELIVERY' && actionType !== 'delivery_completed') return false;
+        if (selectedActionType === 'PAYMENT' && actionType !== 'payment_collected') return false;
+        if (selectedActionType === 'CUSTOMER_ADD' && actionType !== 'customer_added') return false;
+        if (selectedActionType === 'STAFF' && actionType !== 'staff_created') return false;
+        if (selectedActionType === 'SKIPPED' && actionType !== 'delivery_skipped') return false;
+        if (selectedActionType === 'OTHER' && ['delivery_completed', 'payment_collected', 'customer_added', 'staff_created', 'delivery_skipped'].includes(actionType)) return false;
       }
 
       // User Performer filter
@@ -174,7 +182,7 @@ export default function ActivityLogDashboard() {
         const queryStr = searchQuery.toLowerCase();
         const matchName = log.user_name.toLowerCase().includes(queryStr);
         const matchDesc = log.description.toLowerCase().includes(queryStr);
-        const matchType = log.action_type.toLowerCase().includes(queryStr);
+        const matchType = (log.actionType || log.action_type || '').toLowerCase().includes(queryStr);
         return matchName || matchDesc || matchType;
       }
 
@@ -256,9 +264,9 @@ export default function ActivityLogDashboard() {
   // Metrics Analytics Calculations
   const stats = useMemo(() => {
     const totalCount = finalLogs.length;
-    const deliveriesCount = finalLogs.filter(l => l.action_type === 'delivery_completed').length;
-    const paymentsCount = finalLogs.filter(l => l.action_type === 'payment_collected').length;
-    const staffCount = finalLogs.filter(l => l.action_type === 'staff_created').length;
+    const deliveriesCount = finalLogs.filter(l => (l.actionType || l.action_type) === 'delivery_completed').length;
+    const paymentsCount = finalLogs.filter(l => (l.actionType || l.action_type) === 'payment_collected').length;
+    const staffCount = finalLogs.filter(l => (l.actionType || l.action_type) === 'staff_created').length;
 
     // Total payment value in Firestore logs (which is filtered by business ID in onSnapshot)
     const totalPaymentsValue = logs
@@ -434,10 +442,12 @@ export default function ActivityLogDashboard() {
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Action Type</label>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { value: 'ALL', label: 'All Operations' },
+                  { value: 'ALL', label: 'All' },
                   { value: 'DELIVERY', label: 'Deliveries' },
                   { value: 'PAYMENT', label: 'Payments' },
+                  { value: 'CUSTOMER_ADD', label: 'Customer Adds' },
                   { value: 'STAFF', label: 'Staff Adds' },
+                  { value: 'SKIPPED', label: 'Skipped' },
                   { value: 'OTHER', label: 'Other' }
                 ].map((chip) => (
                   <button 

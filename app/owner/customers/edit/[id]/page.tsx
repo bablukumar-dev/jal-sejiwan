@@ -6,6 +6,7 @@ import { User, MapPin, Save, Settings, IndianRupee } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
+import { logActivity } from '@/lib/activityLogger';
 
 export default function EditCustomer() {
   const router = useRouter();
@@ -95,6 +96,22 @@ export default function EditCustomer() {
         };
 
         setCustomers(customers.map(c => c.id === customerId ? updatedCustomer : c));
+
+        logActivity(
+          'customer_edited',
+          `Edited customer ${nameVal.value} (${type}): Rate updated to ₹${rateVal.value}, default qty ${defaultQtyVal.value}`,
+          {
+            customer_id: customerId,
+            name: nameVal.value,
+            phone: phoneVal.value,
+            route: sanitizedRoute,
+            area: sanitizedArea,
+            type,
+            rate: rateVal.value,
+            defaultQty: defaultQtyVal.value
+          }
+        );
+
         alert('Customer Successfully Updated');
         router.push(`/owner/customers/${customerId}`);
     } catch (e) {

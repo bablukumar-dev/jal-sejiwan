@@ -7,6 +7,7 @@ import { CheckCircle2, Droplet, Plus, Minus, RefreshCcw } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
+import { logActivity } from '@/lib/activityLogger';
 
 export default function DispatchScreen() {
   const router = useRouter();
@@ -36,6 +37,18 @@ export default function DispatchScreen() {
         fullCans: prev.fullCans - dispatched,
         cansInDelivery: prev.cansInDelivery + dispatched
       }));
+
+      logActivity(
+        'inventory_updated',
+        `Dispatched ${dispatched} full cans to ${selectedStaff.name}`,
+        {
+          action: 'dispatch',
+          staff_id: selectedStaff.id,
+          staff_name: selectedStaff.name,
+          dispatched_qty: dispatched,
+          empty_received: emptyReceived
+        }
+      );
 
       // In a real app, we would log this dispatch to history
       router.push('/inventory/dashboard');
