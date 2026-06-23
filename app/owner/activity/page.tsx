@@ -72,6 +72,7 @@ export default function ActivityLogDashboard() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLive, setIsLive] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
 
   const toggleExpand = (logId: string) => {
@@ -89,8 +90,10 @@ export default function ActivityLogDashboard() {
 
   // Load live activity logs from Firestore
   useEffect(() => {
-    if (!currentUser.businessId) {
+    const businessId = currentUser.businessId;
+    if (!businessId) {
       setIsLoading(false);
+      setIsLoaded(true);
       return;
     }
 
@@ -99,12 +102,14 @@ export default function ActivityLogDashboard() {
       const logsRef = collection(db, 'activities');
       const q = query(
         logsRef,
-        where("businessId", "==", currentUser.businessId),
+        where("businessId", "==", businessId),
         orderBy("timestamp", "desc"),
         limit(100)
       );
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
+        console.log("Live log updated:", snapshot.docs.length);
+        setIsLoaded(true);
         // Prevent empty false state by wrapping exists check
         const exists = typeof (snapshot as any).exists === 'function' ? (snapshot as any).exists() : !snapshot.empty;
         if (!exists) {
@@ -132,14 +137,16 @@ export default function ActivityLogDashboard() {
       }, (error) => {
         console.error("Firestore listening error: ", error);
         setIsLoading(false);
+        setIsLoaded(true);
       });
 
       return () => unsubscribe();
     } catch (e) {
       console.error("Failed to setup real-time activity log subscription:", e);
       setIsLoading(false);
+      setIsLoaded(true);
     }
-  }, [currentUser.businessId, refreshKey]);
+  }, [currentUser.businessId]);
 
   // Seeding mock fallback logs if database is empty - ensures pristine UI immediately
   const fallbackLogs: ActivityLog[] = useMemo(() => {
@@ -496,7 +503,7 @@ export default function ActivityLogDashboard() {
 
         {/* Streams Container */}
         <div className="space-y-4">
-          {isLoading ? (
+          {!isLoaded || isLoading ? (
             <div className="bg-white rounded-3xl p-12 text-center border border-slate-100 flex flex-col items-center justify-center space-y-3">
               <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
               <p className="text-sm font-medium text-slate-500">Connecting to secure real-time feed...</p>
