@@ -13,7 +13,7 @@ import { wrapRoute } from '@/lib/permissionGuard';
 function DeliveriesList() {
   const router = useRouter();
   const { deliveries, customers, routes, setDeliveries } = useAppContext();
-  const [filter, setFilter] = useState('All');
+  const [activeTab, setActiveTab] = useState('all');
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [routeFilter, setRouteFilter] = useState('All Routes');
   const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
@@ -67,14 +67,23 @@ function DeliveriesList() {
   const todaysDeliveries = deliveries.filter(d => d.date === date && (routeFilter === 'All Routes' || customers.find(c => c.id === d.customerId)?.route === routeFilter));
   
   const completedCount = todaysDeliveries.filter(d => d.status?.toLowerCase() === 'delivered').length;
-  const pendingCount = todaysDeliveries.filter(d => d.status === 'Pending').length;
-  const skippedCount = todaysDeliveries.filter(d => d.status === 'Skipped').length;
+  const pendingCount = todaysDeliveries.filter(d => d.status?.toLowerCase() === 'pending').length;
+  const skippedCount = todaysDeliveries.filter(d => d.status?.toLowerCase() === 'skipped').length;
 
-  const filteredDeliveries = todaysDeliveries.filter(d => {
-    if (filter === 'All') return true;
-    if (filter === 'Delivered') return d.status?.toLowerCase() === 'delivered';
-    return d.status === filter;
-  });
+  const filteredDeliveries = useMemo(() => {
+    if (!todaysDeliveries) return [];
+
+    switch (activeTab) {
+      case 'pending':
+        return todaysDeliveries.filter(d => d.status?.toLowerCase() === 'pending');
+      case 'delivered':
+        return todaysDeliveries.filter(d => d.status?.toLowerCase() === 'delivered');
+      case 'skipped':
+        return todaysDeliveries.filter(d => d.status?.toLowerCase() === 'skipped');
+      default:
+        return todaysDeliveries;
+    }
+  }, [todaysDeliveries, activeTab]);
 
   const routeCustomers = useMemo(() => {
     return customers.filter(c => c.active && (routeFilter === 'All Routes' || c.route === routeFilter));
@@ -146,13 +155,18 @@ function DeliveriesList() {
         </div>
             {/* Filter Chips */}
             <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
-              {['All', 'Pending', 'Delivered', 'Skipped'].map(f => (
+              {[
+                { id: 'all', label: 'All' },
+                { id: 'pending', label: 'Pending' },
+                { id: 'delivered', label: 'Delivered' },
+                { id: 'skipped', label: 'Skipped' }
+              ].map(tab => (
                 <button 
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-6 py-2 rounded-full font-bold text-sm transition-colors whitespace-nowrap ${filter === f ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600'}`}
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-6 py-2 rounded-full font-bold text-sm transition-colors whitespace-nowrap ${activeTab === tab.id ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600'}`}
                 >
-                  {f}
+                  {tab.label}
                 </button>
               ))}
             </div>
@@ -183,7 +197,7 @@ function DeliveriesList() {
                   const customer = customers.find(c => c.id === delivery.customerId);
                   if (!customer) return null;
 
-                  if (delivery.status === 'Pending') {
+                  if (delivery.status?.toLowerCase() === 'pending') {
                     return (
                       <div key={delivery.id} className={`bg-white rounded-2xl p-4 border ${customer.due > 0 ? 'border-r-4 border-r-red-600 border-slate-100' : 'border-slate-100'} flex flex-col gap-3`}>
                         <div className="flex items-start gap-4">
@@ -255,7 +269,7 @@ function DeliveriesList() {
                     );
                   }
 
-                  if (delivery.status === 'Skipped') {
+                  if (delivery.status?.toLowerCase() === 'skipped') {
                     return (
                       <div key={delivery.id} className="bg-red-50 rounded-2xl p-4 border border-red-100 flex items-center gap-4 opacity-80">
                         <div className="w-12 h-12 rounded-xl bg-white border-2 border-red-200 flex items-center justify-center shrink-0">
