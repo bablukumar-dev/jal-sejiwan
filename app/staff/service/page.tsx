@@ -25,7 +25,13 @@ import { logActivity } from '@/lib/activityLogger';
 
 export default function CustomerService() {
   const router = useRouter();
-  const { deliveries, setDeliveries, customers, staff, businessInfo } = useAppContext();
+  const { deliveries, setDeliveries, customers: rawCustomers, staff, businessInfo } = useAppContext();
+
+  const customers = useMemo(() => {
+    return Array.from(
+      new Map((rawCustomers || []).map(item => [item.id, item])).values()
+    );
+  }, [rawCustomers]);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('All');

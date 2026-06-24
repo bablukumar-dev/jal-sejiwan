@@ -16,7 +16,13 @@ const getUniqueId = () => {
 
 export default function StaffCustomers() {
   const router = useRouter();
-  const { deliveries, setDeliveries, customers, staff, businessInfo } = useAppContext();
+  const { deliveries, setDeliveries, customers: rawCustomers, staff, businessInfo } = useAppContext();
+
+  const customers = useMemo(() => {
+    return Array.from(
+      new Map((rawCustomers || []).map(item => [item.id, item])).values()
+    );
+  }, [rawCustomers]);
   const [activeTab, setActiveTab] = useState<'All' | 'Pending' | 'Completed'>('Pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');

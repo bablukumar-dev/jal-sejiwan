@@ -18,7 +18,13 @@ import { AnalyticsDashboardSection } from '@/components/AnalyticsSection';
 
 function OwnerDashboard() {
   const router = useRouter();
-  const { customers, deliveries, payments, inventory, businessInfo, staff } = useAppContext();
+  const { customers: rawCustomers, deliveries, payments, inventory, businessInfo, staff } = useAppContext();
+
+  const customers = useMemo(() => {
+    return Array.from(
+      new Map((rawCustomers || []).map(item => [item.id, item])).values()
+    );
+  }, [rawCustomers]);
   const [isReminding, setIsReminding] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userRole, setUserRole] = useState<string>(() => {

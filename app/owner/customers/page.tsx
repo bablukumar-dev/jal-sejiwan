@@ -11,7 +11,13 @@ import { sendReminderWhatsApp } from '@/lib/whatsappUtils';
 import { wrapRoute } from '@/lib/permissionGuard';
 
 function CustomersList() {
-  const { customers, deliveries = [], businessInfo } = useAppContext();
+  const { customers: rawCustomers, deliveries = [], businessInfo } = useAppContext();
+
+  const customers = useMemo(() => {
+    return Array.from(
+      new Map((rawCustomers || []).map(item => [item.id, item])).values()
+    );
+  }, [rawCustomers]);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
