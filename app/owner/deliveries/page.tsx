@@ -33,13 +33,54 @@ function DeliveriesList() {
     window.location.reload();
   };
 
+  const normalizeDate = (input: any) => {
+    if (!input) return null;
+
+    if (typeof input.toDate === 'function') {
+      try {
+        return input.toDate().toISOString().split('T')[0];
+      } catch {
+        return null;
+      }
+    }
+
+    if (typeof input === 'string') {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+        return input;
+      }
+      const parts = input.split(/[-/]/);
+      if (parts.length === 3) {
+        if (parts[0].length === 2 && parts[2].length === 4) {
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        } else if (parts[0].length === 4 && parts[2].length === 2) {
+          return `${parts[0]}-${parts[1]}-${parts[2]}`;
+        }
+      }
+      try {
+        return new Date(input).toISOString().split('T')[0];
+      } catch {
+        return input;
+      }
+    }
+
+    if (typeof input === 'number') {
+      try {
+        return new Date(input).toISOString().split('T')[0];
+      } catch {
+        return null;
+      }
+    }
+
+    return null;
+  };
+
   const generateRouteDeliveries = () => {
     if (routeFilter === 'All Routes') {
       alert("Please select a specific route to generate deliveries.");
       return;
     }
     const routeCustomers = customers.filter(c => c.active && c.route === routeFilter);
-    const newDeliveries = routeCustomers.filter(c => !deliveries.some(d => d.date === date && d.customerId === c.id))
+    const newDeliveries = routeCustomers.filter(c => !deliveries.some(d => normalizeDate(d.date) === date && d.customerId === c.id))
       .map(c => ({
         id: Date.now() + c.id,
         customerId: c.id,
@@ -64,25 +105,55 @@ function DeliveriesList() {
     }
   };
 
-  const todaysDeliveries = deliveries.filter(d => d.date === date && (routeFilter === 'All Routes' || customers.find(c => c.id === d.customerId)?.route === routeFilter));
+  const todaysDeliveries = useMemo(() => {
+    if (!deliveries) return [];
+    return deliveries.filter(d => {
+      const deliveryDate = normalizeDate(d.date);
+      if (date && deliveryDate !== date) {
+        return false;
+      }
+      const customer = customers.find(c => c.id === d.customerId);
+      const deliveryRoute = customer?.route || (d as any).route || '';
+      if (routeFilter && routeFilter !== 'All Routes' && deliveryRoute !== routeFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [deliveries, date, routeFilter, customers]);
   
-  const completedCount = todaysDeliveries.filter(d => d.status?.toLowerCase() === 'delivered').length;
-  const pendingCount = todaysDeliveries.filter(d => d.status?.toLowerCase() === 'pending').length;
-  const skippedCount = todaysDeliveries.filter(d => d.status?.toLowerCase() === 'skipped').length;
+  const completedCount = useMemo(() => {
+    return todaysDeliveries.filter(d => {
+      const status = (d.status || '').toLowerCase();
+      return status === 'delivered' || status === 'done';
+    }).length;
+  }, [todaysDeliveries]);
+
+  const pendingCount = useMemo(() => {
+    return todaysDeliveries.filter(d => {
+      const status = (d.status || '').toLowerCase();
+      return status === 'pending';
+    }).length;
+  }, [todaysDeliveries]);
+
+  const skippedCount = useMemo(() => {
+    return todaysDeliveries.filter(d => {
+      const status = (d.status || '').toLowerCase();
+      return status === 'skipped';
+    }).length;
+  }, [todaysDeliveries]);
 
   const filteredDeliveries = useMemo(() => {
     if (!todaysDeliveries) return [];
 
-    switch (activeTab) {
-      case 'pending':
-        return todaysDeliveries.filter(d => d.status?.toLowerCase() === 'pending');
-      case 'delivered':
-        return todaysDeliveries.filter(d => d.status?.toLowerCase() === 'delivered');
-      case 'skipped':
-        return todaysDeliveries.filter(d => d.status?.toLowerCase() === 'skipped');
-      default:
-        return todaysDeliveries;
-    }
+    return todaysDeliveries.filter(d => {
+      if (activeTab !== 'all') {
+        const status = (d.status || '').toLowerCase();
+        if (activeTab === 'pending' && status !== 'pending') return false;
+        if (activeTab === 'delivered' && status !== 'delivered' && status !== 'done') return false;
+        if (activeTab === 'skipped' && status !== 'skipped') return false;
+      }
+      return true;
+    });
   }, [todaysDeliveries, activeTab]);
 
   const routeCustomers = useMemo(() => {
