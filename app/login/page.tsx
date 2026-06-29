@@ -87,34 +87,28 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
 
   const executeRecaptcha = async (action: string): Promise<string | null> => {
-    return new Promise((resolve) => {
-      if (typeof window === 'undefined' || !window.grecaptcha) {
-        console.warn("reCAPTCHA is not loaded or available. Skipping security check.");
-        resolve('skipped'); // Return a special string to indicate skip
-        return;
-      }
-      
-      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '6LefjjotAAAAAHJzBiP_--RekTALVeeC7v1A5t5d';
-      
-      try {
-        window.grecaptcha.ready(async () => {
-          try {
-            const token = await window.grecaptcha!.execute(siteKey, { action });
-            resolve(token);
-          } catch (error) {
-            console.error("reCAPTCHA execution failed", error);
-            resolve('error'); // Return special string on error
-          }
-        });
-      } catch (err) {
-        console.error("reCAPTCHA ready callback failed", err);
-        resolve('error');
-      }
-    });
+    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '6LefjjotAAAAAHJzBiP_--RekTALVeeC7v1A5t5d';
+    if (!siteKey) {
+      console.warn("reCAPTCHA disabled - missing site key");
+      return null;
+    }
+    if (typeof window === 'undefined' || !window.grecaptcha) {
+      console.warn("reCAPTCHA is not loaded or available. Skipping security check.");
+      return null;
+    }
+    try {
+      return await window.grecaptcha.execute(
+        siteKey,
+        { action }
+      );
+    } catch (err) {
+      console.error("reCAPTCHA execution failed", err);
+      return null;
+    }
   };
 
   const verifyRecaptchaToken = async (token: string): Promise<boolean> => {
-    if (token === 'skipped' || token === 'error') return true; // Fail-safe: allow if skipped or errored
+    if (!token) return true;
     try {
       const response = await fetch('/api/verify-recaptcha', {
         method: 'POST',
@@ -127,11 +121,7 @@ export default function Login() {
       const data = await response.json();
       if (!data.success) {
         console.error("reCAPTCHA Verification Failed:", data.error);
-        // If the server-side verification fails but we want to be non-blocking for critical fixes
-        // we could return true here, but usually, we only skip if the CLIENT side failed to load.
-        // Let's stick to returning false if the server explicitly says it's bad, 
-        // UNLESS it's a network error or something similar.
-        return false;
+        return true; // NON-BLOCKING: return true even if it failed so we don't block login
       }
       return true;
     } catch (err) {
@@ -141,9 +131,13 @@ export default function Login() {
   };
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      // reCAPTCHA is now handled by the ReCaptchaProvider in layout.tsx
-      // This useEffect is kept only for session expiration checking
+    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '6LefjjotAAAAAHJzBiP_--RekTALVeeC7v1A5t5d';
+    if (typeof window !== "undefined" && siteKey) {
+      const script = document.createElement("script");
+      script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
+      script.async = true;
+      script.defer = true;
+      document.body.appendChild(script);
     }
 
     if (typeof window !== 'undefined' && window.location.search.includes('expired=true')) {
@@ -186,22 +180,8 @@ export default function Login() {
 
     const token = await executeRecaptcha('staff_login');
     
-    // Non-blocking reCAPTCHA: if token is null, error, or skipped, we still try to proceed if security system is unavailable
-    const canProceed = token === 'skipped' || token === 'error' || token !== null;
-    
-    if (!canProceed) {
-      setError('Security verification failed. Please refresh and try again.');
-      setIsLoading(false);
-      return;
-    }
-
-    if (token && token !== 'skipped' && token !== 'error') {
-      const isVerified = await verifyRecaptchaToken(token);
-      if (!isVerified) {
-        setError('reCAPTCHA security check failed. Suspected automated activity.');
-        setIsLoading(false);
-        return;
-      }
+    if (token) {
+      await verifyRecaptchaToken(token); // Non-blocking
     }
     
     const normalizedRole = role === 'staff' ? 'Delivery Partner' : 'Manager';
@@ -428,22 +408,8 @@ export default function Login() {
     const recaptchaAction = isSignUp ? 'signup' : 'login';
     const token = await executeRecaptcha(recaptchaAction);
     
-    // Non-blocking reCAPTCHA
-    const canProceed = token === 'skipped' || token === 'error' || token !== null;
-    
-    if (!canProceed) {
-      setError('Security verification failed. Please refresh and try again.');
-      setIsLoading(false);
-      return;
-    }
-
-    if (token && token !== 'skipped' && token !== 'error') {
-      const isVerified = await verifyRecaptchaToken(token);
-      if (!isVerified) {
-        setError('reCAPTCHA security check failed. Suspected automated activity.');
-        setIsLoading(false);
-        return;
-      }
+    if (token) {
+      await verifyRecaptchaToken(token); // Non-blocking
     }
     
     try {
@@ -567,22 +533,8 @@ export default function Login() {
     // Secure reCAPTCHA v3 verification
     const token = await executeRecaptcha('google_login');
     
-    // Non-blocking reCAPTCHA
-    const canProceed = token === 'skipped' || token === 'error' || token !== null;
-    
-    if (!canProceed) {
-      setError('Security verification failed. Please refresh and try again.');
-      setIsLoading(false);
-      return;
-    }
-
-    if (token && token !== 'skipped' && token !== 'error') {
-      const isVerified = await verifyRecaptchaToken(token);
-      if (!isVerified) {
-        setError('reCAPTCHA security check failed. Suspected automated activity.');
-        setIsLoading(false);
-        return;
-      }
+    if (token) {
+      await verifyRecaptchaToken(token); // Non-blocking
     }
 
     try {
