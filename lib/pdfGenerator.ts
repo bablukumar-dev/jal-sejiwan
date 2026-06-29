@@ -5,15 +5,21 @@ const LOGO_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAB4CAMAA
 
 const loadImageAsBase64 = async (url: string): Promise<string> => {
   if (typeof window === 'undefined') return '';
-  const res = await fetch(url);
-  const blob = await res.blob();
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return '';
+    const blob = await res.blob();
 
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve((reader.result as string) || '');
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.error("Error loading image as base64:", err);
+    return '';
+  }
 };
 
 export const generateInvoicePDF = async (

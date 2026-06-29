@@ -504,8 +504,15 @@ export default function LandingPage() {
         {/* Section 5: Screen Preview */}
         <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm text-center">
           <h2 className="text-2xl font-bold mb-6 text-slate-900">See JalSejiwan in Action</h2>
-          <div className="bg-slate-100 rounded-xl h-63 flex items-center justify-center text-slate-400 border border-slate-200 font-medium text-sm">
-            [Dashboard Preview Placeholder]
+          <div className="mt-8 flex justify-center">
+            <Image
+              src="/images/jalsejiwan-hero.png"
+              alt="JalSejiwan Dashboard Preview"
+              width={1400}
+              height={750}
+              priority
+              className="w-full h-auto rounded-2xl shadow-xl"
+            />
           </div>
         </section>
 

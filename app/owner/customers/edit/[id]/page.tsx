@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import TopAppBar from '@/components/TopAppBar';
-import { User, MapPin, Save, Settings, IndianRupee } from 'lucide-react';
+import { User, MapPin, Save, Settings, IndianRupee, Camera } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
 import { logActivity } from '@/lib/activityLogger';
+import { storage } from '@/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function EditCustomer() {
   const router = useRouter();
@@ -34,13 +36,17 @@ export default function EditCustomer() {
   const [subscriptionPlan, setSubscriptionPlan] = useState<'None' | 'Monthly' | 'Unlimited' | 'Custom'>(customer?.subscriptionPlan || 'None');
   const [riskLevel, setRiskLevel] = useState<'Low' | 'Medium' | 'High'>(customer?.riskLevel || 'Low');
 
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(customer?.imageURL || null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const [errors, setErrors] = useState<{name?: string, phone?: string}>({});
 
   if (!customer) {
     return <div className="min-h-screen bg-slate-50 flex items-center justify-center">Customer not found</div>;
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
         const newErrors: {name?: string, phone?: string} = {};
         
@@ -73,6 +79,23 @@ export default function EditCustomer() {
 
         const currentBusinessId = customer?.businessId || (typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business');
         
+        let uploadedImageURL = customer?.imageURL || '';
+        if (selectedImage) {
+          try {
+            setIsUploading(true);
+            const imageRef = ref(storage, `customers/${currentBusinessId}_${customerId}/profile.jpg`);
+            await uploadBytes(imageRef, selectedImage);
+            uploadedImageURL = await getDownloadURL(imageRef);
+          } catch (uploadError) {
+            console.error("Firebase Storage upload error:", uploadError);
+            alert("Image upload failed, but customer will be updated without the new image.");
+          } finally {
+            setIsUploading(false);
+          }
+        } else if (imagePreview === null) {
+          uploadedImageURL = '';
+        }
+
         const updatedCustomer = {
           ...customer,
           name: nameVal.value,
@@ -92,7 +115,8 @@ export default function EditCustomer() {
           walletBalance: walletBalanceVal.value,
           subscriptionPlan,
           riskLevel,
-          businessId: currentBusinessId
+          businessId: currentBusinessId,
+          imageURL: uploadedImageURL
         };
 
         setCustomers(customers.map(c => c.id === customerId ? updatedCustomer : c));
@@ -108,7 +132,8 @@ export default function EditCustomer() {
             area: sanitizedArea,
             type,
             rate: rateVal.value,
-            defaultQty: defaultQtyVal.value
+            defaultQty: defaultQtyVal.value,
+            imageURL: uploadedImageURL
           }
         );
 
@@ -161,6 +186,53 @@ export default function EditCustomer() {
                 />
               </div>
               {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 block">Customer Image / Grahak Ya Dukaan Ki Photo</label>
+              <div className="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">
+                {imagePreview ? (
+                  <img src={imagePreview} className="w-16 h-16 rounded-full object-cover border border-slate-200" alt="Preview" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                    <Camera className="w-6 h-6 text-slate-400" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <label className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all active:scale-95">
+                    {isUploading ? 'Uploading...' : 'Choose Photo'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={isUploading}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSelectedImage(file);
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setImagePreview(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                  {imagePreview && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedImage(null);
+                        setImagePreview(null);
+                      }}
+                      className="ml-3 text-xs text-red-500 font-bold hover:underline"
+                    >
+                      Remove
+                    </button>
+                  )}
+                  <p className="text-[10px] text-slate-400 mt-1">Upload a shop/house or profile photo.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

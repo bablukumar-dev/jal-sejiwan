@@ -26,8 +26,60 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
     return isLowInventory || hasMissedPayments;
   }, [inventory.fullCans, customers]);
 
+  const executeRecaptcha = async (action: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined' || !window.grecaptcha) {
+        console.warn("reCAPTCHA is not loaded or available.");
+        resolve(null);
+        return;
+      }
+      
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '6LefjjotAAAAAHJzBiP_--RekTALVeeC7v1A5t5d';
+      
+      window.grecaptcha.ready(async () => {
+        try {
+          const token = await window.grecaptcha!.execute(siteKey, { action });
+          resolve(token);
+        } catch (error) {
+          console.error("reCAPTCHA execution failed", error);
+          resolve(null);
+        }
+      });
+    });
+  };
+
+  const verifyRecaptchaToken = async (token: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/verify-recaptcha', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+      
+      const data = await response.json();
+      if (!data.success) {
+        console.error("reCAPTCHA Verification Failed:", data.error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Error verifying reCAPTCHA:", err);
+      return false;
+    }
+  };
+
   const handleLogout = async () => {
     try {
+      const token = await executeRecaptcha('logout');
+      if (token) {
+        const isVerified = await verifyRecaptchaToken(token);
+        if (!isVerified) {
+          console.warn("reCAPTCHA logout verification failed. Proceeding with sign out but logged anomaly.");
+        }
+      }
+
       await auth.signOut();
       
       // Clear all local auth credentials, role settings, and cached business data completely

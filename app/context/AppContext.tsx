@@ -1,7 +1,7 @@
  
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase';
@@ -27,6 +27,7 @@ export type Customer = {
   subscriptionPlan?: 'None' | 'Monthly' | 'Unlimited' | 'Custom';
   riskLevel?: 'Low' | 'Medium' | 'High';
   businessId?: string;
+  imageURL?: string;
 };
 
 export type Delivery = {
@@ -138,9 +139,12 @@ type AppContextType = {
   setAreas: React.Dispatch<React.SetStateAction<string[]>>;
   businessInfo: BusinessInfo;
   setBusinessInfo: React.Dispatch<React.SetStateAction<BusinessInfo>>;
+  isOnline: boolean;
+  syncStatus: 'synced' | 'pending' | 'syncing' | 'error';
+  triggerSync: () => Promise<void>;
 };
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const initialCustomers: Customer[] = [];
 
@@ -202,6 +206,58 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const snapshotReceivedRef = useRef(false);
   const isSaving = useRef(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [isOnline, setIsOnline] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return navigator.onLine;
+    }
+    return true;
+  });
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'pending' | 'syncing' | 'error'>(() => {
+    if (typeof window !== 'undefined') {
+      return navigator.onLine ? 'synced' : 'pending';
+    }
+    return 'synced';
+  });
+  const hasUnsyncedChangesRef = useRef<boolean>(false);
+
+  const latestStateRef = useRef({
+    customers,
+    deliveries,
+    payments,
+    inventory,
+    inventoryHistory,
+    staff,
+    routes,
+    areas,
+    businessInfo
+  });
+
+  useEffect(() => {
+    latestStateRef.current = {
+      customers,
+      deliveries,
+      payments,
+      inventory,
+      inventoryHistory,
+      staff,
+      routes,
+      areas,
+      businessInfo
+    };
+  }, [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo]);
+
+  // Read initial unsynced changes status from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const pending = localStorage.getItem('hasUnsyncedChanges') === 'true';
+      hasUnsyncedChangesRef.current = pending;
+      if (pending) {
+        const timer = setTimeout(() => setSyncStatus('pending'), 0);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
 
   // Poll localStorage for businessId changes to detect logins/logouts dynamically
   useEffect(() => {
@@ -408,12 +464,60 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [ownerId]);
 
+  // Define a centralized manual triggerSync function
+  const triggerSync = useCallback(async () => {
+    if (!ownerId) return;
+    if (typeof window === "undefined") return;
+
+    const stateToSync = latestStateRef.current;
+    const stringified = JSON.stringify(stateToSync);
+
+    setSyncStatus('syncing');
+    try {
+      await setDoc(doc(db, 'workspaces', ownerId), stateToSync);
+      hasUnsyncedChangesRef.current = false;
+      localStorage.setItem('hasUnsyncedChanges', 'false');
+      setSyncStatus('synced');
+      lastRemoteData.current = stringified;
+    } catch (e) {
+      console.error("Failed to sync state to workspace manually/reconnect", e);
+      setSyncStatus(navigator.onLine ? 'error' : 'pending');
+    }
+  }, [ownerId]);
+
+  // Monitor network status dynamically and auto-sync on recovery
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      if (hasUnsyncedChangesRef.current) {
+        triggerSync();
+      } else {
+        setSyncStatus('synced');
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setSyncStatus('pending');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [ownerId, triggerSync]);
+
   // Push local modifications to Firestore and update cache
   useEffect(() => {
     if (!isInitialized) return;
     if (ownerId && !snapshotReceivedRef.current) return; // Wait for server fetch to prevent overwriting with old cache
 
-    const currentLocalStr = JSON.stringify({
+    const currentState = {
       customers,
       deliveries,
       payments,
@@ -423,7 +527,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       routes,
       areas,
       businessInfo
-    });
+    };
+
+    const currentLocalStr = JSON.stringify(currentState);
 
     localStorage.setItem('customers', JSON.stringify(customers));
     localStorage.setItem('deliveries', JSON.stringify(deliveries));
@@ -438,7 +544,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // If local state exactly matches the remote data, skip writing
     if (currentLocalStr === lastRemoteData.current) return;
 
-    lastRemoteData.current = currentLocalStr;
+    // We have local modifications that differ from what was last successfully synced/received
+    hasUnsyncedChangesRef.current = true;
+    localStorage.setItem('hasUnsyncedChanges', 'true');
 
     const currentOwnerId = ownerId;
 
@@ -446,35 +554,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(debounceTimerRef.current);
     }
 
+    // If offline, mark as pending and exit early (no server request needed)
+    if (!navigator.onLine) {
+      const pendingTimer = setTimeout(() => setSyncStatus('pending'), 0);
+      return () => clearTimeout(pendingTimer);
+    }
+
+    const syncingTimer = setTimeout(() => setSyncStatus('syncing'), 0);
+
     debounceTimerRef.current = setTimeout(async () => {
       if (!currentOwnerId || isSaving.current) return;
       isSaving.current = true;
       try {
-        await setDoc(doc(db, 'workspaces', currentOwnerId), {
-          customers,
-          deliveries,
-          payments,
-          inventory,
-          inventoryHistory,
-          staff,
-          routes,
-          areas,
-          businessInfo
-        });
+        await setDoc(doc(db, 'workspaces', currentOwnerId), currentState);
+        hasUnsyncedChangesRef.current = false;
+        localStorage.setItem('hasUnsyncedChanges', 'false');
+        setSyncStatus('synced');
+        lastRemoteData.current = currentLocalStr;
       } catch (e) {
         console.error("Failed to sync state to workspace", e);
+        setSyncStatus(navigator.onLine ? 'error' : 'pending');
       } finally {
         isSaving.current = false;
       }
     }, 1500);
 
     return () => {
+      clearTimeout(syncingTimer);
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
     };
   }, [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isInitialized, ownerId]);
 
+  // Background auto-sync worker interval: healer for intermittent connection issues
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const interval = setInterval(() => {
+      if (navigator.onLine && hasUnsyncedChangesRef.current && ownerId) {
+        triggerSync();
+      }
+    }, 15000); // Poll connection and sync status every 15 seconds
+
+    return () => clearInterval(interval);
+  }, [ownerId, triggerSync]);
 
   const contextValue = React.useMemo(() => ({
     customers, setCustomers,
@@ -485,8 +609,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     staff, setStaff,
     routes, setRoutes,
     areas, setAreas,
-    businessInfo, setBusinessInfo
-  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo]);
+    businessInfo, setBusinessInfo,
+    isOnline,
+    syncStatus,
+    triggerSync
+  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, triggerSync]);
 
   if (!isInitialized) return null; // Avoid hydration mismatch by waiting for mount
 

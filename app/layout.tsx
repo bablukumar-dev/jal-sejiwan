@@ -1,5 +1,6 @@
 import type {Metadata} from 'next';
 import { Inter, Source_Serif_4 } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css'; // Global styles
 import { AppProvider } from './context/AppContext';
 
@@ -38,6 +39,8 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '6LefjjotAAAAAHJzBiP_--RekTALVeeC7v1A5t5d';
+
   return (
     <html lang="en" className={`${inter.variable} ${sourceSerif.variable}`}>
       <head>
@@ -57,6 +60,10 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         />
       </head>
       <body suppressHydrationWarning className="antialiased">
+        <Script
+          src={`https://www.google.com/recaptcha/api.js?render=${siteKey}`}
+          strategy="afterInteractive"
+        />
         <AppProvider>
           <AuthGuard>
             <RoleGuard>
@@ -68,3 +75,4 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     </html>
   );
 }
+

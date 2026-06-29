@@ -9,7 +9,7 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithP
 import { doc, setDoc, getDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { useAppContext } from '@/app/context/AppContext';
 import { comparePin } from '@/lib/authHelper';
-import { checkClientRateLimit } from '@/lib/rateLimit';
+import { checkClientRateLimit, checkFirestoreLoginRateLimit, recordFailedLoginAttempt, resetFailedLoginAttempts } from '@/lib/rateLimit';
 import { logActivity } from '@/lib/activityLogger';
 
 enum OperationType {
@@ -86,6 +86,50 @@ export default function Login() {
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const executeRecaptcha = async (action: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined' || !window.grecaptcha) {
+        console.warn("reCAPTCHA is not loaded or available.");
+        resolve(null);
+        return;
+      }
+      
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '6LefjjotAAAAAHJzBiP_--RekTALVeeC7v1A5t5d';
+      
+      window.grecaptcha.ready(async () => {
+        try {
+          const token = await window.grecaptcha!.execute(siteKey, { action });
+          resolve(token);
+        } catch (error) {
+          console.error("reCAPTCHA execution failed", error);
+          resolve(null);
+        }
+      });
+    });
+  };
+
+  const verifyRecaptchaToken = async (token: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/verify-recaptcha', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+      
+      const data = await response.json();
+      if (!data.success) {
+        console.error("reCAPTCHA Verification Failed:", data.error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Error verifying reCAPTCHA:", err);
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.search.includes('expired=true')) {
       const timer = setTimeout(() => {
@@ -99,17 +143,40 @@ export default function Login() {
   }, []);
 
   const handleStaffLogin = async () => {
+    const cleanPhone = phone.trim();
+    setIsLoading(true);
+    setError('');
+
+    // Firestore-backed login rate limiting (5 failed attempts in 10 minutes)
+    const firestoreLimit = await checkFirestoreLoginRateLimit(cleanPhone);
+    if (firestoreLimit.limited) {
+      setError(firestoreLimit.msg || 'Too many failed login attempts. Temporarily blocked.');
+      setIsLoading(false);
+      return;
+    }
+
     // Rate limit login attempts to max 5 within 60 seconds of any single session
     const limitStatus = checkClientRateLimit('login_attempts', 5, 60);
     if (limitStatus.limited) {
       setError(limitStatus.msg || 'Too many sign-in attempts. Please try again after 1 minute.');
+      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
-    setError('');
+    // Secure reCAPTCHA v3 verification
+    const token = await executeRecaptcha('staff_login');
+    if (!token) {
+      setError('reCAPTCHA initiation failed. Please refresh the page and try again.');
+      setIsLoading(false);
+      return;
+    }
+    const isVerified = await verifyRecaptchaToken(token);
+    if (!isVerified) {
+      setError('reCAPTCHA security check failed. Suspected automated activity.');
+      setIsLoading(false);
+      return;
+    }
     
-    const cleanPhone = phone.trim();
     const normalizedRole = role === 'staff' ? 'Delivery Partner' : 'Manager';
     
     try {
@@ -164,6 +231,7 @@ export default function Login() {
       }
 
       if (!isMatch) {
+         await recordFailedLoginAttempt(cleanPhone);
          const failedAttempts = (s.failedPinAttempts || 0) + 1;
          
          // Temporary localStorage setup for logging purposes
@@ -213,6 +281,7 @@ export default function Login() {
       }
 
       // Success! Reset attempts.
+      await resetFailedLoginAttempts(cleanPhone);
       if (docSnap.exists()) {
          await setDoc(docRef, { failedPinAttempts: 0, pinLockedUntil: null }, { merge: true });
          
@@ -254,12 +323,13 @@ export default function Login() {
         }
       }
 
+      const targetRole = s.role === 'Manager' ? 'manager' : 'staff';
+
       localStorage.setItem('businessId', businessId);
       if (ownerIdFromFirestore) {
          localStorage.setItem('ownerId', ownerIdFromFirestore);
       }
       
-      const targetRole = s.role === 'Manager' ? 'manager' : 'staff';
       redirectBasedOnRole(targetRole);
 
     } catch (e) {
@@ -279,25 +349,53 @@ export default function Login() {
   };
 
   const handleEmailAuth = async () => {
+    const cleanEmail = email.trim();
+    setIsLoading(true);
+    setError('');
+    setSuccessMessage('');
+
+    // Firestore-backed login rate limiting
+    const firestoreLimit = await checkFirestoreLoginRateLimit(cleanEmail);
+    if (firestoreLimit.limited) {
+      setError(firestoreLimit.msg || 'Too many failed login attempts. Temporarily blocked.');
+      setIsLoading(false);
+      return;
+    }
+
     // Rate limit email auth attempts to max 5 within 60 seconds
     const limitStatus = checkClientRateLimit('login_attempts', 5, 60);
     if (limitStatus.limited) {
       setError(limitStatus.msg || 'Too many sign-in attempts. Please try again after 1 minute.');
+      setIsLoading(false);
       return;
     }
 
-    if (isLoading) return;
     if (isSignUp && !name.trim()) {
       setError('Please enter your name.');
+      setIsLoading(false);
       return;
     }
-    setIsLoading(true);
-    setError('');
-    setSuccessMessage('');
+
+    // Secure reCAPTCHA v3 verification
+    const recaptchaAction = isSignUp ? 'signup' : 'login';
+    const token = await executeRecaptcha(recaptchaAction);
+    if (!token) {
+      setError('reCAPTCHA initiation failed. Please refresh the page and try again.');
+      setIsLoading(false);
+      return;
+    }
+    const isVerified = await verifyRecaptchaToken(token);
+    if (!isVerified) {
+      setError('reCAPTCHA security check failed. Suspected automated activity.');
+      setIsLoading(false);
+      return;
+    }
+    
     try {
       if (isSignUp) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, {
+        const user = userCredential.user;
+        await updateProfile(user, {
           displayName: name
         });
         
@@ -309,34 +407,38 @@ export default function Login() {
             businessId: generatedBusinessId,
             businessName: `${name || 'New'}'s Business`,
             createdAt: new Date().toISOString(),
-            ownerId: userCredential.user.uid
+            ownerId: user.uid
           });
 
-          await setDoc(doc(db, 'users', userCredential.user.uid), {
+          await setDoc(doc(db, 'users', user.uid), {
             name: name,
-            email: userCredential.user.email,
+            email: user.email,
             role: role,
             businessId: generatedBusinessId,
             createdAt: serverTimestamp(),
           });
         } catch (firestoreErr) {
-          handleFirestoreError(firestoreErr, OperationType.WRITE, `users/${userCredential.user.uid}`);
+          handleFirestoreError(firestoreErr, OperationType.WRITE, `users/${user.uid}`);
         }
         
         // Send email verification
-        await sendEmailVerification(userCredential.user);
+        await sendEmailVerification(user);
         await signOut(auth); // Sign out so they have to log in after verifying
         setSuccessMessage('Account created! Please check your email to verify your account before logging in.');
         setIsSignUp(false);
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
         
-        if (!userCredential.user.emailVerified) {
+        if (!user.emailVerified) {
           await signOut(auth);
+          alert("Verify your email first.");
           setError('Please verify your email address before logging in. Check your inbox.');
           setIsLoading(false);
           return;
         }
+
+        await resetFailedLoginAttempts(cleanEmail);
         
         let targetRole = role;
         let businessId = 'default_business';
@@ -380,6 +482,7 @@ export default function Login() {
         redirectBasedOnRole(targetRole);
       }
     } catch (err: any) {
+      await recordFailedLoginAttempt(cleanEmail);
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
         setError('Email or password is incorrect');
       } else if (err.code === 'auth/email-already-in-use') {
@@ -399,6 +502,21 @@ export default function Login() {
     setIsLoading(true);
     setError('');
     setSuccessMessage('');
+
+    // Secure reCAPTCHA v3 verification
+    const token = await executeRecaptcha('google_login');
+    if (!token) {
+      setError('reCAPTCHA initiation failed. Please refresh the page and try again.');
+      setIsLoading(false);
+      return;
+    }
+    const isVerified = await verifyRecaptchaToken(token);
+    if (!isVerified) {
+      setError('reCAPTCHA security check failed. Suspected automated activity.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });

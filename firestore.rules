@@ -41,24 +41,21 @@ service cloud.firestore {
     // Matches workspaces/{workspaceId}, where workspaceId is the businessId.
     // 
     // Secure Tenant Isolation: Access is strictly restricted to matches of the tenant's businessId.
-    // For Owners (with Firebase Auth): May only read/write if workspaceId == their user's businessId.
-    // For Staff: Owners have an additional backend-level guard checking that workspaceId matches,
-    // and staff can write as long as correct workspace ID is provided, preventing cross-tenant access.
+    // For Owners (with Firebase Auth) and Staff/Managers (with Anonymous Firebase Auth): 
+    // May only read/write if workspaceId == their user's businessId. No public read allowed.
     match /workspaces/{workspaceId} {
-      allow read, write: if (
-        isSignedIn() && getUserBusinessId() == workspaceId
-      ) || (
-        !isSignedIn() && workspaceId != null
-      );
+      allow read, write: if isSignedIn() && getUserBusinessId() == workspaceId;
 
       // Secure Subcollection for activity logs
       match /activity_logs/{logId} {
-        allow read, write: if (
-          isSignedIn() && getUserBusinessId() == workspaceId
-        ) || (
-          !isSignedIn() && workspaceId != null
-        );
+        allow read, write: if isSignedIn() && getUserBusinessId() == workspaceId;
       }
+    }
+
+    // Secure Customers collection (explicitly requested)
+    match /customers/{doc} {
+      allow read, write: if request.auth != null
+        && request.auth.token.businessId == resource.data.businessId;
     }
 
     // 4. Staff Users collection
