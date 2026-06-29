@@ -14,13 +14,23 @@ const safeGet = (key: string): string | null => {
   }
 };
 
+const publicPaths = [
+  '/login',
+  '/',
+  '/about',
+  '/contact',
+  '/privacy',
+  '/privacy-policy',
+  '/terms',
+  '/terms-and-conditions'
+];
+
 export function RoleGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname() || '';
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    const publicPaths = ['/login', '/'];
     if (publicPaths.includes(pathname) || pathname === '/unauthorized') {
       setAuthorized(true);
       return;
@@ -122,7 +132,6 @@ export function RoleGuard({ children }: { children: React.ReactNode }) {
   }, [pathname, router]);
 
   if (!authorized) {
-    const publicPaths = ['/login', '/'];
     if (!publicPaths.includes(pathname) && pathname !== '/unauthorized') {
       return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">

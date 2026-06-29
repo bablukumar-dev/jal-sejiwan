@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TopAppBar from '@/components/TopAppBar';
-import { User, MapPin, Save, Settings, IndianRupee, Camera } from 'lucide-react';
+import { User, MapPin, Save, Settings, IndianRupee, Camera, X, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
@@ -35,10 +35,59 @@ export default function AddCustomer() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   const userRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') || '' : '';
 
   const [errors, setErrors] = useState<{name?: string, phone?: string}>({});
+
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      setStream(mediaStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+      setShowCamera(true);
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      alert("Could not access camera. Please check permissions.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], "captured_photo.jpg", { type: "image/jpeg" });
+            setSelectedImage(file);
+            setImagePreview(canvas.toDataURL('image/jpeg'));
+            stopCamera();
+          }
+        }, 'image/jpeg');
+      }
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -198,26 +247,36 @@ export default function AddCustomer() {
                   </div>
                 )}
                 <div className="flex-1">
-                  <label className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all active:scale-95">
-                    {isUploading ? 'Uploading...' : 'Choose Photo'}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={isUploading}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setSelectedImage(file);
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setImagePreview(reader.result as string);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                  </label>
+                  <div className="flex gap-2">
+                    <label className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all active:scale-95 inline-block">
+                      {isUploading ? 'Uploading...' : 'Choose Photo'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={isUploading}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setSelectedImage(file);
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setImagePreview(reader.result as string);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={startCamera}
+                      className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1"
+                    >
+                      <Camera className="w-3 h-3" />
+                      Capture
+                    </button>
+                  </div>
                   {imagePreview && (
                     <button
                       type="button"
@@ -517,6 +576,35 @@ export default function AddCustomer() {
           </div>
         </div>
 
+        {showCamera && (
+          <div className="fixed inset-0 bg-black z-[100] flex flex-col">
+            <div className="p-4 flex justify-between items-center bg-black/50 text-white">
+              <h3 className="font-bold">Capture Photo</h3>
+              <button onClick={stopCamera} className="p-2 hover:bg-white/10 rounded-full">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                className="w-full h-full object-cover"
+              />
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+
+            <div className="p-8 flex justify-center bg-black/50">
+              <button 
+                onClick={capturePhoto}
+                className="w-16 h-16 bg-white rounded-full flex items-center justify-center active:scale-90 transition-transform border-4 border-slate-300"
+              >
+                <div className="w-12 h-12 rounded-full border-2 border-slate-900" />
+              </button>
+            </div>
+          </div>
+        )}
       </main>
 
       <div className="fixed bottom-0 left-0 w-full p-4 bg-white border-t border-slate-200 z-50">

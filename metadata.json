@@ -1,6 +1,6 @@
 {
   "name": "JalSejiwan",
-  "description": "Smart Water Management App",
+  "description": "Water Delivery Management Software India for 20 litre water jar businesses. Manage billing, inventory, tracking and WhatsApp reminders.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

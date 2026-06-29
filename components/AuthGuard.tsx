@@ -5,7 +5,16 @@ import { useRouter, usePathname } from 'next/navigation';
 import { auth, db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
-const publicPaths = ['/login', '/'];
+const publicPaths = [
+  '/login',
+  '/',
+  '/about',
+  '/contact',
+  '/privacy',
+  '/privacy-policy',
+  '/terms',
+  '/terms-and-conditions'
+];
 
 const safeGet = (key: string): string | null => {
   if (typeof window === "undefined") return null;
