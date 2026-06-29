@@ -141,7 +141,11 @@ type AppContextType = {
   setBusinessInfo: React.Dispatch<React.SetStateAction<BusinessInfo>>;
   isOnline: boolean;
   syncStatus: 'synced' | 'pending' | 'syncing' | 'error';
+  isBackgroundSyncing: boolean;
+  syncProgress: number;
   triggerSync: () => Promise<void>;
+  setBackgroundSyncing: (isSyncing: boolean) => void;
+  setSyncProgress: (progress: number) => void;
 };
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -220,6 +224,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return 'synced';
   });
   const hasUnsyncedChangesRef = useRef<boolean>(false);
+
+  const [isBackgroundSyncing, setIsBackgroundSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState(0);
 
   const latestStateRef = useRef({
     customers,
@@ -612,8 +619,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     businessInfo, setBusinessInfo,
     isOnline,
     syncStatus,
-    triggerSync
-  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, triggerSync]);
+    isBackgroundSyncing,
+    syncProgress,
+    triggerSync,
+    setBackgroundSyncing: setIsBackgroundSyncing,
+    setSyncProgress
+  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, isBackgroundSyncing, syncProgress, triggerSync]);
 
   if (!isInitialized) return null; // Avoid hydration mismatch by waiting for mount
 

@@ -131,6 +131,18 @@ export default function Login() {
   };
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+      if (!siteKey) {
+        console.error("reCAPTCHA site key is missing! Check NEXT_PUBLIC_RECAPTCHA_SITE_KEY environment variable.");
+      }
+      const script = document.createElement("script");
+      script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey || '6LefjjotAAAAAHJzBiP_--RekTALVeeC7v1A5t5d'}`;
+      script.async = true;
+      script.defer = true;
+      document.body.appendChild(script);
+    }
+
     if (typeof window !== 'undefined' && window.location.search.includes('expired=true')) {
       const timer = setTimeout(() => {
         setError('Session expired due to 30 minutes of inactivity. Please log in again.');
@@ -143,6 +155,12 @@ export default function Login() {
   }, []);
 
   const handleStaffLogin = async () => {
+    if (typeof window === "undefined") return;
+    if (!window.grecaptcha) {
+      alert("Security system not loaded. Please refresh.");
+      return;
+    }
+
     const cleanPhone = phone.trim();
     setIsLoading(true);
     setError('');
@@ -349,6 +367,12 @@ export default function Login() {
   };
 
   const handleEmailAuth = async () => {
+    if (typeof window === "undefined") return;
+    if (!window.grecaptcha) {
+      alert("Security system not loaded. Please refresh.");
+      return;
+    }
+
     const cleanEmail = email.trim();
     setIsLoading(true);
     setError('');
@@ -498,6 +522,12 @@ export default function Login() {
   };
 
   const handleGoogleLogin = async () => {
+    if (typeof window === "undefined") return;
+    if (!window.grecaptcha) {
+      alert("Security system not loaded. Please refresh.");
+      return;
+    }
+
     if (isLoading) return;
     setIsLoading(true);
     setError('');

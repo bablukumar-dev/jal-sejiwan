@@ -3,7 +3,10 @@ import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { getUnsyncedDeliveries, markAsSynced } from './idb';
 import { logActivity } from './activityLogger';
 
-export const syncOfflineDeliveries = async (businessId: string) => {
+export const syncOfflineDeliveries = async (
+  businessId: string, 
+  onProgress?: (current: number, total: number) => void
+) => {
   if (!businessId) return;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
 
@@ -11,6 +14,11 @@ export const syncOfflineDeliveries = async (businessId: string) => {
   if (pending.length === 0) return;
 
   console.log(`JalSejiwan Sync: Attempting to sync ${pending.length} offline deliveries...`);
+
+  let processed = 0;
+  const total = pending.length;
+  
+  if (onProgress) onProgress(0, total);
 
   for (const entry of pending) {
     try {
@@ -24,6 +32,8 @@ export const syncOfflineDeliveries = async (businessId: string) => {
         const deliveryExists = (data.deliveries || []).find((d: any) => d.id === entry.deliveryId && d.status === 'delivered');
         if (deliveryExists) {
           await markAsSynced(entry.id);
+          processed++;
+          if (onProgress) onProgress(processed, total);
           continue;
         }
 
@@ -105,7 +115,6 @@ export const syncOfflineDeliveries = async (businessId: string) => {
         }
 
         // Apply all updates to Firestore
-        // We use the whole state update pattern consistent with AppContext
         await updateDoc(workspaceRef, {
           deliveries: (data.deliveries || []).map((d: any) => d.id === entry.deliveryId ? newDelivery : d),
           customers: updatedCustomers,
@@ -120,10 +129,12 @@ export const syncOfflineDeliveries = async (businessId: string) => {
           `Synced offline delivery for customer ID ${entry.customerId}`,
           { entry_id: entry.id, delivery_id: entry.deliveryId }
         );
+
+        processed++;
+        if (onProgress) onProgress(processed, total);
       }
     } catch (error) {
       console.error(`Sync failed for entry ${entry.id}:`, error);
-      // Stop syncing if one fails to avoid state inconsistencies
       break; 
     }
   }

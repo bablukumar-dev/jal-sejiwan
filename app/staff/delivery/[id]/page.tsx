@@ -8,6 +8,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { logActivity } from '@/lib/activityLogger';
 import { validateAmount, validateQuantity } from '@/lib/validation';
+import { savePendingDelivery } from '@/lib/idb';
 
 export default function DeliveryEntry() {
   const router = useRouter();
@@ -162,6 +163,22 @@ export default function DeliveryEntry() {
         }
 
         const parsedAmount = collectedAmountVal.value;
+
+        // Save to IndexedDB for Background Sync
+        const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
+        await savePendingDelivery({
+          deliveryId,
+          customerId: customer.id,
+          customerName: customer.name,
+          deliveredQty: delivered,
+          returnedEmpty: empties,
+          damagedQty: damagedQty,
+          paymentMode: paymentType,
+          paymentAmount: parsedAmount,
+          date: date,
+          rate: currentRate,
+          businessId: currentBusinessId
+        });
 
         // Update delivery
         const updatedDeliveries = deliveries.map(d => 
