@@ -87,19 +87,6 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-    if (typeof window !== "undefined") {
-      if (!siteKey) {
-        console.error("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not defined");
-      } else {
-        const script = document.createElement("script");
-        script.src = "https://www.google.com/recaptcha/api.js";
-        script.async = true;
-        script.defer = true;
-        document.body.appendChild(script);
-      }
-    }
-
     if (typeof window !== 'undefined' && window.location.search.includes('expired=true')) {
       const timer = setTimeout(() => {
         setError('Session expired due to 30 minutes of inactivity. Please log in again.');
@@ -113,10 +100,6 @@ export default function Login() {
 
   const handleStaffLogin = async () => {
     if (typeof window === "undefined") return;
-    // Do not block if grecaptcha is not present, just log warning
-    if (!window.grecaptcha) {
-      console.warn("Security system not loaded. Attempting login without reCAPTCHA.");
-    }
 
     const cleanPhone = phone.trim();
     setIsLoading(true);
@@ -138,13 +121,6 @@ export default function Login() {
       return;
     }
 
-    const recaptchaResponse = (window as any).grecaptcha?.getResponse();
-    if (!recaptchaResponse) {
-      alert("Please complete the CAPTCHA");
-      setIsLoading(false);
-      return;
-    }
-    
     const normalizedRole = role === 'staff' ? 'Delivery Partner' : 'Manager';
     
     try {
@@ -333,10 +309,6 @@ export default function Login() {
 
   const handleEmailAuth = async () => {
     if (typeof window === "undefined") return;
-    // Do not block if grecaptcha is not present
-    if (!window.grecaptcha) {
-      console.warn("Security system not loaded. Attempting login without reCAPTCHA.");
-    }
 
     const cleanEmail = email.trim();
     setIsLoading(true);
@@ -365,13 +337,6 @@ export default function Login() {
       return;
     }
 
-    const recaptchaResponse = (window as any).grecaptcha?.getResponse();
-    if (!recaptchaResponse) {
-      alert("Please complete the CAPTCHA");
-      setIsLoading(false);
-      return;
-    }
-    
     try {
       if (isSignUp) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -480,22 +445,11 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     if (typeof window === "undefined") return;
-    // Do not block if grecaptcha is not present
-    if (!window.grecaptcha) {
-      console.warn("Security system not loaded. Attempting login without reCAPTCHA.");
-    }
 
     if (isLoading) return;
     setIsLoading(true);
     setError('');
     setSuccessMessage('');
-
-    const recaptchaResponse = (window as any).grecaptcha?.getResponse();
-    if (!recaptchaResponse) {
-      alert("Please complete the CAPTCHA");
-      setIsLoading(false);
-      return;
-    }
 
     try {
       const provider = new GoogleAuthProvider();
@@ -730,13 +684,6 @@ export default function Login() {
             </div>
           </>
         )}
-
-        <div className="mt-4 flex justify-center mb-4">
-          <div
-            className="g-recaptcha"
-            data-sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
-          ></div>
-        </div>
 
         <button 
           onClick={handleAuth}

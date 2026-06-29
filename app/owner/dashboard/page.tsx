@@ -2,6 +2,7 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
+import { motion } from 'motion/react';
 import { Truck, Wallet, Droplet, Package, AlertTriangle, UserPlus, FileText, Users, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
@@ -217,7 +218,12 @@ function OwnerDashboard() {
             <span className="font-bold text-slate-900">{deliveryPercentage}%</span>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-2">
-            <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${deliveryPercentage}%` }}></div>
+            <motion.div
+              className="bg-blue-600 h-2 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${deliveryPercentage}%` }}
+              transition={{ duration: 1, ease: "easeOut" }}
+            ></motion.div>
           </div>
         </div>
 
