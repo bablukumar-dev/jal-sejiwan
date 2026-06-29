@@ -145,8 +145,8 @@ function OwnerDashboard() {
   const cashCollected = useMemo(() => payments.filter(p => p.date === today).reduce((sum, p) => sum + p.amount, 0), [payments, today]);
   const totalDue = useMemo(() => customers.reduce((sum, c) => sum + c.due, 0), [customers]);
 
-  const targetDeliveries = customers.length;
-  const deliveryPercentage = useMemo(() => targetDeliveries > 0 ? Math.round((todayDeliveriesCount / targetDeliveries) * 100) : (todayDeliveriesCount > 0 ? 100 : 0), [todayDeliveriesCount, targetDeliveries]);
+  const totalCustomers = customers.length;
+  const deliveryPercentage = useMemo(() => totalCustomers > 0 ? Math.round((todayDeliveriesCount / totalCustomers) * 100) : (todayDeliveriesCount > 0 ? 100 : 0), [todayDeliveriesCount, totalCustomers]);
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] text-slate-900 antialiased pb-12 flex flex-col justify-start">
@@ -208,10 +208,10 @@ function OwnerDashboard() {
           <div className="absolute top-4 right-4 opacity-5">
             <Truck className="w-24 h-24 text-slate-400" />
           </div>
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Deliveries Today</h3>
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Today&apos;s Target</h3>
           <div className="flex items-end gap-2 mb-4">
             <span className="text-4xl font-bold text-slate-900">{todayDeliveriesCount}</span>
-            <span className="text-xl font-medium text-slate-400 mb-1">/{targetDeliveries}</span>
+            <span className="text-xl font-medium text-slate-400 mb-1">/{totalCustomers}</span>
           </div>
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="text-slate-600">Target Reached</span>
@@ -282,7 +282,7 @@ function OwnerDashboard() {
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 mt-6">Quick Operations</h3>
           <div className="grid grid-cols-2 gap-3">
             {(userRole === 'owner' || userRole === 'manager' || userRole === 'staff') && (
-              <button id="onboarding-add-customer" onClick={() => router.push('/owner/customers/add')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
+              <button id="onboarding-add-customer" onClick={() => router.push(userRole === 'staff' ? '/staff/customers/add' : '/owner/customers/add')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
                 <UserPlus className="w-6 h-6 text-blue-600" />
                 <span className="text-sm font-medium text-slate-700">Add Customer</span>
               </button>

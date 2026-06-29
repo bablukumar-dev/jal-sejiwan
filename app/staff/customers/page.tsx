@@ -175,7 +175,7 @@ export default function StaffCustomers() {
             <p className="text-sm text-slate-600">Track & Deliver</p>
           </div>
           {(userRole === 'owner' || userRole === 'manager' || userRole === 'staff') && (
-             <Link href="/owner/customers/add" className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 active:scale-95 transition-transform text-sm">
+             <Link href={userRole === 'staff' ? '/staff/customers/add' : '/owner/customers/add'} className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 active:scale-95 transition-transform text-sm">
                <Plus className="w-4 h-4" /> Add Customer
              </Link>
           )}
