@@ -86,58 +86,18 @@ export default function Login() {
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const executeRecaptcha = async (action: string): Promise<string | null> => {
-    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '6LefjjotAAAAAHJzBiP_--RekTALVeeC7v1A5t5d';
-    if (!siteKey) {
-      console.warn("reCAPTCHA disabled - missing site key");
-      return null;
-    }
-    if (typeof window === 'undefined' || !window.grecaptcha) {
-      console.warn("reCAPTCHA is not loaded or available. Skipping security check.");
-      return null;
-    }
-    try {
-      return await window.grecaptcha.execute(
-        siteKey,
-        { action }
-      );
-    } catch (err) {
-      console.error("reCAPTCHA execution failed", err);
-      return null;
-    }
-  };
-
-  const verifyRecaptchaToken = async (token: string): Promise<boolean> => {
-    if (!token) return true;
-    try {
-      const response = await fetch('/api/verify-recaptcha', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token }),
-      });
-      
-      const data = await response.json();
-      if (!data.success) {
-        console.error("reCAPTCHA Verification Failed:", data.error);
-        return true; // NON-BLOCKING: return true even if it failed so we don't block login
-      }
-      return true;
-    } catch (err) {
-      console.error("Error verifying reCAPTCHA:", err);
-      return true; // Fail-safe on network error
-    }
-  };
-
   useEffect(() => {
-    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '6LefjjotAAAAAHJzBiP_--RekTALVeeC7v1A5t5d';
-    if (typeof window !== "undefined" && siteKey) {
-      const script = document.createElement("script");
-      script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
-      script.async = true;
-      script.defer = true;
-      document.body.appendChild(script);
+    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+    if (typeof window !== "undefined") {
+      if (!siteKey) {
+        console.error("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not defined");
+      } else {
+        const script = document.createElement("script");
+        script.src = "https://www.google.com/recaptcha/api.js";
+        script.async = true;
+        script.defer = true;
+        document.body.appendChild(script);
+      }
     }
 
     if (typeof window !== 'undefined' && window.location.search.includes('expired=true')) {
@@ -178,10 +138,11 @@ export default function Login() {
       return;
     }
 
-    const token = await executeRecaptcha('staff_login');
-    
-    if (token) {
-      await verifyRecaptchaToken(token); // Non-blocking
+    const recaptchaResponse = (window as any).grecaptcha?.getResponse();
+    if (!recaptchaResponse) {
+      alert("Please complete the CAPTCHA");
+      setIsLoading(false);
+      return;
     }
     
     const normalizedRole = role === 'staff' ? 'Delivery Partner' : 'Manager';
@@ -404,12 +365,11 @@ export default function Login() {
       return;
     }
 
-    // Secure reCAPTCHA v3 verification
-    const recaptchaAction = isSignUp ? 'signup' : 'login';
-    const token = await executeRecaptcha(recaptchaAction);
-    
-    if (token) {
-      await verifyRecaptchaToken(token); // Non-blocking
+    const recaptchaResponse = (window as any).grecaptcha?.getResponse();
+    if (!recaptchaResponse) {
+      alert("Please complete the CAPTCHA");
+      setIsLoading(false);
+      return;
     }
     
     try {
@@ -530,11 +490,11 @@ export default function Login() {
     setError('');
     setSuccessMessage('');
 
-    // Secure reCAPTCHA v3 verification
-    const token = await executeRecaptcha('google_login');
-    
-    if (token) {
-      await verifyRecaptchaToken(token); // Non-blocking
+    const recaptchaResponse = (window as any).grecaptcha?.getResponse();
+    if (!recaptchaResponse) {
+      alert("Please complete the CAPTCHA");
+      setIsLoading(false);
+      return;
     }
 
     try {
@@ -770,6 +730,13 @@ export default function Login() {
             </div>
           </>
         )}
+
+        <div className="mt-4 flex justify-center mb-4">
+          <div
+            className="g-recaptcha"
+            data-sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+          ></div>
+        </div>
 
         <button 
           onClick={handleAuth}

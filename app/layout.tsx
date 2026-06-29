@@ -18,7 +18,6 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { RoleGuard } from '@/components/RoleGuard';
 import BackgroundSync from '@/components/BackgroundSync';
 import SyncIndicator from '@/components/SyncIndicator';
-import ReCaptchaProvider from '@/components/ReCaptchaProvider';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL || 'https://jalsejiwan.in'),
@@ -61,7 +60,6 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         />
       </head>
       <body suppressHydrationWarning className="antialiased">
-        <ReCaptchaProvider />
         <AppProvider>
           <BackgroundSync />
           <SyncIndicator />
