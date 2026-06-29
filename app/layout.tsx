@@ -16,6 +16,7 @@ const sourceSerif = Source_Serif_4({
 
 import { AuthGuard } from '@/components/AuthGuard';
 import { RoleGuard } from '@/components/RoleGuard';
+import BackgroundSync from '@/components/BackgroundSync';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL || 'https://jalsejiwan.in'),
@@ -65,6 +66,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
           strategy="afterInteractive"
         />
         <AppProvider>
+          <BackgroundSync />
           <AuthGuard>
             <RoleGuard>
               {children}

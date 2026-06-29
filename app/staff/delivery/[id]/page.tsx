@@ -109,7 +109,7 @@ export default function DeliveryEntry() {
     ? customCollectedStr 
     : (paymentType === 'Due' ? '0' : subtotal.toString());
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     const prevDeliveries = [...deliveries];
     const prevInventory = {...inventory};
     const prevPayments = [...payments];
