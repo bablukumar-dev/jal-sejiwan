@@ -8,6 +8,7 @@ import { auth } from '@/firebase';
 import OnlineStatusBadge from '@/components/OnlineStatusBadge';
 import { useAppContext } from '@/app/context/AppContext';
 import { useMemo } from 'react';
+import { RefreshCw } from 'lucide-react';
 
 interface TopAppBarProps {
   title: string;
@@ -108,8 +109,13 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
     }
   };
 
+  const { isBackgroundSyncing, syncProgress } = useAppContext();
+
   return (
     <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 w-full h-[60px]">
+      {isBackgroundSyncing && (
+        <div className="absolute top-0 left-0 h-0.5 bg-blue-600 transition-all duration-300 z-[60]" style={{ width: `${syncProgress}%` }} />
+      )}
       <div className="flex justify-between items-center px-4 h-[60px] max-w-md mx-auto">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="flex items-center gap-2 shrink-0">
@@ -131,7 +137,14 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
             />
           </div>
           <div className="flex flex-col min-w-0 ml-1">
-            {subtitle && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate">{subtitle}</span>}
+            {subtitle && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate">{subtitle}</span>
+                {isBackgroundSyncing && (
+                  <RefreshCw className="w-2.5 h-2.5 text-blue-600 animate-spin" />
+                )}
+              </div>
+            )}
             <h1 className="text-sm font-bold text-slate-900 truncate leading-tight">{title}</h1>
           </div>
         </div>

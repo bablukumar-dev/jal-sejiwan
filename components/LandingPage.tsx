@@ -45,16 +45,30 @@ export default function LandingPage() {
 
       <main className="max-w-5xl mx-auto px-4 py-12 space-y-20">
         {/* Section 1: Hero */}
-        <section className="text-center space-y-6">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900">
-            JalSejiwan – Water Delivery Management Software India
-          </h1>
-          <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
-            Digitize your 20 litre water jar delivery business with real-time billing, inventory tracking, and WhatsApp automation. Our comprehensive Water Supply Business Management App is designed specifically for drinking water supply startups, helping you track active delivery routes, collect pending payments on time, and build customer trust through digital invoicing.
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Link href="/login" className="font-bold bg-blue-600 text-white px-6 py-3 rounded-xl shadow-sm hover:bg-blue-700">Start Free Trial</Link>
-            <Link href="/login" className="font-bold bg-white text-slate-900 border border-slate-200 px-6 py-3 rounded-xl shadow-sm hover:bg-slate-50">Login</Link>
+        <section className="text-center space-y-10">
+          <div className="space-y-6">
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900">
+              JalSejiwan – Water Delivery Management Software India
+            </h1>
+            <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
+              Digitize your 20 litre water jar delivery business with real-time billing, inventory tracking, and WhatsApp automation. Our comprehensive Water Supply Business Management App is designed specifically for drinking water supply startups.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Link href="/login" className="font-bold bg-blue-600 text-white px-6 py-3 rounded-xl shadow-sm hover:bg-blue-700">Start Free Trial</Link>
+              <Link href="/login" className="font-bold bg-white text-slate-900 border border-slate-200 px-6 py-3 rounded-xl shadow-sm hover:bg-slate-50">Login</Link>
+            </div>
+          </div>
+
+          <div className="relative max-w-4xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-blue-100 bg-white p-2 md:p-4">
+            <Image
+              src="/images/hero-illustration.jpg"
+              alt="JalSejiwan Hero Illustration"
+              width={1920}
+              height={1080}
+              priority
+              className="rounded-2xl"
+              referrerPolicy="no-referrer"
+            />
           </div>
         </section>
 
@@ -498,21 +512,6 @@ export default function LandingPage() {
               <div className="text-lg font-bold text-blue-700">15% Optimized</div>
               <div className="text-[10px] text-slate-500 font-medium font-sans">Route mileage and delivery vehicle fuel spend</div>
             </div>
-          </div>
-        </section>
-
-        {/* Section 5: Screen Preview */}
-        <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm text-center">
-          <h2 className="text-2xl font-bold mb-6 text-slate-900">See JalSejiwan in Action</h2>
-          <div className="mt-8 flex justify-center">
-            <Image
-              src="/images/jalsejiwan-hero.png"
-              alt="JalSejiwan Dashboard Preview"
-              width={1400}
-              height={750}
-              priority
-              className="w-full h-auto rounded-2xl shadow-xl"
-            />
           </div>
         </section>
 

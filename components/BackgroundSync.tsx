@@ -13,30 +13,35 @@ export default function BackgroundSync() {
     const runSync = async () => {
       if (isSyncing.current) return;
       
-      const businessId = localStorage.getItem('businessId');
-      if (!businessId) return;
+      try {
+        const businessId = localStorage.getItem('businessId');
+        if (!businessId) return;
 
-      if (typeof navigator !== 'undefined' && navigator.onLine) {
-        isSyncing.current = true;
-        setBackgroundSyncing(true);
-        setSyncProgress(0);
-        
-        try {
-          await syncOfflineDeliveries(businessId, (current, total) => {
-            const percentage = Math.round((current / total) * 100);
-            setSyncProgress(percentage);
-          });
-          await deleteSyncedDeliveries(); // Cleanup
-        } catch (error) {
-          console.error("BackgroundSync error:", error);
-        } finally {
-          isSyncing.current = false;
-          // Small delay before hiding progress indicator for better UX
-          setTimeout(() => {
-            setBackgroundSyncing(false);
-            setSyncProgress(0);
-          }, 2000);
+        if (typeof navigator !== 'undefined' && navigator.onLine) {
+          isSyncing.current = true;
+          setBackgroundSyncing(true);
+          setSyncProgress(0);
+          
+          try {
+            await syncOfflineDeliveries(businessId, (current, total) => {
+              const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+              setSyncProgress(percentage);
+            });
+            await deleteSyncedDeliveries(); // Cleanup
+          } catch (syncError) {
+            console.error("Sync process error:", syncError);
+          } finally {
+            isSyncing.current = false;
+            // Small delay before hiding progress indicator for better UX
+            setTimeout(() => {
+              setBackgroundSyncing(false);
+              setSyncProgress(0);
+            }, 2000);
+          }
         }
+      } catch (error) {
+        console.error("BackgroundSync runSync error:", error);
+        isSyncing.current = false;
       }
     };
 
@@ -53,7 +58,7 @@ export default function BackgroundSync() {
       window.removeEventListener('online', runSync);
       clearInterval(interval);
     };
-  }, []);
+  }, [setBackgroundSyncing, setSyncProgress]);
 
   return null; // This component doesn't render anything
 }

@@ -336,6 +336,17 @@ export default function CustomerDetail() {
 
         {/* Tab Content */}
         <div className="space-y-3">
+          {activeTab === 'Ledger' && (
+            <div className="mb-4">
+              <button 
+                onClick={handleGenerateBill}
+                className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-sm"
+              >
+                <FileText className="w-5 h-5 text-blue-600" />
+                <span>Download Full Ledger Report (PDF)</span>
+              </button>
+            </div>
+          )}
           {activeTab === 'Ledger' && ledger.map((item, i) => (
             <div key={i} className={`bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 ${(item as any).status === 'Skipped' ? 'opacity-80' : ''}`}>
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${item.type === 'delivery' ? ((item as any).status === 'Skipped' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600') : 'bg-orange-100 text-orange-600'}`}>

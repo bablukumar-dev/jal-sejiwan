@@ -18,6 +18,7 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { RoleGuard } from '@/components/RoleGuard';
 import BackgroundSync from '@/components/BackgroundSync';
 import SyncIndicator from '@/components/SyncIndicator';
+import ReCaptchaProvider from '@/components/ReCaptchaProvider';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL || 'https://jalsejiwan.in'),
@@ -41,8 +42,6 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
-  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '6LefjjotAAAAAHJzBiP_--RekTALVeeC7v1A5t5d';
-
   return (
     <html lang="en" className={`${inter.variable} ${sourceSerif.variable}`}>
       <head>
@@ -62,10 +61,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         />
       </head>
       <body suppressHydrationWarning className="antialiased">
-        <Script
-          src={`https://www.google.com/recaptcha/api.js?render=${siteKey}`}
-          strategy="afterInteractive"
-        />
+        <ReCaptchaProvider />
         <AppProvider>
           <BackgroundSync />
           <SyncIndicator />
