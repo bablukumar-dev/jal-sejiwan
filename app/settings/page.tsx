@@ -2,13 +2,14 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle, CheckCircle2, Search, ChevronDown } from 'lucide-react';
+import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle, CheckCircle2, Search, ChevronDown, RefreshCcw, Database, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { auth } from '@/firebase';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
+import { getUnsyncedDeliveries } from '@/lib/idb';
 
 const INDIAN_LANGUAGES = [
   'English', 'हिन्दी (Hindi)', 'বাংলা (Bengali)', 'తెలుగు (Telugu)', 
@@ -112,6 +113,24 @@ export default function SettingsPage() {
     return 'owner';
   });
   const [userName, setUserName] = useState<string>('');
+  const [pendingSyncs, setPendingSyncs] = useState<any[]>([]);
+  const [isSyncLogOpen, setIsSyncLogOpen] = useState(false);
+
+  const fetchPendingSyncs = useCallback(async () => {
+    const unsynced = await getUnsyncedDeliveries();
+    setPendingSyncs(unsynced);
+  }, []);
+
+  useEffect(() => {
+    const initFetch = async () => {
+      await fetchPendingSyncs();
+    };
+    initFetch();
+    
+    // Refresh every 10 seconds while on this page
+    const interval = setInterval(fetchPendingSyncs, 10000);
+    return () => clearInterval(interval);
+  }, [fetchPendingSyncs]);
 
   useEffect(() => {
     let unmounted = false;
@@ -370,7 +389,7 @@ export default function SettingsPage() {
             </div>
             <button 
               onClick={() => setIsLangModalOpen(true)}
-              className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group"
+              className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group"
             >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-orange-50 group-hover:text-orange-600 transition-colors">
@@ -384,6 +403,28 @@ export default function SettingsPage() {
               <div className="flex bg-slate-50 border border-slate-100 rounded-xl p-1 items-center">
                 <span className="text-slate-700 text-[10px] font-bold px-3 py-1">{selectedLanguage.split(' ')[0]}</span>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400 mr-1" />
+              </div>
+            </button>
+            <button 
+              onClick={() => setIsSyncLogOpen(true)}
+              className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                  <RefreshCcw className={`w-5 h-5 ${pendingSyncs.length > 0 ? 'animate-spin-slow text-blue-600' : ''}`} />
+                </div>
+                <div className="text-left">
+                  <h4 className="font-bold text-slate-900">Offline Sync Log</h4>
+                  <p className="text-xs text-slate-500">{pendingSyncs.length > 0 ? `${pendingSyncs.length} actions waiting to sync` : 'All data is up to date'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {pendingSyncs.length > 0 && (
+                  <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
+                    {pendingSyncs.length}
+                  </div>
+                )}
+                <ChevronRight className="w-5 h-5 text-slate-300" />
               </div>
             </button>
           </div>
@@ -635,6 +676,102 @@ export default function SettingsPage() {
 
 
 
+      {/* Offline Sync Log Modal */}
+      <AnimatePresence>
+        {isSyncLogOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm"
+               onClick={() => setIsSyncLogOpen(false)}>
+            <motion.div 
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-lg shadow-xl max-h-[85vh] flex flex-col"
+            >
+              <div className="flex justify-between items-center mb-2 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <RefreshCcw className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900">Offline Sync Log</h2>
+                </div>
+                <button 
+                  onClick={() => setIsSyncLogOpen(false)} 
+                  className="p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mb-6 shrink-0">
+                {pendingSyncs.length > 0 
+                  ? "The following deliveries were recorded while offline and will be synced automatically when you connect to the internet."
+                  : "All your deliveries are successfully synced to the cloud database."}
+              </p>
+
+              <div className="flex-1 overflow-y-auto pr-1 space-y-3 overscroll-contain pb-6">
+                {pendingSyncs.length > 0 ? (
+                  pendingSyncs.map((sync) => (
+                    <div key={sync.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex flex-col gap-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-bold text-slate-900">{sync.customerName || `Customer #${sync.customerId}`}</h4>
+                          <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                            {new Date(sync.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-md flex items-center gap-1">
+                          <Database className="w-3 h-3" /> PENDING
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-2 mt-1">
+                        <div className="bg-white p-2 rounded-xl border border-slate-100 text-center">
+                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Delivered</p>
+                          <p className="text-sm font-bold text-blue-600">{sync.deliveredQty}</p>
+                        </div>
+                        <div className="bg-white p-2 rounded-xl border border-slate-100 text-center">
+                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Empty</p>
+                          <p className="text-sm font-bold text-slate-600">{sync.returnedEmpty}</p>
+                        </div>
+                        <div className="bg-white p-2 rounded-xl border border-slate-100 text-center">
+                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Damaged</p>
+                          <p className="text-sm font-bold text-red-600">{sync.damagedQty}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-100 mt-1">
+                        <span className="text-slate-500 font-medium">Payment: <span className="text-slate-900 font-bold">{sync.paymentMode}</span></span>
+                        <span className="text-slate-900 font-bold">₹{sync.paymentAmount}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle2 className="w-8 h-8" />
+                    </div>
+                    <h3 className="font-bold text-slate-900">System Synced</h3>
+                    <p className="text-xs text-slate-500 mt-1">No pending offline actions found.</p>
+                  </div>
+                )}
+              </div>
+
+              {pendingSyncs.length > 0 && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-2xl flex items-start gap-3 border border-blue-100 shrink-0">
+                  <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-bold text-blue-900">Auto-sync is active</p>
+                    <p className="text-[10px] text-blue-700 leading-relaxed mt-0.5">
+                      The app will automatically sync these entries once it detects a stable internet connection. Please keep the app open for a few seconds when you go online.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

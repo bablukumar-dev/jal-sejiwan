@@ -46,6 +46,22 @@ export default function AddCustomer() {
 
   const [errors, setErrors] = useState<{name?: string, phone?: string}>({});
 
+  useEffect(() => {
+    // Proactively request camera permission to ensure "Capture" works smoothly
+    const checkPermission = async () => {
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          // We don't need a high quality stream here, just any video to trigger prompt
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1, height: 1 } });
+          stream.getTracks().forEach(track => track.stop());
+        }
+      } catch (err) {
+        console.warn("Camera permission not granted yet or not available:", err);
+      }
+    };
+    checkPermission();
+  }, []);
+
   const startCamera = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 

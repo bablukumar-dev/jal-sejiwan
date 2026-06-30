@@ -13,11 +13,16 @@ export default function ImageCropperModal({ image, onConfirm, onClose }: ImageCr
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [aspect, setAspect] = useState<number | undefined>(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
+
+  const toggleAspect = () => {
+    setAspect(prev => prev === 1 ? undefined : 1);
+  };
 
   const getCroppedImg = async (imageSrc: string, pixelCrop: any, rotation = 0) => {
     const image = new Image();
@@ -71,7 +76,7 @@ export default function ImageCropperModal({ image, onConfirm, onClose }: ImageCr
           crop={crop}
           zoom={zoom}
           rotation={rotation}
-          aspect={1 / 1}
+          aspect={aspect}
           onCropChange={setCrop}
           onCropComplete={onCropComplete}
           onZoomChange={setZoom}
@@ -80,11 +85,26 @@ export default function ImageCropperModal({ image, onConfirm, onClose }: ImageCr
 
       <div className="p-4 bg-black/50 flex flex-col gap-4">
         <div className="flex items-center gap-4">
-          <button onClick={() => setRotation(r => r + 90)} className="bg-white/20 p-3 rounded-full text-white">
+          <button 
+            onClick={() => setRotation(r => r + 90)} 
+            className="bg-white/20 p-3 rounded-full text-white"
+            title="Rotate"
+          >
             <RotateCw className="w-6 h-6" />
           </button>
-          <input
-            type="range"
+          
+          <button 
+            onClick={toggleAspect} 
+            className={`p-3 rounded-xl font-bold text-xs transition-colors ${aspect === 1 ? 'bg-blue-600 text-white' : 'bg-white/20 text-white'}`}
+            title="Lock 1:1 Aspect Ratio"
+          >
+            {aspect === 1 ? '1:1 Locked' : 'Free Crop'}
+          </button>
+
+          <div className="flex-1 flex items-center gap-2">
+            <span className="text-white text-xs">Zoom</span>
+            <input
+              type="range"
             value={zoom}
             min={1}
             max={3}
@@ -94,6 +114,7 @@ export default function ImageCropperModal({ image, onConfirm, onClose }: ImageCr
             className="flex-1"
           />
         </div>
+      </div>
         
         <button
           onClick={handleConfirm}
