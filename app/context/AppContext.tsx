@@ -120,6 +120,12 @@ export type BusinessInfo = {
   };
 };
 
+export type CurrentUser = {
+  uid: string;
+  role: string;
+  businessId: string;
+};
+
 type AppContextType = {
   customers: Customer[];
   setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
@@ -146,6 +152,8 @@ type AppContextType = {
   triggerSync: () => Promise<void>;
   setBackgroundSyncing: (isSyncing: boolean) => void;
   setSyncProgress: (progress: number) => void;
+  currentUser: CurrentUser | null;
+  setCurrentUser: React.Dispatch<React.SetStateAction<CurrentUser | null>>;
 };
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -205,6 +213,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(initialBusinessInfo);
   const [isInitialized, setIsInitialized] = useState(false);
   const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   const lastRemoteData = useRef<string | null>(null);
   const snapshotReceivedRef = useRef(false);
@@ -655,8 +664,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     syncProgress,
     triggerSync,
     setBackgroundSyncing: setIsBackgroundSyncing,
-    setSyncProgress
-  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, isBackgroundSyncing, syncProgress, triggerSync]);
+    setSyncProgress,
+    currentUser,
+    setCurrentUser
+  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, isBackgroundSyncing, syncProgress, triggerSync, currentUser]);
 
   if (!isInitialized) return null; // Avoid hydration mismatch by waiting for mount
 

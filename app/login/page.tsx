@@ -69,7 +69,7 @@ const getLockTime = () => {
 
 export default function Login() {
   const router = useRouter();
-  const { staff, setStaff } = useAppContext();
+  const { staff, setStaff, setCurrentUser } = useAppContext();
   const [role, setRole] = useState<'owner' | 'staff' | 'manager'>('owner');
   
   // Email state (Owner)
@@ -404,8 +404,19 @@ export default function Login() {
         let targetRole = role;
         let businessId = 'default_business';
         try {
-          const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-          if (userDoc.exists()) {
+          let userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+          
+          if (!userDoc.exists()) {
+            // Try managers collection
+            const managerDoc = await getDoc(doc(db, 'managers', userCredential.user.uid));
+            if (managerDoc.exists()) {
+              userDoc = managerDoc;
+              targetRole = managerDoc.data().role || 'manager';
+              businessId = managerDoc.data().businessId || 'default_business';
+            } else {
+              throw new Error("User role document not found");
+            }
+          } else {
             const data = userDoc.data();
             if (data.role) {
               targetRole = data.role;
@@ -431,6 +442,12 @@ export default function Login() {
               await setDoc(doc(db, 'users', userCredential.user.uid), { businessId }, { merge: true });
             }
           }
+          
+          setCurrentUser({
+            uid: userCredential.user.uid,
+            role: targetRole,
+            businessId: businessId
+          });
         } catch (firestoreErr) {
           console.error("Could not fetch user role, proceeding with limited functionality", firestoreErr);
           setError("Server temporarily unavailable. Please try again later.");

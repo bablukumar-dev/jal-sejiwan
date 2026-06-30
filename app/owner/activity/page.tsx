@@ -91,6 +91,7 @@ export default function ActivityLogDashboard() {
   // Load live activity logs from Firestore
   useEffect(() => {
     if (!currentUser || !currentUser.businessId) {
+      console.warn("businessId not available yet");
       setIsLoading(false);
       setIsLoaded(true);
       return;
