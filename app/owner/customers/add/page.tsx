@@ -9,6 +9,7 @@ import { sanitizeString, validateName, validatePhone, validateAmount, validateQu
 import { logActivity } from '@/lib/activityLogger';
 import { storage } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import ImageCropperModal from '@/components/ImageCropperModal';
 
 export default function AddCustomer() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function AddCustomer() {
   
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [tempImage, setTempImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -77,14 +79,8 @@ export default function AddCustomer() {
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], "captured_photo.jpg", { type: "image/jpeg" });
-            setSelectedImage(file);
-            setImagePreview(canvas.toDataURL('image/jpeg'));
-            stopCamera();
-          }
-        }, 'image/jpeg');
+        setTempImage(canvas.toDataURL('image/jpeg'));
+        stopCamera();
       }
     }
   };
@@ -258,10 +254,9 @@ export default function AddCustomer() {
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            setSelectedImage(file);
                             const reader = new FileReader();
                             reader.onloadend = () => {
-                              setImagePreview(reader.result as string);
+                              setTempImage(reader.result as string);
                             };
                             reader.readAsDataURL(file);
                           }
@@ -295,6 +290,7 @@ export default function AddCustomer() {
             </div>
           </div>
         </div>
+
 
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-4">
           <div className="flex items-center gap-2 mb-4">
@@ -575,6 +571,18 @@ export default function AddCustomer() {
             </div>
           </div>
         </div>
+
+        {tempImage && (
+          <ImageCropperModal
+            image={tempImage}
+            onConfirm={(file) => {
+              setSelectedImage(file);
+              setImagePreview(URL.createObjectURL(file));
+              setTempImage(null);
+            }}
+            onClose={() => setTempImage(null)}
+          />
+        )}
 
         {showCamera && (
           <div className="fixed inset-0 bg-black z-[100] flex flex-col">
