@@ -2,15 +2,14 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import firebaseConfigJson from './firebase-applet-config.json';
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || firebaseConfigJson.apiKey,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || firebaseConfigJson.authDomain,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || firebaseConfigJson.projectId,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || firebaseConfigJson.storageBucket,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || firebaseConfigJson.messagingSenderId,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || firebaseConfigJson.appId,
+  apiKey: "AIzaSyDbdQtcLk1w6_svvQrMr2UUytwvB1k8qZI",
+  authDomain: "gen-lang-client-0612602011.firebaseapp.com",
+  projectId: "gen-lang-client-0612602011",
+  storageBucket: "gen-lang-client-0612602011.firebasestorage.app",
+  messagingSenderId: "769403451177",
+  appId: "1:769403451177:web:a1c0e276ba5eca6c212938",
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
@@ -18,5 +17,3 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-
-
