@@ -588,7 +588,7 @@ export default function Login() {
     }
     if (role === 'manager') {
       localStorage.setItem('userRole', 'manager');
-      router.push('/owner/dashboard');
+      router.push('/staff/dashboard');
       return;
     }
     if (role === 'staff') {
