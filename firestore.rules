@@ -87,5 +87,11 @@ service cloud.firestore {
         allow read, write: if isTenant(workspaceId);
       }
     }
+
+    // 5. Rate limiting
+    match /login_attempts/{docId} {
+      allow write: if true;
+      allow read: if false;
+    }
   }
 }
