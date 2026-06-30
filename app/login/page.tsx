@@ -205,7 +205,7 @@ export default function Login() {
              updateData.pinLockedUntil = getLockTime();
              setError('Account temporarily locked. Contact Owner.');
            } else {
-             setError(`Wrong password. Attempts remaining: ${5 - failedAttempts}`);
+             setError('Invalid PIN');
            }
            await setDoc(docRef, updateData, { merge: true });
          } else {
@@ -216,7 +216,7 @@ export default function Login() {
              updatedStaff[idx].pinLockedUntil = getLockTime();
              setError('Account temporarily locked. Contact Owner.');
            } else {
-             setError(`Wrong password. Attempts remaining: ${5 - failedAttempts}`);
+             setError('Invalid PIN');
            }
            setStaff(updatedStaff);
          }
@@ -315,7 +315,7 @@ export default function Login() {
   };
 
   const handleAuth = () => {
-     if (role === 'owner') {
+     if (role === 'owner' || role === 'manager') {
          handleEmailAuth();
      } else {
          handleStaffLogin();
@@ -458,6 +458,8 @@ export default function Login() {
       await recordFailedLoginAttempt(cleanEmail);
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
         setError('Email or password is incorrect');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Invalid email address');
       } else if (err.code === 'auth/email-already-in-use') {
         setError('User already exists. Please sign in');
       } else if (err.code === 'auth/network-request-failed') {
@@ -631,7 +633,7 @@ export default function Login() {
         {error && <div className="w-full mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">{error}</div>}
         {successMessage && <div className="w-full mb-4 p-3 bg-emerald-50 text-emerald-600 text-sm rounded-xl border border-emerald-100">{successMessage}</div>}
 
-        {role === 'owner' ? (
+        {role === 'owner' || role === 'manager' ? (
           <>
             {isSignUp && (
               <div className="w-full mb-4">
