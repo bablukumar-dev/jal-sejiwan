@@ -42,8 +42,11 @@ export async function checkFirestoreLoginRateLimit(identifier: string): Promise<
         };
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to check firestore rate limit:', error);
+    // Graceful fallback: If Firestore is offline or unreachable, allow the login to proceed
+    // to avoid blocking user access due to connectivity issues during rate limit check.
+    return { limited: false };
   }
   return { limited: false };
 }
