@@ -93,5 +93,10 @@ service cloud.firestore {
       allow write: if true;
       allow read: if false;
     }
+
+    // 6. Managers
+    match /managers/{docId} {
+      allow read: if isSignedIn();
+    }
   }
 }

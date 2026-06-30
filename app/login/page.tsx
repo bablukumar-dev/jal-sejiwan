@@ -432,7 +432,11 @@ export default function Login() {
             }
           }
         } catch (firestoreErr) {
-          console.error("Could not fetch user role", firestoreErr);
+          console.error("Could not fetch user role, proceeding with limited functionality", firestoreErr);
+          setError("Server temporarily unavailable. Please try again later.");
+          setIsLoading(false);
+          await signOut(auth);
+          return;
         }
         
         if (targetRole === 'owner') {
