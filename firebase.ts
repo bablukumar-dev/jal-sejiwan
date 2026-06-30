@@ -14,6 +14,6 @@ export const auth = getAuth(app);
 export const storage = getStorage(app);
 
 // Avoid "Firestore has already been initialized" exceptions in Next.js HMR/SSR cycles
-export const db = !getApps().length ? getFirestore(app) : getFirestore(app);
+export const db = getFirestore(app);
 
 
