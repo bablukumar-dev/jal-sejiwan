@@ -105,16 +105,16 @@ export default function ImageCropperModal({ image, onConfirm, onClose }: ImageCr
             <span className="text-white text-xs">Zoom</span>
             <input
               type="range"
-            value={zoom}
-            min={1}
-            max={3}
-            step={0.1}
-            aria-labelledby="Zoom"
-            onChange={(e) => setZoom(parseFloat(e.target.value))}
-            className="flex-1"
-          />
+              value={zoom}
+              min={1}
+              max={3}
+              step={0.1}
+              aria-labelledby="Zoom"
+              onChange={(e) => setZoom(parseFloat(e.target.value))}
+              className="flex-1"
+            />
+          </div>
         </div>
-      </div>
         
         <button
           onClick={handleConfirm}

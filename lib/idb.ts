@@ -46,18 +46,28 @@ export const getDB = () => {
 };
 
 export const savePendingDelivery = async (entry: Omit<DeliveryEntry, 'synced' | 'timestamp' | 'id'>) => {
-  const db = await getDB();
-  if (!db) return;
+  try {
+    const db = await getDB();
+    if (!db) return;
 
-  const fullEntry: DeliveryEntry = {
-    ...entry,
-    id: `pending_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    synced: false,
-    timestamp: Date.now(),
-  };
+    const fullEntry: DeliveryEntry = {
+      ...entry,
+      id: `pending_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      synced: false,
+      timestamp: Date.now(),
+    };
 
-  await db.put('pending-deliveries', fullEntry);
-  return fullEntry.id;
+    try {
+      await db.put('pending-deliveries', fullEntry);
+      return fullEntry.id;
+    } catch (dbError) {
+      console.warn("IndexedDB savePendingDelivery operation failed:", dbError);
+      return null;
+    }
+  } catch (error) {
+    console.warn("IndexedDB savePendingDelivery error:", error);
+    return null;
+  }
 };
 
 export const getUnsyncedDeliveries = async () => {
@@ -77,11 +87,16 @@ export const getUnsyncedDeliveries = async () => {
     } catch (indexError) {
       console.warn("IndexedDB index query failed, falling back to manual filter:", indexError);
       // Fallback: get all and filter manually
-      const all = await db.getAll('pending-deliveries');
-      return all.filter(entry => entry.synced === false);
+      try {
+        const all = await db.getAll('pending-deliveries');
+        return all.filter(entry => entry.synced === false);
+      } catch (allError) {
+        console.warn("IndexedDB getAll failed:", allError);
+        return [];
+      }
     }
   } catch (error) {
-    console.error("IndexedDB getUnsyncedDeliveries error:", error);
+    console.warn("IndexedDB getUnsyncedDeliveries error:", error);
     return [];
   }
 };
@@ -96,13 +111,17 @@ export const markAsSynced = async (id: string) => {
       return;
     }
 
-    const entry = await db.get('pending-deliveries', id);
-    if (entry) {
-      entry.synced = true;
-      await db.put('pending-deliveries', entry);
+    try {
+      const entry = await db.get('pending-deliveries', id);
+      if (entry) {
+        entry.synced = true;
+        await db.put('pending-deliveries', entry);
+      }
+    } catch (dbError) {
+      console.warn("IndexedDB markAsSynced operation failed:", dbError);
     }
   } catch (error) {
-    console.error("IndexedDB markAsSynced error:", error);
+    console.warn("IndexedDB markAsSynced error:", error);
   }
 };
 
@@ -120,18 +139,26 @@ export const deleteSyncedDeliveries = async () => {
       synced = await db.getAllFromIndex('pending-deliveries', 'by-synced', true);
     } catch (indexError) {
       console.warn("IndexedDB index query for deletion failed, falling back to manual filter:", indexError);
-      const all = await db.getAll('pending-deliveries');
-      synced = all.filter(entry => entry.synced === true);
+      try {
+        const all = await db.getAll('pending-deliveries');
+        synced = all.filter(entry => entry.synced === true);
+      } catch (allError) {
+        console.warn("IndexedDB getAll for deletion failed:", allError);
+      }
     }
 
     if (synced && Array.isArray(synced)) {
       for (const entry of synced) {
         if (entry && entry.id) {
-          await db.delete('pending-deliveries', entry.id);
+          try {
+            await db.delete('pending-deliveries', entry.id);
+          } catch (deleteError) {
+            console.warn(`Failed to delete delivery ${entry.id}:`, deleteError);
+          }
         }
       }
     }
   } catch (error) {
-    console.error("IndexedDB deleteSyncedDeliveries error:", error);
+    console.warn("IndexedDB deleteSyncedDeliveries error:", error);
   }
 };

@@ -8,9 +8,17 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Get user document data
+    // Get user document snapshot
+    function getUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return getUserDoc().data;
+    }
+
+    function getUserBusinessId() {
+      return getUserDoc().exists ? getUserDoc().data.businessId : null;
     }
 
     // Global deny by default
@@ -37,31 +45,36 @@ service cloud.firestore {
     }
 
     // 3. Multi-tenant Collections (Scoped by businessId field)
-    // We check if the document's businessId matches the user's businessId from their profile
+    // We check if the document's businessId matches the user's businessId from their token
     
     function isTenant(businessId) {
-      return isSignedIn() && getUserData().businessId == businessId;
+      return isSignedIn() && (request.auth.token.businessId == businessId || getUserBusinessId() == businessId);
     }
 
     match /customers/{docId} {
       allow read, write: if isSignedIn() && (
-        (resource == null && request.resource.data.businessId == getUserData().businessId) ||
-        (resource != null && resource.data.businessId == getUserData().businessId)
+        (resource == null && request.resource.data.businessId == (request.auth.token.businessId != null ? request.auth.token.businessId : getUserBusinessId())) ||
+        (resource != null && resource.data.businessId == (request.auth.token.businessId != null ? request.auth.token.businessId : getUserBusinessId()))
       );
     }
 
     match /activities/{docId} {
-      allow read, write: if isSignedIn() && (
-        (resource == null && request.resource.data.businessId == getUserData().businessId) ||
-        (resource != null && resource.data.businessId == getUserData().businessId)
+      allow read: if isSignedIn() && (
+        request.auth.token.businessId == resource.data.businessId ||
+        getUserBusinessId() == resource.data.businessId
+      );
+
+      allow create: if isSignedIn() && (
+        request.resource.data.businessId == request.auth.token.businessId ||
+        request.resource.data.businessId == getUserBusinessId()
       );
     }
 
     match /staff_users/{phone} {
       allow read: if true; // Public read for PIN verification
       allow write: if isSignedIn() && (
-        (resource == null && request.resource.data.businessId == getUserData().businessId) ||
-        (resource != null && resource.data.businessId == getUserData().businessId)
+        (resource == null && request.resource.data.businessId == (request.auth.token.businessId != null ? request.auth.token.businessId : getUserBusinessId())) ||
+        (resource != null && resource.data.businessId == (request.auth.token.businessId != null ? request.auth.token.businessId : getUserBusinessId()))
       );
     }
 
