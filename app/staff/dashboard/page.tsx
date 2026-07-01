@@ -1,7 +1,7 @@
 'use client';
 
 import BottomNav from '@/components/BottomNav';
-import { Truck, Wallet, Droplet, ArrowRight, FileText, ChevronRight, Route } from 'lucide-react';
+import { Truck, Wallet, Droplet, ArrowRight, FileText, ChevronRight, Route, Download } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
@@ -18,6 +18,28 @@ export default function StaffDashboard() {
   const [showRoute, setShowRoute] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [showLedger, setShowLedger] = useState(false);
+
+  const downloadMonthlyStatement = async () => {
+    const { jsPDF } = await import('jspdf');
+    const autoTable = (await import('jspdf-autotable')).default;
+    const doc = new jsPDF();
+    
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    const filteredPayments = payments.filter(p => {
+      const pDate = new Date(p.date);
+      return pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear;
+    });
+    
+    doc.text(`Monthly Statement - ${currentYear}-${currentMonth + 1}`, 14, 15);
+    autoTable(doc, {
+      head: [['Date', 'Customer', 'Amount', 'Mode']],
+      body: filteredPayments.map(p => [p.date, p.customerName, p.amount.toString(), p.mode]),
+    });
+    doc.save(`Statement-${currentYear}-${currentMonth + 1}.pdf`);
+  };
   
   useEffect(() => {
     // Check PIN-based authentication first
@@ -267,6 +289,14 @@ export default function StaffDashboard() {
 
       <BottomNav role="staff" activeTab="dashboard" />
       
+      <button
+        onClick={downloadMonthlyStatement}
+        className="fixed bottom-24 right-4 bg-emerald-600 hover:bg-emerald-700 text-white p-4 rounded-full shadow-lg z-50 flex items-center gap-2"
+        title="Download Monthly Statement"
+      >
+        <Download className="w-6 h-6" />
+      </button>
+
       {showOnboarding && (
         <OnboardingOverlay onClose={() => setShowOnboarding(false)} />
       )}

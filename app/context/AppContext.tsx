@@ -275,37 +275,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Monitor auth state and set custom claims if missing from token
-  useEffect(() => {
-    const { onAuthStateChanged } = require('firebase/auth');
-    const { auth } = require('@/firebase');
-    
-    const unsubscribe = onAuthStateChanged(auth, async (user: any) => {
-      if (user) {
-        const idTokenResult = await user.getIdTokenResult();
-        const businessId = safeGet('businessId');
-        
-        // If claim is missing but we have businessId locally, set it
-        if (businessId && !idTokenResult.claims.businessId) {
-          try {
-            const response = await fetch('/api/auth/set-claims', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ uid: user.uid, businessId }),
-            });
-            if (response.ok) {
-              await user.getIdToken(true); // refresh
-              console.log("Auth claims synchronized with local businessId");
-            }
-          } catch (e) {
-            console.error("Failed to sync auth claims", e);
-          }
-        }
-      }
-    });
-    
-    return () => unsubscribe();
-  }, []);
+// Removed set-claims logic
 
   // Poll localStorage for businessId changes to detect logins/logouts dynamically
   useEffect(() => {

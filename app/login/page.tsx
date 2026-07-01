@@ -272,20 +272,6 @@ export default function Login() {
         }
       }
 
-      // Set custom claims for Firestore rules to work with request.auth.token.businessId
-      try {
-        const response = await fetch('/api/auth/set-claims', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uid: staffUid, businessId }),
-        });
-        if (response.ok) {
-          // Force token refresh to include new claims
-          await staffAuthResult.user.getIdToken(true);
-        }
-      } catch (claimErr) {
-        console.error("Failed to set custom claims", claimErr);
-      }
 
       // NEW: Create/Update user document for the anonymous staff member
       await setDoc(doc(db, 'users', staffUid), {
@@ -461,18 +447,6 @@ export default function Login() {
         }
         localStorage.setItem('businessId', businessId);
 
-        // Set custom claims for Firestore rules
-        try {
-          await fetch('/api/auth/set-claims', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uid: userCredential.user.uid, businessId }),
-          });
-          await userCredential.user.getIdToken(true);
-        } catch (claimErr) {
-          console.error("Failed to set custom claims", claimErr);
-        }
-        
         redirectBasedOnRole(targetRole);
       }
     } catch (err: any) {
@@ -563,18 +537,6 @@ export default function Login() {
       }
       localStorage.setItem('businessId', businessId);
 
-      // Set custom claims for Firestore rules
-      try {
-        await fetch('/api/auth/set-claims', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uid: result.user.uid, businessId }),
-        });
-        await result.user.getIdToken(true);
-      } catch (claimErr) {
-        console.error("Failed to set custom claims", claimErr);
-      }
-      
       redirectBasedOnRole(targetRole);
     } catch (err: any) {
       if (err.code === 'auth/operation-not-allowed') {
