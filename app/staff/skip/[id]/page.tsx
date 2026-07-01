@@ -18,6 +18,7 @@ export default function SkipDelivery() {
 
   const [reason, setReason] = useState('Door Locked');
   const [remarks, setRemarks] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
 
   if (!delivery || !customer) {
     return <div className="p-4">Loading...</div>;
@@ -128,14 +129,39 @@ export default function SkipDelivery() {
         </div>
 
         <button 
-          onClick={handleSkip}
+          onClick={() => setShowConfirm(true)}
           className="w-full bg-orange-700 text-white font-bold py-4 rounded-xl text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-lg shadow-orange-700/30 mb-4"
         >
           <Ban className="w-5 h-5" /> Confirm Skip
         </button>
         <p className="text-xs text-center text-slate-500">This will mark delivery as &apos;Skipped&apos; for today</p>
-
       </main>
+
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm">
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Confirm Skip</h3>
+            <p className="text-slate-600 mb-6">Are you sure you want to mark this delivery as skipped?</p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 bg-slate-100 text-slate-900 font-bold py-3 rounded-xl"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  setShowConfirm(false);
+                  handleSkip();
+                }}
+                className="flex-1 bg-orange-700 text-white font-bold py-3 rounded-xl"
+              >
+                Skip Delivery
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
