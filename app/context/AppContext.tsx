@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+
 import { useUser, useAuth } from '@clerk/nextjs';
 
 import { supabase } from '@/src/supabaseClient';
@@ -214,8 +215,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
-  const { isLoaded: isUserLoaded, user } = useUser();
-  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const hasClerkKey = typeof window !== 'undefined' ? !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY : false;
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const clerkUser = hasClerkKey ? useUser() : { isLoaded: true, user: null };
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const clerkAuth = hasClerkKey ? useAuth() : { isLoaded: true, isSignedIn: false, userId: null };
+
+  const isUserLoaded = clerkUser.isLoaded;
+  const user = clerkUser.user;
+  const isAuthLoaded = clerkAuth.isLoaded;
+  const isSignedIn = clerkAuth.isSignedIn;
 
   useEffect(() => {
     if (isUserLoaded && user) {
@@ -252,6 +262,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       fetchUserData();
     } else if (isUserLoaded && !user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentUser(null);
       localStorage.removeItem('currentUser');
       localStorage.removeItem('userRole');

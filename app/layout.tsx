@@ -1,72 +1,22 @@
-import type {Metadata} from 'next';
-import { Inter, Source_Serif_4 } from 'next/font/google';
-import Script from 'next/script';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css'; // Global styles
 import { Providers } from '@/components/Providers';
 
 const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-inter',
+  display: 'swap',
 });
-
-const sourceSerif = Source_Serif_4({
-  subsets: ['latin'],
-  variable: '--font-source-serif',
-});
-
-const getMetadataBase = () => {
-  const url = process.env.APP_URL;
-  if (!url) return new URL('https://jalsejiwan.in');
-  try {
-    const u = new URL(url);
-    u.protocol = 'https:'; // Force https
-    return u;
-  } catch {
-    return new URL('https://jalsejiwan.in');
-  }
-};
 
 export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
-  alternates: {
-    canonical: '/',
-  },
-  title: 'Water Delivery Management Software India | JalSejiwan',
-  description: 'JalSejiwan is a Water Delivery Management Software India built for 20 litre water jar businesses. Manage billing, delivery tracking, inventory and WhatsApp reminders in one powerful digital platform.',
-  keywords: [
-    'Water Delivery Management Software India',
-    '20 litre water jar software',
-    'Water distribution app',
-    'Water supply business app',
-    '20 Litre Water Jar Delivery System',
-    'Water Can Billing Software',
-    'Water Distribution Management System',
-    'Water Delivery ERP India',
-    'Digital Solution for Water Suppliers',
-    'JalSejiwan'
-  ],
+  title: 'JalSejiwan',
+  description: 'Smart Water Management System',
 };
 
-export default function RootLayout({children}: {children: React.ReactNode}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${sourceSerif.variable}`}>
-      <head>
-        <link rel="icon" href="/favicon.ico" />
-        <meta name="keywords" content="Water Delivery Management Software India, 20 litre water jar software, Water distribution app, Water supply business app" />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              "name": "JalSejiwan",
-              "url": "https://jalsejiwan.in",
-              "logo": "https://jalsejiwan.in/logo.png"
-            }),
-          }}
-        />
-      </head>
-      <body suppressHydrationWarning className="antialiased">
+    <html lang="en">
+      <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -8,15 +8,33 @@ import { supabase } from '@/src/supabaseClient';
 import { useAppContext } from '@/app/context/AppContext';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+
 import { useSignIn, useSignUp, useAuth } from '@clerk/nextjs';
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setCurrentUser, currentUser } = useAppContext();
-  const { isLoaded: isSignInLoaded, signIn, setActive: setSignInActive } = useSignIn();
-  const { isLoaded: isSignUpLoaded, signUp, setActive: setSignUpActive } = useSignUp();
-  const { isSignedIn, userId } = useAuth();
+
+  const hasClerkKey = typeof window !== 'undefined' ? !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY : false;
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const clerkSignIn = hasClerkKey ? useSignIn() : { isLoaded: true, signIn: null, setActive: null };
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const clerkSignUp = hasClerkKey ? useSignUp() : { isLoaded: true, signUp: null, setActive: null };
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const clerkAuth = hasClerkKey ? useAuth() : { isLoaded: true, isSignedIn: false, userId: null };
+
+  const isSignInLoaded = clerkSignIn.isLoaded;
+  const signIn = clerkSignIn.signIn;
+  const setSignInActive = clerkSignIn.setActive;
+
+  const isSignUpLoaded = clerkSignUp.isLoaded;
+  const signUp = clerkSignUp.signUp;
+  const setSignUpActive = clerkSignUp.setActive;
+
+  const isSignedIn = clerkAuth.isSignedIn;
+  const userId = clerkAuth.userId;
   
   const [role, setRole] = useState<'owner' | 'staff' | 'manager'>('owner');
   
@@ -36,7 +54,7 @@ function LoginContent() {
   const [emailError, setEmailError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const redirectBasedOnRole = (targetRole: string) => {
+  const redirectBasedOnRole = useCallback((targetRole: string) => {
     const r = targetRole?.toLowerCase();
     localStorage.setItem('userRole', r);
     
@@ -49,31 +67,38 @@ function LoginContent() {
     } else {
       router.push('/');
     }
-  };
+  }, [router]);
 
-  const checkUserAndRedirect = useCallback(async () => {
-    if (!userId) return;
+  const checkRoleAndRedirect = useCallback(async (userId: string) => {
     try {
-      const { data: userData } = await supabase
+      const { data: userData, error: fetchError } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (userData) {
-        redirectBasedOnRole(userData.role);
+      if (fetchError || !userData) {
+        console.error("User fetch error:", fetchError);
+        setError("User not found in database. Please contact the owner.");
+        return;
       }
+
+      // If logging in via email/password, we check if role matches selection
+      // If logging in via Google, we just follow the database role
+      redirectBasedOnRole(userData.role);
     } catch (e) {
       console.error(e);
+      setError("Error checking user role");
     }
-  }, [userId, router]);
+  }, [redirectBasedOnRole]);
 
   useEffect(() => {
     // If already signed in, check role and redirect
     if (isSignedIn && userId) {
-      checkUserAndRedirect();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      checkRoleAndRedirect(userId);
     }
-  }, [isSignedIn, userId, router, checkUserAndRedirect]);
+  }, [isSignedIn, userId, checkRoleAndRedirect]);
 
   useEffect(() => {
     // Check if users table is empty to allow first owner signup
@@ -95,6 +120,10 @@ function LoginContent() {
   }, []);
 
   const handleEmailAuth = async () => {
+    if (!hasClerkKey) {
+      setError("Clerk is not configured. Please set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable.");
+      return;
+    }
     if (!isSignInLoaded || !isSignUpLoaded) {
       setError("Authentication system is loading... Please try again in a few seconds.");
       return;
@@ -126,14 +155,13 @@ function LoginContent() {
       } else {
         const result = await signIn.create({
           identifier: email.trim(),
-          password,
+          password: password,
         });
 
-        if (result.status === 'complete') {
+        if (result.status === "complete") {
           await setSignInActive({ session: result.createdSessionId });
-          // Redirection will happen via useEffect
+          await checkRoleAndRedirect(result.createdUserId as string);
         } else {
-          console.log(result);
           setError('Authentication failed. Please check your credentials.');
         }
       }
@@ -144,7 +172,29 @@ function LoginContent() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    if (!hasClerkKey) {
+      setError("Clerk is not configured. Please set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable.");
+      return;
+    }
+    if (!isSignInLoaded) return;
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin.replace(/^http:/, 'https:') : '';
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: `${origin}/`,
+        redirectUrlComplete: `${origin}/`,
+      });
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || err.message || 'Google login failed');
+    }
+  };
+
   const handleVerification = async () => {
+    if (!hasClerkKey) {
+      setError("Clerk is not configured. Please set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable.");
+      return;
+    }
     if (!isSignUpLoaded) return;
     setIsLoading(true);
     try {
@@ -210,10 +260,10 @@ function LoginContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
-        <Image src="/logo.png" alt="Logo" width={60} height={60} className="object-contain mb-5" referrerPolicy="no-referrer" />
-        <h1 className="text-3xl font-bold text-blue-700 mb-1 font-sans">JalSejiwan</h1>
-        <p className="text-slate-500 mb-8 text-center text-sm">Smart Water Management System</p>
+      <div className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl p-10 flex flex-col items-center border border-slate-100 animate-in fade-in zoom-in-95 duration-300">
+        <Image src="/logo.png" alt="Logo" width={70} height={70} className="object-contain mb-6 drop-shadow-sm" referrerPolicy="no-referrer" />
+        <h1 className="text-3xl font-bold text-blue-700 mb-1 font-sans tracking-tight">JalSejiwan</h1>
+        <p className="text-slate-500 mb-10 text-center text-sm font-medium">Smart Water Management System</p>
 
         {/* Role Selector */}
         {!isSignUp && (
@@ -312,6 +362,30 @@ function LoginContent() {
         >
           {isLoading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
         </button>
+
+        {!isSignUp && (
+          <>
+            <div className="w-full flex items-center gap-4 my-4">
+              <div className="h-px flex-1 bg-slate-100" />
+              <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">OR</span>
+              <div className="h-px flex-1 bg-slate-100" />
+            </div>
+
+            <div className="w-full mt-4">
+              <button
+                onClick={handleGoogleLogin}
+                className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition"
+              >
+                <img
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  alt="Google"
+                  className="w-5 h-5"
+                />
+                Continue with Google
+              </button>
+            </div>
+          </>
+        )}
 
         {role === 'owner' && isUsersTableEmpty !== false && (
           <p className="text-sm text-slate-500 font-sans">

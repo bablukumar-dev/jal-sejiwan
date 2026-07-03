@@ -1,9 +1,27 @@
-import { NextResponse } from 'next/server'
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export function middleware(request: any) {
-  return NextResponse.next()
+export function middleware(request: NextRequest) {
+  try {
+    return NextResponse.next();
+  } catch (error) {
+    console.error("Middleware error:", error);
+    return NextResponse.next();
+  }
 }
 
 export const config = {
-  matcher: ['/((?!_next|api|static).*)'],
-}
+  matcher: [
+    /*
+     Apply middleware only to protected routes.
+     Do NOT include:
+     - /login
+     - /signup
+     - /_next
+     - /api
+    */
+    "/owner/:path*",
+    "/manager/:path*",
+    "/staff/:path*"
+  ],
+};

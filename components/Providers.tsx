@@ -7,6 +7,7 @@ import BackgroundSync from '@/components/BackgroundSync';
 import SyncIndicator from '@/components/SyncIndicator';
 import { usePathname } from 'next/navigation';
 import { ErrorBoundary } from 'react-error-boundary';
+import { Store } from 'lucide-react';
 
 function ErrorFallback({ error }: { error: Error }) {
   return (
@@ -45,24 +46,27 @@ function GuardWrapper({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 text-red-600">
-        Missing Clerk Publishable Key. Please configure it in AI Studio Secrets.
-      </div>
-    );
+  const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+  const content = (
+    <AppProvider>
+      <BackgroundSync />
+      <SyncIndicator />
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <GuardWrapper>
+          {children}
+        </GuardWrapper>
+      </ErrorBoundary>
+    </AppProvider>
+  );
+
+  if (!clerkKey) {
+    return content;
   }
+  
   return (
-    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
-      <AppProvider>
-        <BackgroundSync />
-        <SyncIndicator />
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <GuardWrapper>
-            {children}
-          </GuardWrapper>
-        </ErrorBoundary>
-      </AppProvider>
+    <ClerkProvider publishableKey={clerkKey}>
+      {content}
     </ClerkProvider>
   );
 }

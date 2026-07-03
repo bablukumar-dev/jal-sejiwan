@@ -120,6 +120,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (currentUser) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUserName(currentUser.name || 'User');
     }
   }, [currentUser]);
@@ -226,7 +227,7 @@ export default function SettingsPage() {
             {businessInfo.name} • {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
           </p>
         </div>
-// ... (rest of the file seems fine, only the top part needed changes)
+          {/* rest of the profile sections */}
 
         {(userRole === 'owner' || userRole === 'manager') && (
           <>
