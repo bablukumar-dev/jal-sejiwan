@@ -1,5 +1,4 @@
 'use client';
-import { ClerkProvider } from '@clerk/nextjs';
 import { AppProvider } from '@/app/context/AppContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { RoleGuard } from '@/components/RoleGuard';
@@ -8,6 +7,7 @@ import SyncIndicator from '@/components/SyncIndicator';
 import { usePathname } from 'next/navigation';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Store } from 'lucide-react';
+import { ClerkProvider } from '@clerk/nextjs';
 
 function ErrorFallback({ error }: { error: Error }) {
   return (
@@ -46,27 +46,18 @@ function GuardWrapper({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-
-  const content = (
-    <AppProvider>
-      <BackgroundSync />
-      <SyncIndicator />
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
-        <GuardWrapper>
-          {children}
-        </GuardWrapper>
-      </ErrorBoundary>
-    </AppProvider>
-  );
-
-  if (!clerkKey) {
-    return content;
-  }
-  
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   return (
-    <ClerkProvider publishableKey={clerkKey}>
-      {content}
+    <ClerkProvider publishableKey={publishableKey}>
+      <AppProvider>
+        <BackgroundSync />
+        <SyncIndicator />
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <GuardWrapper>
+            {children}
+          </GuardWrapper>
+        </ErrorBoundary>
+      </AppProvider>
     </ClerkProvider>
   );
 }

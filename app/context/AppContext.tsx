@@ -213,19 +213,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(initialBusinessInfo);
   const [isInitialized, setIsInitialized] = useState(false);
   const [ownerId, setOwnerId] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('currentUser');
+      try {
+        return saved ? JSON.parse(saved) : null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
 
-  const hasClerkKey = typeof window !== 'undefined' ? !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY : false;
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const clerkUser = hasClerkKey ? useUser() : { isLoaded: true, user: null };
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const clerkAuth = hasClerkKey ? useAuth() : { isLoaded: true, isSignedIn: false, userId: null };
+  const clerkUser = useUser();
+  const clerkAuth = useAuth();
 
   const isUserLoaded = clerkUser.isLoaded;
   const user = clerkUser.user;
-  const isAuthLoaded = clerkAuth.isLoaded;
-  const isSignedIn = clerkAuth.isSignedIn;
 
   useEffect(() => {
     if (isUserLoaded && user) {

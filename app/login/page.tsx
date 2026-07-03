@@ -8,7 +8,6 @@ import { supabase } from '@/src/supabaseClient';
 import { useAppContext } from '@/app/context/AppContext';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-
 import { useSignIn, useSignUp, useAuth } from '@clerk/nextjs';
 
 function LoginContent() {
