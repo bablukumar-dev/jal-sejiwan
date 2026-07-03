@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuth, useClerk } from '@clerk/nextjs';
+import { useAppContext } from '@/app/context/AppContext';
+import { supabase } from '@/src/supabaseClient';
 
 const publicPaths = [
   '/login',
@@ -18,8 +19,7 @@ const publicPaths = [
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isLoaded, isSignedIn } = useAuth();
-  const { signOut } = useClerk();
+  const { currentUser } = useAppContext();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
+    if (mounted && !currentUser) {
       const isPublic = pathname ? (
         publicPaths.includes(pathname) || 
         pathname.startsWith('/login') || 
@@ -40,7 +40,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         router.push("/login");
       }
     }
-  }, [isLoaded, isSignedIn, pathname, router]);
+  }, [mounted, currentUser, pathname, router]);
 
   // Inactivity auto-logout (30 minutes of complete inactivity)
   useEffect(() => {
@@ -77,7 +77,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         const inactiveTime = Date.now() - parseInt(lastActivity, 10);
         if (inactiveTime > 30 * 60 * 1000) { // 30 minutes in milliseconds
           try {
-            await signOut();
+            await supabase.auth.signOut();
           } catch (e) {
             console.error('Failed to sign out on timeout:', e);
           }
@@ -93,10 +93,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       });
       clearInterval(interval);
     };
-  }, [pathname, signOut]);
+  }, [pathname]);
 
-  if (!mounted || !isLoaded) {
-    if (!publicPaths.includes(pathname) && pathname !== '/unauthorized') {
+  if (!mounted) {
+    if (!publicPaths.includes(pathname || '') && pathname !== '/unauthorized') {
       return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-bold text-slate-500">Checking session...</div>;
     }
     return <>{children}</>;

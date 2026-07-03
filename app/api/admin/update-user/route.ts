@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/src/supabaseAdmin';
+import { supabase } from '@/src/supabaseClient';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 
 export async function POST(req: NextRequest) {

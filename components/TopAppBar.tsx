@@ -4,11 +4,11 @@ import { ArrowLeft, UserCircle, LogOut, Bell } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { SignOutButton } from '@clerk/nextjs';
 import OnlineStatusBadge from '@/components/OnlineStatusBadge';
 import { useAppContext } from '@/app/context/AppContext';
 import { useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { supabase } from '@/src/supabaseClient';
 
 interface TopAppBarProps {
   title: string;
@@ -19,7 +19,7 @@ interface TopAppBarProps {
 
 export default function TopAppBar({ title, subtitle, showBack = false, showProfile = true }: TopAppBarProps) {
   const router = useRouter();
-  const { inventory, customers } = useAppContext();
+  const { inventory, customers, isBackgroundSyncing, syncProgress } = useAppContext();
 
   const hasAlerts = useMemo(() => {
     const isLowInventory = inventory.fullCans < 10;
@@ -27,7 +27,11 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
     return isLowInventory || hasMissedPayments;
   }, [inventory.fullCans, customers]);
 
-  const { isBackgroundSyncing, syncProgress } = useAppContext();
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+    window.location.reload();
+  };
 
   return (
     <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 w-full h-[60px]">
@@ -74,14 +78,13 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
             </div>
           )}
           <OnlineStatusBadge />
-          <SignOutButton>
-            <button 
-              className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors shrink-0"
-              title="Log out"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </SignOutButton>
+          <button 
+            onClick={handleSignOut}
+            className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors shrink-0"
+            title="Log out"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
           {showProfile && (
             <Link href="/settings" className="w-9 h-9 rounded-full overflow-hidden border-2 border-blue-600 bg-slate-100 flex items-center justify-center active:scale-95 transition-transform shrink-0">
               <UserCircle className="w-7 h-7 text-slate-400" />

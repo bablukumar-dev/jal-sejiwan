@@ -1,6 +1,5 @@
 'use client';
 
-import { useUser, SignOutButton } from '@clerk/nextjs';
 import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle, CheckCircle2, Search, ChevronDown, RefreshCcw, Database, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
@@ -15,7 +14,7 @@ import { getUnsyncedDeliveries } from '@/lib/idb';
 const INDIAN_LANGUAGES = [
   'English', 'हिन्दी (Hindi)', 'বাংলা (Bengali)', 'తెలుగు (Telugu)', 
   'मराठी (Marathi)', 'தமிழ் (Tamil)', 'اردو (Urdu)', 
-  'ગુજરાતી (Gujarati)', 'ಕನ್ನಡ (Kannada)', 'ଓଡ଼ିଆ (Odia)', 
+  'ગુજરાતી (Gujarati)', 'ಕನ್ನಡ (Kannada)', 'ଓଡ଼িଆ (Odia)', 
   'മലയാളം (Malayalam)', 'ਪੰਜਾਬੀ (Punjabi)', 'অসমীয়া (Assamese)'
 ];
 
@@ -74,7 +73,6 @@ const FAQS = [
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user } = useUser();
   const { 
     businessInfo, 
     setBusinessInfo, 
@@ -122,12 +120,9 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (currentUser) {
-      const name = currentUser.name || user?.fullName || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'User';
-      requestAnimationFrame(() => {
-        setUserName(name);
-      });
+      setUserName(currentUser.name || 'User');
     }
-  }, [currentUser, user]);
+  }, [currentUser]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -173,9 +168,9 @@ export default function SettingsPage() {
         setBusinessInfo({ ...businessInfo, ownerName: cleanName });
       } else {
         setUserName(cleanName);
-        // In a real app, you'd call a Clerk update or a DB update here
-        if (user) {
-          await user.update({ firstName: cleanName });
+        // In a real app, you'd call a DB update here
+        if (currentUser) {
+           await supabase.from('users').update({ name: cleanName }).eq('id', currentUser.uid);
         }
       }
       setIsEditingProfile(false);
@@ -183,6 +178,12 @@ export default function SettingsPage() {
       console.error("Failed to update profile", e);
       alert("Failed to update profile. Please try again.");
     }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+    window.location.reload();
   };
 
   const userRole = currentUser?.role || 'staff';
@@ -225,6 +226,7 @@ export default function SettingsPage() {
             {businessInfo.name} • {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
           </p>
         </div>
+// ... (rest of the file seems fine, only the top part needed changes)
 
         {(userRole === 'owner' || userRole === 'manager') && (
           <>
@@ -409,13 +411,12 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <SignOutButton>
-          <button 
-            className="w-full bg-red-50 text-red-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
-          >
-            <LogOut className="w-5 h-5" /> LOG OUT
-          </button>
-        </SignOutButton>
+        <button 
+          onClick={handleSignOut}
+          className="w-full bg-red-50 text-red-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+        >
+          <LogOut className="w-5 h-5" /> LOG OUT
+        </button>
 
         <div className="mt-8 text-center">
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">JalSejiwan Operations V2.4.0-BUILD88</span>

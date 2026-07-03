@@ -234,7 +234,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               businessId: userData.business_id
             };
             
-            // Only update if state actually changed to avoid unnecessary re-renders
             setCurrentUser(prev => {
               if (prev?.uid === newUser.uid && prev?.role === newUser.role && prev?.businessId === newUser.businessId) {
                 return prev;
@@ -253,12 +252,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       fetchUserData();
     } else if (isUserLoaded && !user) {
-      requestAnimationFrame(() => {
-        setCurrentUser(prev => {
-          if (prev === null) return null;
-          return null;
-        });
-      });
+      setCurrentUser(null);
       localStorage.removeItem('currentUser');
       localStorage.removeItem('userRole');
       localStorage.removeItem('businessId');

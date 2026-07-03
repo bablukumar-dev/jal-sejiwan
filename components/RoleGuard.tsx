@@ -1,8 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '@/src/supabaseClient';
-import { useUser, useAuth } from '@clerk/nextjs';
+import { useAppContext } from '@/app/context/AppContext';
 
 const publicPaths = [
   '/login',
@@ -19,8 +18,7 @@ const publicPaths = [
 export function RoleGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname() || '';
-  const { isLoaded: isUserLoaded, user } = useUser();
-  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const { currentUser } = useAppContext();
   const [authorized, setAuthorized] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -31,7 +29,7 @@ export function RoleGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!isUserLoaded || !isAuthLoaded) return;
+    if (!mounted) return;
 
     const isPublic = pathname ? (
       publicPaths.includes(pathname) || 
@@ -47,66 +45,46 @@ export function RoleGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (!isSignedIn) {
+    if (!currentUser) {
       router.push("/login");
       return;
     }
 
-    const checkRole = async () => {
-      try {
-        const { data: userDoc, error } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', user.id)
-          .single();
+    const currentUserRole = currentUser.role.toLowerCase();
 
-        let role = 'staff';
-        if (userDoc && !error) {
-          role = userDoc.role || 'staff';
-        }
+    // Role-Based Route Guard Validation
+    let isAllowed = true;
 
-        const currentUserRole = role.toLowerCase();
-
-        // Role-Based Route Guard Validation
-        let isAllowed = true;
-
-        if (pathname.startsWith('/owner/staff') || pathname.startsWith('/owner/reports')) {
-          // Owner only
-          if (currentUserRole !== 'owner') {
-            isAllowed = false;
-          }
-        } else if (pathname.startsWith('/owner')) {
-          // Manager + Owner
-          if (currentUserRole !== 'owner' && currentUserRole !== 'manager') {
-            isAllowed = false;
-          }
-        } else if (pathname.startsWith('/staff')) {
-          // Staff only
-          if (currentUserRole !== 'staff') {
-            isAllowed = false;
-          }
-        } else if (pathname.startsWith('/inventory')) {
-          // Manager + Owner
-          if (currentUserRole !== 'owner' && currentUserRole !== 'manager') {
-            isAllowed = false;
-          }
-        }
-
-        if (!isAllowed) {
-          router.push("/unauthorized");
-        } else {
-          requestAnimationFrame(() => {
-            setAuthorized(true);
-          });
-        }
-      } catch (e) {
-        console.error("Failed to verify user role in guard:", e);
-        router.push("/unauthorized");
+    if (pathname.startsWith('/owner/staff') || pathname.startsWith('/owner/reports')) {
+      // Owner only
+      if (currentUserRole !== 'owner') {
+        isAllowed = false;
       }
-    };
+    } else if (pathname.startsWith('/owner')) {
+      // Manager + Owner
+      if (currentUserRole !== 'owner' && currentUserRole !== 'manager') {
+        isAllowed = false;
+      }
+    } else if (pathname.startsWith('/staff')) {
+      // Staff only
+      if (currentUserRole !== 'staff') {
+        isAllowed = false;
+      }
+    } else if (pathname.startsWith('/inventory')) {
+      // Manager + Owner
+      if (currentUserRole !== 'owner' && currentUserRole !== 'manager') {
+        isAllowed = false;
+      }
+    }
 
-    checkRole();
-  }, [pathname, router, isUserLoaded, isAuthLoaded, isSignedIn, user]);
+    if (!isAllowed) {
+      router.push("/unauthorized");
+    } else {
+      requestAnimationFrame(() => {
+        setAuthorized(true);
+      });
+    }
+  }, [pathname, router, currentUser, mounted]);
 
   if (!mounted) {
     return <>{children}</>;
