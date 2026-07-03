@@ -202,9 +202,21 @@ export default function CustomerDetail() {
         <div className="flex items-center gap-4 mb-6">
           <div className="w-20 h-20 rounded-2xl bg-emerald-100 border-2 border-emerald-500 overflow-hidden flex-shrink-0 relative">
             {customer.imageURL ? (
-              <img src={customer.imageURL} alt={customer.name} className="w-full h-full object-cover" />
+              <Image 
+                src={customer.imageURL} 
+                alt={customer.name} 
+                fill 
+                className="object-cover"
+                referrerPolicy="no-referrer"
+              />
             ) : (
-              <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${customer.name}`} alt={`${customer.name} - Active Client profile on JalSejiwan, India's leading 20 Litre Water Jar Delivery System, powered by Water Delivery Management Software India`} fill className="object-cover" />
+              <Image 
+                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${customer.name}`} 
+                alt={`${customer.name} - Active Client profile`} 
+                fill 
+                className="object-cover" 
+                referrerPolicy="no-referrer"
+              />
             )}
           </div>
           <div className="flex-1">

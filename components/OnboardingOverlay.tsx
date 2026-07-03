@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Droplet, Sparkles, ChevronRight, ChevronLeft, CheckCircle2, X, AlertCircle } from 'lucide-react';
-import { db } from '@/firebase';
-import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { supabase } from '@/src/supabaseClient';
 
 interface OnboardingOverlayProps {
   onClose: () => void;
@@ -112,16 +111,16 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
 
       // Sync backend asynchronously to prevent any UI blocking
       try {
-        const userRef = doc(db, 'users', ownerId);
-        await updateDoc(userRef, { onboardingCompleted: true });
-      } catch (e1) {
-        console.warn("Retrying with merge/setDoc due to update failure:", e1);
-        try {
-          const userRef = doc(db, 'users', ownerId);
-          await setDoc(userRef, { onboardingCompleted: true }, { merge: true });
-        } catch (e2) {
-          console.error("Firestore onboarding update failed completely:", e2);
+        const { error } = await supabase
+          .from('users')
+          .update({ onboarding_completed: true })
+          .eq('id', ownerId);
+        
+        if (error) {
+          console.error("Supabase onboarding update failed completely:", error);
         }
+      } catch (e1) {
+        console.warn("Error during onboarding completion:", e1);
       }
     }
     // Close overlay state

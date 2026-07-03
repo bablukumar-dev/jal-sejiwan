@@ -2,7 +2,7 @@ import type {Metadata} from 'next';
 import { Inter, Source_Serif_4 } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css'; // Global styles
-import { AppProvider } from './context/AppContext';
+import { Providers } from '@/components/Providers';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -14,13 +14,18 @@ const sourceSerif = Source_Serif_4({
   variable: '--font-source-serif',
 });
 
-import { AuthGuard } from '@/components/AuthGuard';
-import { RoleGuard } from '@/components/RoleGuard';
-import BackgroundSync from '@/components/BackgroundSync';
-import SyncIndicator from '@/components/SyncIndicator';
+const getMetadataBase = () => {
+  const url = process.env.APP_URL;
+  if (!url) return new URL('https://jalsejiwan.in');
+  try {
+    return new URL(url);
+  } catch {
+    return new URL('https://jalsejiwan.in');
+  }
+};
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.APP_URL || 'https://jalsejiwan.in'),
+  metadataBase: getMetadataBase(),
   alternates: {
     canonical: '/',
   },
@@ -60,15 +65,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         />
       </head>
       <body suppressHydrationWarning className="antialiased">
-        <AppProvider>
-          <BackgroundSync />
-          <SyncIndicator />
-          <AuthGuard>
-            <RoleGuard>
-              {children}
-            </RoleGuard>
-          </AuthGuard>
-        </AppProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

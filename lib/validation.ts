@@ -70,7 +70,34 @@ export function validatePhone(phone: string | null | undefined): { valid: boolea
     return { valid: false, error: 'Phone cannot exceed 15 digits.', value: numbersOnly.slice(0, 15) };
   }
 
-  return { valid: true, error: null, value: numbersOnly };
+  // Normalize to +91 if 10 digits
+  let finalValue = phone.trim();
+  if (!finalValue.startsWith('+')) {
+    if (numbersOnly.length === 10) {
+      finalValue = '+91' + numbersOnly;
+    } else {
+      finalValue = numbersOnly;
+    }
+  } else {
+    // If it starts with +, just clean up any non-numeric except +
+    finalValue = '+' + finalValue.replace(/\D/g, '');
+  }
+
+  return { valid: true, error: null, value: finalValue };
+}
+
+/**
+ * Normalizes phone number to +91 format if it's a 10-digit number.
+ */
+export function normalizePhone(phone: string): string {
+  let formatted = phone.trim();
+  if (!formatted.startsWith('+')) {
+    const numbersOnly = formatted.replace(/\D/g, '');
+    if (numbersOnly.length === 10) {
+      formatted = '+91' + numbersOnly;
+    }
+  }
+  return formatted;
 }
 
 /**

@@ -1,10 +1,9 @@
- 
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { useUser, useAuth } from '@clerk/nextjs';
 
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/firebase';
+import { supabase } from '@/src/supabaseClient';
 
 export type Customer = {
   id: number;
@@ -197,7 +196,7 @@ const safeGet = (key: string): string | null => {
   }
 };
 
-// Lightweight caching layer for Firestore workspace queries to prevent redundant snapshot listeners
+// Lightweight caching layer for Supabase workspace queries to prevent redundant real-time listeners
 let activeUnsubscribe: (() => void) | null = null;
 let activeWorkspaceId: string | null = null;
 
@@ -214,6 +213,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+
+  const { isLoaded: isUserLoaded, user } = useUser();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+
+  useEffect(() => {
+    if (isUserLoaded && user) {
+      const fetchUserData = async () => {
+        try {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('role, business_id')
+            .eq('id', user.id)
+            .single();
+
+          if (userData) {
+            const newUser = {
+              uid: user.id,
+              role: userData.role,
+              businessId: userData.business_id
+            };
+            
+            // Only update if state actually changed to avoid unnecessary re-renders
+            setCurrentUser(prev => {
+              if (prev?.uid === newUser.uid && prev?.role === newUser.role && prev?.businessId === newUser.businessId) {
+                return prev;
+              }
+              return newUser;
+            });
+            
+            localStorage.setItem('currentUser', JSON.stringify(newUser));
+            localStorage.setItem('userRole', userData.role);
+            localStorage.setItem('businessId', userData.business_id);
+          }
+        } catch (e) {
+          console.error("Error fetching user data in AppProvider:", e);
+        }
+      };
+
+      fetchUserData();
+    } else if (isUserLoaded && !user) {
+      requestAnimationFrame(() => {
+        setCurrentUser(prev => {
+          if (prev === null) return null;
+          return null;
+        });
+      });
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('businessId');
+    }
+  }, [isUserLoaded, user]);
 
   const lastRemoteData = useRef<string | null>(null);
   const snapshotReceivedRef = useRef(false);
@@ -375,7 +425,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadCache();
   }, []);
 
-  // Set up Firebase onSnapshot listener when ownerId is active with lightweight caching layer
+  // Set up Supabase real-time listener when ownerId is active with lightweight caching layer
   useEffect(() => {
     if (!ownerId) {
       snapshotReceivedRef.current = false;
@@ -400,11 +450,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     snapshotReceivedRef.current = false;
-    const docRef = doc(db, 'workspaces', ownerId);
-
-    const unsubscribe = onSnapshot(docRef, (snapshot) => {
+    
+    const fetchWorkspace = async () => {
       snapshotReceivedRef.current = true;
-      if (!snapshot.exists()) {
+      const { data: snapshotData, error } = await supabase.from('workspaces').select('*').eq('id', ownerId).single();
+
+      if (error || !snapshotData) {
         const emptyState = {
           customers: initialCustomers,
           deliveries: initialDeliveries,
@@ -427,12 +478,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setAreas(initialAreas);
         setBusinessInfo(initialBusinessInfo);
         
-        // Save the empty structure to firestore to initialize it
-        setDoc(docRef, emptyState, { merge: true }).catch(console.error);
+        // Save the empty structure to supabase to initialize it
+        supabase.from('workspaces').upsert({ id: ownerId, data: emptyState }).then();
         return;
       }
 
-      const data = snapshot.data();
+      const data = snapshotData.data || {};
       const stringified = JSON.stringify({
         customers: data.customers || [],
         deliveries: data.deliveries || [],
@@ -470,11 +521,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('routes', JSON.stringify(data.routes || []));
       localStorage.setItem('areas', JSON.stringify(data.areas || []));
       localStorage.setItem('businessInfo', JSON.stringify(data.businessInfo || initialBusinessInfo));
-    }, (error) => {
-      console.error("Firestore real-time sync error:", error);
-    });
+    };
 
-    activeUnsubscribe = unsubscribe;
+    fetchWorkspace();
+
+    const channel = supabase
+      .channel(`workspace-${ownerId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'workspaces', filter: `id=eq.${ownerId}` }, () => {
+        fetchWorkspace();
+      })
+      .subscribe();
+
+    activeUnsubscribe = () => {
+      supabase.removeChannel(channel);
+    };
     activeWorkspaceId = ownerId;
 
     return () => {
@@ -492,7 +552,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setSyncStatus('syncing');
     try {
-      await setDoc(doc(db, 'workspaces', ownerId), stateToSync);
+      await supabase.from('workspaces').upsert({ id: ownerId, data: stateToSync });
       hasUnsyncedChangesRef.current = false;
       localStorage.setItem('hasUnsyncedChanges', 'false');
       setSyncStatus('synced');
@@ -530,7 +590,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [ownerId, triggerSync]);
 
-  // Push local modifications to Firestore and update cache
+  // Push local modifications to Supabase and update cache
   useEffect(() => {
     if (!isInitialized) return;
     if (ownerId && !snapshotReceivedRef.current) return; // Wait for server fetch to prevent overwriting with old cache
@@ -584,7 +644,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!currentOwnerId || isSaving.current) return;
       isSaving.current = true;
       try {
-        await setDoc(doc(db, 'workspaces', currentOwnerId), currentState);
+        await supabase.from('workspaces').upsert({ id: currentOwnerId, data: currentState });
         hasUnsyncedChangesRef.current = false;
         localStorage.setItem('hasUnsyncedChanges', 'false');
         setSyncStatus('synced');
@@ -638,8 +698,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     currentUser,
     setCurrentUser
   }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, isBackgroundSyncing, syncProgress, triggerSync, currentUser]);
-
-  if (!isInitialized) return null; // Avoid hydration mismatch by waiting for mount
 
   return (
     <AppContext.Provider value={contextValue}>

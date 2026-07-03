@@ -4,11 +4,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { Users, UserPlus, Search, Phone, Route, Filter, TrendingUp, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Key } from 'lucide-react';
+import { Users, UserPlus, Search, Phone, Mail, Route, Filter, TrendingUp, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Key } from 'lucide-react';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState } from 'react';
-import { db } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { supabase } from '@/src/supabaseClient';
 import { hashPin } from '@/lib/authHelper';
 import { wrapRoute } from '@/lib/permissionGuard';
 
@@ -154,13 +153,13 @@ function StaffManagement() {
                   </span>
                 </div>
 
-                <div className="bg-slate-50 rounded-2xl p-4 space-y-3 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Phone className="w-4 h-4 text-blue-600" />
-                      <span className="font-medium text-slate-700 text-sm">{s.phone}</span>
+                  <div className="bg-slate-50 rounded-2xl p-4 space-y-3 mb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Mail className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium text-slate-700 text-sm truncate">{s.phone}</span>
+                      </div>
                     </div>
-                  </div>
                   <div className="flex items-start gap-3">
                     <Route className="w-4 h-4 text-blue-600 mt-0.5" />
                     <div>
@@ -181,38 +180,31 @@ function StaffManagement() {
                   <button 
                     type="button"
                     onClick={async () => {
-                      const newPin = prompt(`Enter new Login Password for ${s.name}:`);
-                      if (newPin !== null) {
-                        const trimmed = newPin.trim();
+                      const newPassword = prompt(`Enter new Login Password for ${s.name}:`);
+                      if (newPassword !== null) {
+                        const trimmed = newPassword.trim();
                         if (trimmed === '') {
                           alert('Password cannot be empty!');
                         } else {
-                          const encrypted = hashPin(trimmed);
-                          
-                          // Update AppContext state & reset locks
-                          setStaff(staff.map(item => item.id === s.id ? { 
-                            ...item, 
-                            pin: 'HIDDEN', 
-                            encryptedPin: encrypted,
-                            failedPinAttempts: 0,
-                            pinLockedUntil: undefined 
-                          } : item));
-                          
-                          // Update Firestore staff_users doc & reset locks
                           try {
-                            if (!safeGet('businessId')) {
-                              throw new Error("Action Blocked: businessId is missing from session.");
-                            }
-                            const cleanPhone = s.phone.trim();
-                            await setDoc(doc(db, 'staff_users', cleanPhone), {
-                              encryptedPin: encrypted,
-                              failedPinAttempts: 0,
-                              pinLockedUntil: null
-                            }, { merge: true });
-                            alert(`Password updated and account unlocked successfully for ${s.name}!`);
-                          } catch (err) {
-                            console.error("Failed to sync password to Firestore", err);
-                            alert(`Password updated locally, but failed to sync with the database.`);
+                            const response = await fetch('/api/admin/update-user', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                userId: s.id, // This should be the Clerk user ID
+                                password: trimmed
+                              })
+                            });
+
+                            const result = await response.json();
+                            if (!response.ok) throw new Error(result.error || 'Failed to update password');
+
+                            alert(`Password updated successfully for ${s.name}!`);
+                          } catch (err: any) {
+                            console.error("Failed to update password", err);
+                            alert(`Error: ${err.message}`);
                           }
                         }
                       }

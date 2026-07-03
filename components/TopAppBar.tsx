@@ -4,7 +4,7 @@ import { ArrowLeft, UserCircle, LogOut, Bell } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/firebase';
+import { SignOutButton } from '@clerk/nextjs';
 import OnlineStatusBadge from '@/components/OnlineStatusBadge';
 import { useAppContext } from '@/app/context/AppContext';
 import { useMemo } from 'react';
@@ -26,36 +26,6 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
     const hasMissedPayments = customers.some(c => c.due > 0);
     return isLowInventory || hasMissedPayments;
   }, [inventory.fullCans, customers]);
-
-  const handleLogout = async () => {
-    try {
-      await auth.signOut();
-      
-      // Clear all local auth credentials, role settings, and cached business data completely
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('pinAuth');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('staffUserId');
-        localStorage.removeItem('staffUserName');
-        localStorage.removeItem('ownerId');
-        localStorage.removeItem('businessId');
-        
-        localStorage.removeItem('customers');
-        localStorage.removeItem('deliveries');
-        localStorage.removeItem('payments');
-        localStorage.removeItem('inventory');
-        localStorage.removeItem('inventoryHistory');
-        localStorage.removeItem('staff');
-        localStorage.removeItem('routes');
-        localStorage.removeItem('areas');
-        localStorage.removeItem('businessInfo');
-      }
-      
-      router.push('/login');
-    } catch (error) {
-      console.error('Error signing out', error);
-    }
-  };
 
   const { isBackgroundSyncing, syncProgress } = useAppContext();
 
@@ -104,13 +74,14 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
             </div>
           )}
           <OnlineStatusBadge />
-          <button 
-            onClick={handleLogout}
-            className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors shrink-0"
-            title="Log out"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+          <SignOutButton>
+            <button 
+              className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors shrink-0"
+              title="Log out"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </SignOutButton>
           {showProfile && (
             <Link href="/settings" className="w-9 h-9 rounded-full overflow-hidden border-2 border-blue-600 bg-slate-100 flex items-center justify-center active:scale-95 transition-transform shrink-0">
               <UserCircle className="w-7 h-7 text-slate-400" />

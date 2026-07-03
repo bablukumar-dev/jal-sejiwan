@@ -5,12 +5,12 @@ import { Truck, Wallet, Droplet, ArrowRight, FileText, ChevronRight, Route, Down
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
-import { auth } from '@/firebase';
+import { supabase } from '@/src/supabaseClient';
 import OnboardingOverlay from '@/components/OnboardingOverlay';
 import TopAppBar from '@/components/TopAppBar';
 
 export default function StaffDashboard() {
-  const { customers, deliveries, payments, inventory, staff, businessInfo } = useAppContext();
+  const { customers, deliveries, payments, inventory, staff, businessInfo, currentUser } = useAppContext();
   const [userName, setUserName] = useState('');
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
@@ -40,9 +40,9 @@ export default function StaffDashboard() {
     });
     doc.save(`Statement-${currentYear}-${currentMonth + 1}.pdf`);
   };
-  
+
   useEffect(() => {
-    // Check PIN-based authentication first
+    // 1. Check PIN-based authentication first (Staff specific login)
     const pinAuth = typeof window !== 'undefined' ? localStorage.getItem('pinAuth') : null;
     const localStaffId = typeof window !== 'undefined' ? localStorage.getItem('staffUserId') : null;
 
@@ -51,46 +51,33 @@ export default function StaffDashboard() {
       if (currentStaff) {
         requestAnimationFrame(() => {
           setUserName(currentStaff.name);
-          if (currentStaff.route) {
-            setStaffRoute(currentStaff.route);
-          }
+          if (currentStaff.route) setStaffRoute(currentStaff.route);
           setCurrentStaffId(currentStaff.id);
         });
+        return;
       }
-      return;
     }
 
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        requestAnimationFrame(() => {
-          setUserName(user.displayName || user.email?.split('@')[0] || 'User');
-        });
-        // Find staff route if any
-        try {
-          const { doc, getDoc } = await import('firebase/firestore');
-          const { db } = await import('@/firebase');
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists() && userDoc.data().role === 'staff') {
-             const currentStaff = staff.find(s => s.phone === userDoc.data().phone || s.name === userDoc.data().name);
-             if (currentStaff) {
-                requestAnimationFrame(() => {
-                  if (currentStaff.route) {
-                    setStaffRoute(currentStaff.route);
-                  }
-                  setCurrentStaffId(currentStaff.id);
-                });
-             }
-          }
-        } catch (e) {
-            console.error(e);
+    // 2. Otherwise use Clerk-based current user
+    if (currentUser && currentUser.role === 'staff') {
+      const staffMember = staff.find(s => s.id.toString() === currentUser.uid || s.name === (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('currentUser') || '{}').name : ''));
+      
+      // Fallback to name-based matching if UID doesn't match staff ID
+      const userObj = staff.find(s => s.id.toString() === currentUser.uid) || staff.find(s => s.name === userName);
+
+      requestAnimationFrame(() => {
+        setUserName(currentUser.uid); // Default to UID if name unknown
+        if (userObj) {
+          setUserName(userObj.name);
+          if (userObj.route) setStaffRoute(userObj.route);
+          setCurrentStaffId(userObj.id);
         }
-      }
-    });
-    return () => unsubscribe();
-  }, [staff]);
+      });
+    }
+  }, [currentUser, staff, userName]);
 
   const today = new Date().toISOString().split('T')[0];
-  const currentUserUid = currentStaffId || auth.currentUser?.uid || '';
+  const currentUserUid = currentStaffId ? String(currentStaffId) : (currentUser?.uid || '');
 
   // Filter deliveries assigned to current staff for today
   const todaysDeliveries = deliveries.filter(d => 

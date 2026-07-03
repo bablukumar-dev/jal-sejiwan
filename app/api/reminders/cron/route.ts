@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
-import { db } from '@/firebase';
+import { supabase } from '@/src/supabaseClient';
 
 export const dynamic = 'force-dynamic';
 

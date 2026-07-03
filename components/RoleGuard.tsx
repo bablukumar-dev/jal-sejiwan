@@ -1,18 +1,8 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { auth, db } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-
-const safeGet = (key: string): string | null => {
-  if (typeof window === "undefined") return null;
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-};
+import { supabase } from '@/src/supabaseClient';
+import { useUser, useAuth } from '@clerk/nextjs';
 
 const publicPaths = [
   '/login',
@@ -22,114 +12,105 @@ const publicPaths = [
   '/privacy',
   '/privacy-policy',
   '/terms',
-  '/terms-and-conditions'
+  '/terms-and-conditions',
+  '/unauthorized'
 ];
 
 export function RoleGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname() || '';
+  const { isLoaded: isUserLoaded, user } = useUser();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const [authorized, setAuthorized] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (publicPaths.includes(pathname) || pathname === '/unauthorized') {
-      setAuthorized(true);
+    requestAnimationFrame(() => {
+      setMounted(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isUserLoaded || !isAuthLoaded) return;
+
+    const isPublic = pathname ? (
+      publicPaths.includes(pathname) || 
+      pathname.startsWith('/login') || 
+      pathname.startsWith('/signup') ||
+      pathname === '/unauthorized'
+    ) : true;
+
+    if (isPublic) {
+      requestAnimationFrame(() => {
+        setAuthorized(true);
+      });
       return;
     }
 
-    // Check PIN-based authentication first for staff/managers
-    const pinAuth = safeGet('pinAuth');
-    if (pinAuth === 'true') {
-      const role = (safeGet('userRole') || 'staff').toLowerCase();
-      let isAllowed = true;
-
-      if (pathname.startsWith('/owner/staff') || pathname.startsWith('/owner/reports')) {
-        if (role !== 'owner') {
-          isAllowed = false;
-        }
-      } else if (pathname.startsWith('/owner')) {
-        if (role !== 'owner' && role !== 'manager') {
-          isAllowed = false;
-        }
-      } else if (pathname.startsWith('/staff')) {
-        if (role !== 'staff') {
-          isAllowed = false;
-        }
-      } else if (pathname.startsWith('/inventory')) {
-        if (role !== 'owner' && role !== 'manager') {
-          isAllowed = false;
-        }
-      }
-
-      if (!isAllowed) {
-        router.push("/unauthorized");
-      } else {
-        setAuthorized(true);
-      }
+    if (!isSignedIn) {
+      router.push("/login");
       return;
     }
 
     const checkRole = async () => {
-      const user = auth.currentUser;
-      
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
-      // Fetch role from Firestore to block client-side local storage tampering
-      let role = safeGet('userRole') || 'staff';
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          role = userDoc.data().role || 'staff';
+        const { data: userDoc, error } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        let role = 'staff';
+        if (userDoc && !error) {
+          role = userDoc.role || 'staff';
+        }
+
+        const currentUserRole = role.toLowerCase();
+
+        // Role-Based Route Guard Validation
+        let isAllowed = true;
+
+        if (pathname.startsWith('/owner/staff') || pathname.startsWith('/owner/reports')) {
+          // Owner only
+          if (currentUserRole !== 'owner') {
+            isAllowed = false;
+          }
+        } else if (pathname.startsWith('/owner')) {
+          // Manager + Owner
+          if (currentUserRole !== 'owner' && currentUserRole !== 'manager') {
+            isAllowed = false;
+          }
+        } else if (pathname.startsWith('/staff')) {
+          // Staff only
+          if (currentUserRole !== 'staff') {
+            isAllowed = false;
+          }
+        } else if (pathname.startsWith('/inventory')) {
+          // Manager + Owner
+          if (currentUserRole !== 'owner' && currentUserRole !== 'manager') {
+            isAllowed = false;
+          }
+        }
+
+        if (!isAllowed) {
+          router.push("/unauthorized");
+        } else {
+          requestAnimationFrame(() => {
+            setAuthorized(true);
+          });
         }
       } catch (e) {
         console.error("Failed to verify user role in guard:", e);
-      }
-
-      const currentUser = {
-        uid: user.uid,
-        role: role.toLowerCase()
-      };
-
-      // Role-Based Route Guard Validation
-      let isAllowed = true;
-
-      if (pathname.startsWith('/owner/staff') || pathname.startsWith('/owner/reports')) {
-        // Owner only
-        if (currentUser.role !== 'owner') {
-          isAllowed = false;
-        }
-      } else if (pathname.startsWith('/owner')) {
-        // Manager + Owner
-        if (currentUser.role !== 'owner' && currentUser.role !== 'manager') {
-          isAllowed = false;
-        }
-      } else if (pathname.startsWith('/staff')) {
-        // Staff only
-        if (currentUser.role !== 'staff') {
-          isAllowed = false;
-        }
-      } else if (pathname.startsWith('/inventory')) {
-        // Manager + Owner
-        if (currentUser.role !== 'owner' && currentUser.role !== 'manager') {
-          isAllowed = false;
-        }
-      }
-
-      if (!isAllowed) {
         router.push("/unauthorized");
-      } else {
-        setAuthorized(true);
       }
     };
 
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      checkRole();
-    });
+    checkRole();
+  }, [pathname, router, isUserLoaded, isAuthLoaded, isSignedIn, user]);
 
-    return () => unsubscribe();
-  }, [pathname, router]);
+  if (!mounted) {
+    return <>{children}</>;
+  }
 
   if (!authorized) {
     if (!publicPaths.includes(pathname) && pathname !== '/unauthorized') {

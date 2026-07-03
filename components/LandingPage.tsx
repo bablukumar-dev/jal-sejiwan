@@ -38,7 +38,7 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Login</Link>
-            <Link href="/login" className="text-sm font-bold bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors">Get Started</Link>
+            <Link href="/login?signup=true" className="text-sm font-bold bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors">Get Started</Link>
           </div>
         </div>
       </header>
@@ -54,7 +54,7 @@ export default function LandingPage() {
               Digitize your 20 litre water jar delivery business with real-time billing, inventory tracking, and WhatsApp automation. Our comprehensive Water Supply Business Management App is designed specifically for drinking water supply startups.
             </p>
             <div className="flex gap-4 justify-center">
-              <Link href="/login" className="font-bold bg-blue-600 text-white px-6 py-3 rounded-xl shadow-sm hover:bg-blue-700">Start Free Trial</Link>
+              <Link href="/login?signup=true" className="font-bold bg-blue-600 text-white px-6 py-3 rounded-xl shadow-sm hover:bg-blue-700">Start Free Trial</Link>
               <Link href="/login" className="font-bold bg-white text-slate-900 border border-slate-200 px-6 py-3 rounded-xl shadow-sm hover:bg-slate-50">Login</Link>
             </div>
           </div>
@@ -371,7 +371,7 @@ export default function LandingPage() {
                 </div>
 
                 <Link
-                  href="/login"
+                  href="/login?signup=true"
                   className="w-full bg-white text-blue-700 font-bold py-3 px-4 rounded-xl text-center block hover:bg-blue-50 active:scale-[0.98] transition-all shadow-md text-sm"
                   id="calc-cta-btn"
                 >
@@ -521,7 +521,7 @@ export default function LandingPage() {
           <p className="text-blue-100 max-w-xl mx-auto text-sm leading-relaxed">
             Say goodbye to missing records, register disputes, and unpaid water jar dues. Embrace India&apos;s leading 20 litre water jar business app and get complete visibility over your fleet.
           </p>
-          <Link href="/login" className="inline-block font-bold bg-white text-blue-700 px-8 py-3 rounded-xl hover:bg-slate-50 transition-colors shadow-md">Get Started Now</Link>
+          <Link href="/login?signup=true" className="inline-block font-bold bg-white text-blue-700 px-8 py-3 rounded-xl hover:bg-slate-50 transition-colors shadow-md">Get Started Now</Link>
         </section>
       </main>
 

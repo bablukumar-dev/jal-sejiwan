@@ -2,7 +2,7 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Truck, Wallet, Droplet, Package, AlertTriangle, UserPlus, FileText, Users, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
@@ -67,12 +67,10 @@ function OwnerDashboard() {
       if (localCompleted !== 'true') {
         const checkDb = async () => {
           try {
-            const { doc, getDoc } = await import('firebase/firestore');
-            const { db } = await import('@/firebase');
-            const userSnap = await getDoc(doc(db, 'users', ownerId));
-            if (userSnap.exists()) {
-              const uData = userSnap.data();
-              if (uData.onboardingCompleted === true) {
+            const { supabase } = await import('@/src/supabaseClient');
+            const { data: userDoc, error } = await supabase.from('users').select('onboardingCompleted').eq('id', ownerId).single();
+            if (userDoc && !error) {
+              if (userDoc.onboardingCompleted === true) {
                 localStorage.setItem(`onboardingCompleted_${ownerId}`, 'true');
               } else {
                 setShowOnboarding(true);

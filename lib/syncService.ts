@@ -1,5 +1,4 @@
-import { db } from '@/firebase';
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { supabase } from '@/src/supabaseClient';
 import { getUnsyncedDeliveries, markAsSynced } from './idb';
 import { logActivity } from './activityLogger';
 
@@ -22,11 +21,14 @@ export const syncOfflineDeliveries = async (
 
   for (const entry of pending) {
     try {
-      const workspaceRef = doc(db, 'workspaces', businessId);
-      const workspaceSnap = await getDoc(workspaceRef);
+      const { data: workspaceData, error } = await supabase
+        .from('workspaces')
+        .select('data')
+        .eq('id', businessId)
+        .single();
 
-      if (workspaceSnap.exists()) {
-        const data = workspaceSnap.data();
+      if (workspaceData && !error) {
+        const data = workspaceData.data || {};
         
         // 1. Update deliveries - check if already updated
         const deliveryExists = (data.deliveries || []).find((d: any) => d.id === entry.deliveryId && d.status === 'delivered');
@@ -114,13 +116,19 @@ export const syncOfflineDeliveries = async (
           }
         }
 
-        // Apply all updates to Firestore
-        await updateDoc(workspaceRef, {
-          deliveries: (data.deliveries || []).map((d: any) => d.id === entry.deliveryId ? newDelivery : d),
-          customers: updatedCustomers,
-          inventory: updatedInventory,
-          payments: newPayments
-        });
+        // Apply all updates to Supabase
+        await supabase
+          .from('workspaces')
+          .update({
+            data: {
+              ...data,
+              deliveries: (data.deliveries || []).map((d: any) => d.id === entry.deliveryId ? newDelivery : d),
+              customers: updatedCustomers,
+              inventory: updatedInventory,
+              payments: newPayments
+            }
+          })
+          .eq('id', businessId);
 
         await markAsSynced(entry.id);
         

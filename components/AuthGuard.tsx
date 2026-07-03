@@ -1,9 +1,7 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { auth, db } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { useAuth, useClerk } from '@clerk/nextjs';
 
 const publicPaths = [
   '/login',
@@ -13,83 +11,48 @@ const publicPaths = [
   '/privacy',
   '/privacy-policy',
   '/terms',
-  '/terms-and-conditions'
+  '/terms-and-conditions',
+  '/unauthorized'
 ];
-
-const safeGet = (key: string): string | null => {
-  if (typeof window === "undefined") return null;
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-};
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [loading, setLoading] = useState(true);
+  const { isLoaded, isSignedIn } = useAuth();
+  const { signOut } = useClerk();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const isPublic = pathname ? (publicPaths.includes(pathname) || pathname === '/unauthorized') : true;
-    if (isPublic) {
-      setLoading(false);
-      return;
-    }
-
-    // Check PIN-based authentication first for staff/managers
-    const pinAuth = safeGet('pinAuth');
-    if (pinAuth === 'true') {
-      setLoading(false);
-      return;
-    }
-
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      const currentUser = user;
-      if (!currentUser) {
-        router.push("/login");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          
-          // Reconcile and resolve businessId
-          let realBusinessId = data.businessId;
-          if (realBusinessId) {
-            const cachedBusinessId = safeGet('businessId');
-            if (cachedBusinessId !== realBusinessId) {
-              if (typeof window !== 'undefined') {
-                localStorage.setItem('businessId', realBusinessId);
-              }
-            }
-          }
-          setLoading(false);
-        } else {
-          // Missing user profile in Firestore
-          await auth.signOut();
-          if (typeof window !== 'undefined') {
-            localStorage.clear();
-          }
-          router.push("/login");
-        }
-      } catch (e) {
-        console.error("Could not verify session in AuthGuard", e);
-        setLoading(false);
-      }
+    requestAnimationFrame(() => {
+      setMounted(true);
     });
+  }, []);
 
-    return () => unsubscribe();
-  }, [pathname, router]);
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      const isPublic = pathname ? (
+        publicPaths.includes(pathname) || 
+        pathname.startsWith('/login') || 
+        pathname.startsWith('/signup')
+      ) : true;
+      
+      if (!isPublic) {
+        router.push("/login");
+      }
+    }
+  }, [isLoaded, isSignedIn, pathname, router]);
 
   // Inactivity auto-logout (30 minutes of complete inactivity)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    
+    if (!pathname) return;
 
-    if (publicPaths.includes(pathname)) {
+    const isPublic = publicPaths.includes(pathname) || 
+                    pathname.startsWith('/login') || 
+                    pathname.startsWith('/signup');
+
+    if (isPublic) {
       return;
     }
 
@@ -114,7 +77,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         const inactiveTime = Date.now() - parseInt(lastActivity, 10);
         if (inactiveTime > 30 * 60 * 1000) { // 30 minutes in milliseconds
           try {
-            await auth.signOut();
+            await signOut();
           } catch (e) {
             console.error('Failed to sign out on timeout:', e);
           }
@@ -130,12 +93,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       });
       clearInterval(interval);
     };
-  }, [pathname]);
+  }, [pathname, signOut]);
 
-  if (loading) {
+  if (!mounted || !isLoaded) {
     if (!publicPaths.includes(pathname) && pathname !== '/unauthorized') {
-        return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-bold text-slate-500">Checking session...</div>;
+      return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-bold text-slate-500">Checking session...</div>;
     }
+    return <>{children}</>;
   }
 
   return <>{children}</>;

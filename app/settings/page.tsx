@@ -1,14 +1,15 @@
 'use client';
 
-import TopAppBar from '@/components/TopAppBar';
-import BottomNav from '@/components/BottomNav';
+import { useUser, SignOutButton } from '@clerk/nextjs';
 import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle, CheckCircle2, Search, ChevronDown, RefreshCcw, Database, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
-import { auth } from '@/firebase';
+import { supabase } from '@/src/supabaseClient';
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import TopAppBar from '@/components/TopAppBar';
+import BottomNav from '@/components/BottomNav';
 import { getUnsyncedDeliveries } from '@/lib/idb';
 
 const INDIAN_LANGUAGES = [
@@ -73,22 +74,14 @@ const FAQS = [
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { user } = useUser();
   const { 
     businessInfo, 
     setBusinessInfo, 
     staff, 
     routes, 
     deliveries,
-    setCustomers,
-    setDeliveries,
-    setPayments,
-    setInventory,
-    setInventoryHistory,
-    setStaff,
-    setRoutes,
-    setAreas,
-    customers,
-    payments
+    currentUser
   } = useAppContext();
   
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -106,12 +99,7 @@ export default function SettingsPage() {
     }
     return true;
   });
-  const [userRole, setUserRole] = useState<'owner' | 'staff' | 'manager'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('userRole') as 'owner' | 'staff' | 'manager') || 'owner';
-    }
-    return 'owner';
-  });
+  
   const [userName, setUserName] = useState<string>('');
   const [pendingSyncs, setPendingSyncs] = useState<any[]>([]);
   const [isSyncLogOpen, setIsSyncLogOpen] = useState(false);
@@ -133,44 +121,13 @@ export default function SettingsPage() {
   }, [fetchPendingSyncs]);
 
   useEffect(() => {
-    let unmounted = false;
-
-    // Check if PIN auth is active and load username from local storage
-    if (typeof window !== 'undefined') {
-      const pinAuth = localStorage.getItem('pinAuth');
-      const storedName = localStorage.getItem('staffUserName');
-      if (pinAuth === 'true' && storedName) {
-        requestAnimationFrame(() => {
-          setUserName(storedName);
-        });
-        return;
-      }
+    if (currentUser) {
+      const name = currentUser.name || user?.fullName || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'User';
+      requestAnimationFrame(() => {
+        setUserName(name);
+      });
     }
-
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        if (!unmounted) setUserName(user.displayName || user.email?.split('@')[0] || 'User');
-        
-        // Fetch role from Firestore to ensure it's up to date
-        try {
-          const { doc, getDoc } = await import('firebase/firestore');
-          const { db } = await import('@/firebase');
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists() && userDoc.data().role && !unmounted) {
-            setUserRole(userDoc.data().role);
-            localStorage.setItem('userRole', userDoc.data().role);
-          }
-        } catch (e) {
-          console.error("Could not fetch user role", e);
-        }
-      }
-    });
-
-    return () => {
-      unmounted = true;
-      unsubscribe();
-    };
-  }, []);
+  }, [currentUser, user]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -202,10 +159,6 @@ export default function SettingsPage() {
     faq.a.toLowerCase().includes(faqSearchQuery.toLowerCase())
   );
 
-  const handleLogout = () => {
-    router.push('/login');
-  };
-
   const handleSaveProfile = async () => {
     try {
       const { validateName } = await import('@/lib/validation');
@@ -216,16 +169,13 @@ export default function SettingsPage() {
       }
       
       const cleanName = nameVal.value;
-      if (userRole === 'owner') {
+      if (currentUser?.role === 'owner') {
         setBusinessInfo({ ...businessInfo, ownerName: cleanName });
       } else {
         setUserName(cleanName);
-        const { updateProfile } = await import('firebase/auth');
-        const { doc, updateDoc } = await import('firebase/firestore');
-        const { db, auth } = await import('@/firebase');
-        if (auth.currentUser) {
-          await updateProfile(auth.currentUser, { displayName: cleanName });
-          await updateDoc(doc(db, 'users', auth.currentUser.uid), { name: cleanName });
+        // In a real app, you'd call a Clerk update or a DB update here
+        if (user) {
+          await user.update({ firstName: cleanName });
         }
       }
       setIsEditingProfile(false);
@@ -235,7 +185,7 @@ export default function SettingsPage() {
     }
   };
 
-
+  const userRole = currentUser?.role || 'staff';
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 relative">
@@ -248,7 +198,7 @@ export default function SettingsPage() {
             <div className="w-28 h-28 rounded-full bg-slate-200 overflow-hidden border-[5px] border-white shadow-xl flex items-center justify-center relative bg-gradient-to-tr from-blue-100 to-indigo-50">
               {profileImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={profileImage} alt={`${userRole === 'owner' ? businessInfo.ownerName : userName} - Registered Owner/Manager Profile on JalSejiwan, the elite Water Supply Business Management App powered by Water Delivery Management Software India`} className="w-full h-full object-cover" />
+                <img src={profileImage} alt={`${userRole === 'owner' ? businessInfo.ownerName : userName} - Registered Owner/Manager Profile on JalSejiwan`} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-4xl font-bold text-blue-400">
                   {userRole === 'owner' ? businessInfo.ownerName.charAt(0).toUpperCase() : userName?.charAt(0).toUpperCase()}
@@ -361,8 +311,6 @@ export default function SettingsPage() {
                 )}
               </div>
             </div>
-
-
           </>
         )}
 
@@ -461,12 +409,13 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <button 
-          onClick={handleLogout}
-          className="w-full bg-red-50 text-red-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
-        >
-          <LogOut className="w-5 h-5" /> LOG OUT
-        </button>
+        <SignOutButton>
+          <button 
+            className="w-full bg-red-50 text-red-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          >
+            <LogOut className="w-5 h-5" /> LOG OUT
+          </button>
+        </SignOutButton>
 
         <div className="mt-8 text-center">
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">JalSejiwan Operations V2.4.0-BUILD88</span>

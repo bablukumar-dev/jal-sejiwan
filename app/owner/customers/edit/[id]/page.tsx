@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import { User, MapPin, Save, Settings, IndianRupee, Camera } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
 import { logActivity } from '@/lib/activityLogger';
-import { storage } from '@/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { supabase } from '@/src/supabaseClient';
 
 export default function EditCustomer() {
   const router = useRouter();
@@ -83,11 +83,12 @@ export default function EditCustomer() {
         if (selectedImage) {
           try {
             setIsUploading(true);
-            const imageRef = ref(storage, `customers/${currentBusinessId}_${customerId}/profile.jpg`);
-            await uploadBytes(imageRef, selectedImage);
-            uploadedImageURL = await getDownloadURL(imageRef);
+            const filePath = `customers/${currentBusinessId}_${customerId}/profile.jpg`;
+            await supabase.storage.from('customers').upload(filePath, selectedImage, { upsert: true });
+            const { data } = supabase.storage.from('customers').getPublicUrl(filePath);
+            uploadedImageURL = data.publicUrl;
           } catch (uploadError) {
-            console.error("Firebase Storage upload error:", uploadError);
+            console.error("Supabase Storage upload error:", uploadError);
             alert("Image upload failed, but customer will be updated without the new image.");
           } finally {
             setIsUploading(false);
@@ -191,7 +192,15 @@ export default function EditCustomer() {
               <label className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 block">Customer Image / Grahak Ya Dukaan Ki Photo</label>
               <div className="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">
                 {imagePreview ? (
-                  <img src={imagePreview} className="w-16 h-16 rounded-full object-cover border border-slate-200" alt="Preview" />
+                  <div className="w-16 h-16 rounded-full overflow-hidden border border-slate-200 relative">
+                    <Image 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      fill 
+                      className="object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
                     <Camera className="w-6 h-6 text-slate-400" />

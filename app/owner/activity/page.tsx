@@ -4,8 +4,7 @@
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { useState, useEffect, useMemo, memo } from 'react';
-import { collection, onSnapshot, query, where, limit } from 'firebase/firestore';
-import { db } from '@/firebase';
+import { supabase } from '@/src/supabaseClient';
 import { useAppContext } from '@/app/context/AppContext';
 import { 
   Activity, 
@@ -88,7 +87,7 @@ export default function ActivityLogDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
 
-  // Load live activity logs from Firestore
+// Load live activity logs from Supabase
   useEffect(() => {
     if (!currentUser || !currentUser.businessId) {
       console.warn("businessId not available yet");
@@ -99,64 +98,60 @@ export default function ActivityLogDashboard() {
 
     const businessId = currentUser.businessId;
 
-    try {
-      setIsLoading(true);
-      const logsRef = collection(db, 'activities');
-      const q = query(
-        logsRef,
-        where("businessId", "==", businessId),
-        limit(100)
-      );
+    const fetchLogs = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('activities')
+          .select('*')
+          .eq('businessId', businessId)
+          .order('timestamp', { ascending: false })
+          .limit(100);
 
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        console.log("Live log updated:", snapshot.docs.length);
-        setIsLoaded(true);
-        // Prevent empty false state by wrapping exists check
-        const exists = typeof (snapshot as any).exists === 'function' ? (snapshot as any).exists() : !snapshot.empty;
-        if (!exists) {
-          setLogs([]);
+        if (error) {
+          console.error("Supabase listener error:", error);
           setIsLoading(false);
-          setIsLive(true);
+          setIsLoaded(true);
           return;
         }
 
-        const fetchedLogs: ActivityLog[] = [];
-        snapshot.forEach((doc) => {
-          fetchedLogs.push(doc.data() as ActivityLog);
-        });
+        if (!data || data.length === 0) {
+          setLogs([]);
+          setIsLoading(false);
+          setIsLive(true);
+          setIsLoaded(true);
+          return;
+        }
 
-        // Sort latest first safely handling both String dates and Firestore Timestamps
-        fetchedLogs.sort((a, b) => {
-          const timeA = (() => {
-            if (!a.timestamp) return 0;
-            if (typeof a.timestamp.toDate === 'function') return a.timestamp.toDate().getTime();
-            const t = new Date(a.timestamp).getTime();
-            return isNaN(t) ? 0 : t;
-          })();
-          const timeB = (() => {
-            if (!b.timestamp) return 0;
-            if (typeof b.timestamp.toDate === 'function') return b.timestamp.toDate().getTime();
-            const t = new Date(b.timestamp).getTime();
-            return isNaN(t) ? 0 : t;
-          })();
-          return timeB - timeA;
-        });
-        
+        const fetchedLogs = data as ActivityLog[];
+
         setLogs(fetchedLogs);
         setIsLoading(false);
         setIsLive(true);
-      }, (error) => {
-        console.error("Firestore listener error:", error);
+        setIsLoaded(true);
+      } catch (e) {
+        console.error("Failed to setup real-time activity log subscription:", e);
         setIsLoading(false);
         setIsLoaded(true);
-      });
+      }
+    };
 
-      return () => unsubscribe();
-    } catch (e) {
-      console.error("Failed to setup real-time activity log subscription:", e);
-      setIsLoading(false);
-      setIsLoaded(true);
-    }
+    fetchLogs();
+
+    const channel = supabase
+      .channel('activities-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'activities', filter: `businessId=eq.${businessId}` },
+        () => {
+          fetchLogs();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.businessId]);
 
@@ -297,7 +292,7 @@ export default function ActivityLogDashboard() {
     const paymentsCount = finalLogs.filter(l => (l.actionType || l.action_type) === 'payment_collected').length;
     const staffCount = finalLogs.filter(l => (l.actionType || l.action_type) === 'staff_created').length;
 
-    // Total payment value in Firestore logs (which is filtered by business ID in onSnapshot)
+    // Total payment value in Supabase logs (which is filtered by business ID)
     const totalPaymentsValue = logs
       .filter(l => {
         const actionType = String(l.action_type || (l as any).type || '').toLowerCase();

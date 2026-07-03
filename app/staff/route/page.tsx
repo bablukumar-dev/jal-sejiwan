@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
@@ -12,47 +12,38 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 
 export default function MyRoute() {
   const router = useRouter();
-  const { deliveries, setDeliveries, customers, staff, businessInfo } = useAppContext();
+  const { deliveries, setDeliveries, customers, staff, businessInfo, currentUser } = useAppContext();
   const [activeTab, setActiveTab] = useState<'Pending' | 'Completed'>('Pending');
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
   
   useEffect(() => {
-    const fetchStaffRoute = async () => {
-      try {
-        const pinAuth = typeof window !== 'undefined' ? localStorage.getItem('pinAuth') : null;
-        const localStaffId = typeof window !== 'undefined' ? localStorage.getItem('staffUserId') : null;
-        if (pinAuth === 'true' && localStaffId) {
-          const currentStaff = staff.find(s => String(s.id) === localStaffId);
-          if (currentStaff) {
-            if (currentStaff.route) {
-              setStaffRoute(currentStaff.route);
-            }
-            setCurrentStaffId(currentStaff.id);
-          }
-          return;
-        }
-        const { auth, db } = await import('@/firebase');
-        const { doc, getDoc } = await import('firebase/firestore');
-        const user = auth.currentUser;
-        if (user) {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists() && userDoc.data().role === 'staff') {
-             const currentStaff = staff.find(s => s.phone === userDoc.data().phone || s.name === userDoc.data().name);
-             if (currentStaff) {
-               if (currentStaff.route) {
-                 setStaffRoute(currentStaff.route);
-               }
-               setCurrentStaffId(currentStaff.id);
-             }
-          }
-        }
-      } catch (e) {
-        console.error(e);
+    // 1. Check PIN-based authentication first
+    const pinAuth = typeof window !== 'undefined' ? localStorage.getItem('pinAuth') : null;
+    const localStaffId = typeof window !== 'undefined' ? localStorage.getItem('staffUserId') : null;
+    if (pinAuth === 'true' && localStaffId) {
+      const currentStaff = staff.find(s => String(s.id) === localStaffId);
+      if (currentStaff) {
+        requestAnimationFrame(() => {
+          if (currentStaff.route) setStaffRoute(currentStaff.route);
+          setCurrentStaffId(currentStaff.id);
+        });
+        return;
       }
-    };
-    fetchStaffRoute();
-  }, [staff]);
+    }
+
+    // 2. Otherwise use Clerk-based current user
+    if (currentUser && currentUser.role === 'staff') {
+      const staffMember = staff.find(s => s.id.toString() === currentUser.uid) || 
+                          staff.find(s => s.name === currentUser.name);
+      if (staffMember) {
+        requestAnimationFrame(() => {
+          if (staffMember.route) setStaffRoute(staffMember.route);
+          setCurrentStaffId(staffMember.id);
+        });
+      }
+    }
+  }, [currentUser, staff]);
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
   

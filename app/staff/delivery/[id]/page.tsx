@@ -1,7 +1,7 @@
 'use client';
 
 import TopAppBar from '@/components/TopAppBar';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { MapPin, Phone, Droplet, Package, Plus, Minus, CheckCircle2, AlertTriangle, WifiOff, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -14,7 +14,7 @@ export default function DeliveryEntry() {
   const router = useRouter();
   const params = useParams();
   const deliveryId = Number(params.id);
-  const { deliveries, customers, setDeliveries, setCustomers, setInventory, setPayments, businessInfo, inventory, payments } = useAppContext();
+  const { deliveries, customers, setDeliveries, setCustomers, setInventory, setPayments, businessInfo, inventory, payments, currentUser } = useAppContext();
 
   const delivery = deliveries.find(d => d.id === deliveryId);
   const customer = customers.find(c => c.id === delivery?.customerId);
@@ -33,15 +33,7 @@ export default function DeliveryEntry() {
 
   const [customCollectedStr, setCustomCollectedStr] = useState<string | null>(null);
 
-  const [userRole, setUserRole] = useState<'owner' | 'manager' | 'staff'>(() => {
-    if (typeof window !== 'undefined') {
-      const storedRole = localStorage.getItem('userRole');
-      if (storedRole === 'owner' || storedRole === 'manager' || storedRole === 'staff') {
-        return storedRole;
-      }
-    }
-    return 'staff';
-  });
+  const userRole = currentUser?.role || 'staff';
 
   const [hasInitializedRate, setHasInitializedRate] = useState(false);
   const [currentRate, setCurrentRate] = useState<number>(45);
@@ -62,28 +54,6 @@ export default function DeliveryEntry() {
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
-    // Fetch up-to-date role from Firestore
-    const checkRole = async () => {
-      try {
-        const { auth, db } = await import('@/firebase');
-        const { doc, getDoc } = await import('firebase/firestore');
-        const user = auth.currentUser;
-        if (user) {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const role = userDoc.data().role;
-            if (role === 'owner' || role === 'manager' || role === 'staff') {
-              setUserRole(role);
-              localStorage.setItem('userRole', role);
-            }
-          }
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    checkRole();
 
     return () => {
       window.removeEventListener('online', handleOnline);

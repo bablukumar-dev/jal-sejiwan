@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { 
@@ -25,7 +25,7 @@ import { logActivity } from '@/lib/activityLogger';
 
 export default function CustomerService() {
   const router = useRouter();
-  const { deliveries, setDeliveries, customers: rawCustomers, staff, businessInfo } = useAppContext();
+  const { deliveries, setDeliveries, customers: rawCustomers, staff, businessInfo, currentUser } = useAppContext();
 
   const customers = useMemo(() => {
     return Array.from(
@@ -40,35 +40,30 @@ export default function CustomerService() {
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
-    const fetchStaffId = async () => {
-      try {
-        const pinAuth = typeof window !== 'undefined' ? localStorage.getItem('pinAuth') : null;
-        const localStaffId = typeof window !== 'undefined' ? localStorage.getItem('staffUserId') : null;
-        if (pinAuth === 'true' && localStaffId) {
-          const currentStaff = staff.find(s => String(s.id) === localStaffId);
-          if (currentStaff) {
-            setCurrentStaffId(currentStaff.id);
-          }
-          return;
-        }
-        const { auth, db } = await import('@/firebase');
-        const { doc, getDoc } = await import('firebase/firestore');
-        const user = auth.currentUser;
-        if (user) {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists() && userDoc.data().role === 'staff') {
-             const currentStaff = staff.find(s => s.phone === userDoc.data().phone || s.name === userDoc.data().name);
-             if (currentStaff) {
-               setCurrentStaffId(currentStaff.id);
-             }
-          }
-        }
-      } catch (e) {
-        console.error(e);
+    // 1. Check PIN-based authentication first
+    const pinAuth = typeof window !== 'undefined' ? localStorage.getItem('pinAuth') : null;
+    const localStaffId = typeof window !== 'undefined' ? localStorage.getItem('staffUserId') : null;
+    if (pinAuth === 'true' && localStaffId) {
+      const currentStaff = staff.find(s => String(s.id) === localStaffId);
+      if (currentStaff) {
+        requestAnimationFrame(() => {
+          setCurrentStaffId(currentStaff.id);
+        });
+        return;
       }
-    };
-    fetchStaffId();
-  }, [staff]);
+    }
+
+    // 2. Otherwise use Clerk-based current user
+    if (currentUser && currentUser.role === 'staff') {
+      const staffMember = staff.find(s => s.id.toString() === currentUser.uid) || 
+                          staff.find(s => s.name === currentUser.name);
+      if (staffMember) {
+        requestAnimationFrame(() => {
+          setCurrentStaffId(staffMember.id);
+        });
+      }
+    }
+  }, [currentUser, staff]);
 
   // Base list of deliveries for the staff
   const baseDeliveries = useMemo(() => {
@@ -144,15 +139,13 @@ export default function CustomerService() {
       const customer = delivery ? customers.find(c => c.id === delivery.customerId) : null;
       const qty = customer?.defaultQty || delivery?.deliveredQty || 1;
 
-      const { db } = await import('@/firebase');
-      const { doc, updateDoc } = await import('firebase/firestore');
+      const { supabase } = await import('@/src/supabaseClient');
       
-      const deliveryRef = doc(db, 'deliveries', deliveryId);
-      await updateDoc(deliveryRef, {
+      await supabase.from('deliveries').update({
         status: 'completed',
         deliveredQty: qty,
         delivered_at: new Date().toISOString()
-      });
+      }).eq('id', deliveryId);
 
       const updated = deliveries.map(d => 
         String(d.id) === String(deliveryId) ? { ...d, status: 'completed', deliveredQty: qty } : d

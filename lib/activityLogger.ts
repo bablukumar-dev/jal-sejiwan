@@ -1,5 +1,4 @@
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/firebase';
+import { supabase } from '@/src/supabaseClient';
 
 export interface ActivityLog {
   id: string; // Standarized ID
@@ -75,15 +74,9 @@ export async function logActivity(
         }
       }
 
-      // Generate a common document ID
-      const commonId = doc(collection(db, 'activities')).id;
-      const rootDocRef = doc(db, 'activities', commonId);
-      const workspaceDocRef = doc(db, 'workspaces', workspaceId, 'activity_logs', commonId);
-
-      const activityData: ActivityLog = {
-        id: commonId,
-        log_id: commonId,
-        timestamp: serverTimestamp(),
+      const activityData = {
+        log_id: Date.now().toString() + Math.random().toString(36).substring(7),
+        timestamp: new Date().toISOString(),
         userId: userId,
         user_id: userId,
         user_name: userName,
@@ -100,11 +93,7 @@ export async function logActivity(
         action: description,
       };
 
-      // Set under both root "activities" and nested "workspaces/{workspaceId}/activity_logs" collections
-      await Promise.all([
-        setDoc(rootDocRef, activityData),
-        setDoc(workspaceDocRef, activityData)
-      ]);
+      await supabase.from('activities').insert(activityData);
 
       console.log(`Activity logged successfully in workspace ${workspaceId}: ${actionType}`);
     } catch (error) {

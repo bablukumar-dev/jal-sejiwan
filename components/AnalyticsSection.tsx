@@ -44,7 +44,7 @@ export function AnalyticsDashboardSection({
     const activeCustomersCount = customers.filter(c => c.active).length;
 
     return { monthlyRevenue, dailyDeliveries, totalDues, topStaff, activeCustomersCount };
-  }, [customers, deliveries, payments, staff]);
+  }, [customers, deliveries, payments]);
 
   return (
     <div className="mt-8 mb-4">

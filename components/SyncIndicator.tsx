@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useAppContext } from '@/app/context/AppContext';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Cloud, CheckCircle2, RefreshCw } from 'lucide-react';
 
 export default function SyncIndicator() {

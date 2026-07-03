@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ShieldAlert, ArrowLeft, Mail } from 'lucide-react';
-import { auth } from '@/firebase';
+import { supabase } from '@/src/supabaseClient';
 
 interface AccessAttempt {
   id: string;
@@ -31,7 +31,7 @@ export default function UnauthorizedPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const currentRole = localStorage.getItem('userRole') || 'Guest';
-      const currentUserEmail = auth.currentUser?.email || localStorage.getItem('userEmail') || 'N/A';
+      const currentUserEmail = localStorage.getItem('userEmail') || 'N/A';
       const currentBusinessId = localStorage.getItem('businessId') || 'N/A';
       const currentPinAuth = localStorage.getItem('pinAuth') === 'true' ? 'Yes' : 'No';
       const currentStaffName = localStorage.getItem('staffUserName') || null;
@@ -83,7 +83,7 @@ export default function UnauthorizedPage() {
       }
 
       // Add current diagnostic attempt to log
-      const logIdentity = auth.currentUser?.email || currentStaffName || 'Anonymous Visitor';
+      const logIdentity = currentUserEmail !== 'N/A' ? currentUserEmail : (currentStaffName || 'Anonymous Visitor');
       let logPath = '/owner/dashboard';
       try {
         if (document.referrer) {

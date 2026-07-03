@@ -1,20 +1,22 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import { User, MapPin, Save, Settings, IndianRupee, Camera, X, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
 import { logActivity } from '@/lib/activityLogger';
-import { storage } from '@/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { supabase } from '@/src/supabaseClient';
 import ImageCropperModal from '@/components/ImageCropperModal';
+import Toast, { ToastProps } from '@/components/Toast';
 
 export default function AddCustomer() {
   const router = useRouter();
   const { areas, setAreas, routes, setRoutes, setCustomers, customers, staff, setStaff } = useAppContext();
 
+  const [toast, setToast] = useState<ToastProps | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
@@ -140,12 +142,13 @@ export default function AddCustomer() {
         if (selectedImage) {
           try {
             setIsUploading(true);
-            const imageRef = ref(storage, `customers/${currentBusinessId}_${newId}/profile.jpg`);
-            await uploadBytes(imageRef, selectedImage);
-            uploadedImageURL = await getDownloadURL(imageRef);
+            const filePath = `customers/${currentBusinessId}_${newId}/profile.jpg`;
+            await supabase.storage.from('customers').upload(filePath, selectedImage, { upsert: true });
+            const { data } = supabase.storage.from('customers').getPublicUrl(filePath);
+            uploadedImageURL = data.publicUrl;
           } catch (uploadError) {
-            console.error("Firebase Storage upload error:", uploadError);
-            alert("Image upload failed, but customer will be saved without an image.");
+            console.error("Supabase Storage upload error:", uploadError);
+            setToast({ message: 'Image upload failed, but customer will be saved.', type: 'error', onClose: () => setToast(null) });
           } finally {
             setIsUploading(false);
           }
@@ -193,16 +196,18 @@ export default function AddCustomer() {
           }
         );
 
-        alert('Customer Successfully Added');
+        setToast({ message: 'Customer Successfully Added', type: 'success', onClose: () => setToast(null) });
         const role = localStorage.getItem('userRole');
-        if (role === 'staff') {
-        router.push('/staff/dashboard');
-        } else {
-        router.push('/owner/customers');
-        }
+        setTimeout(() => {
+          if (role === 'staff') {
+          router.push('/staff/dashboard');
+          } else {
+          router.push('/owner/customers');
+          }
+        }, 1500);
     } catch (e) {
         console.error("Failed to add customer", e);
-        alert("Failed to add customer. Please try again.");
+        setToast({ message: 'Failed to add customer. Please try again.', type: 'error', onClose: () => setToast(null) });
     }
   };
 
@@ -252,7 +257,15 @@ export default function AddCustomer() {
               <label className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 block">Customer Image / Grahak Ya Dukaan Ki Photo</label>
               <div className="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">
                 {imagePreview ? (
-                  <img src={imagePreview} className="w-16 h-16 rounded-full object-cover border border-slate-200" alt="Preview" />
+                  <div className="w-16 h-16 rounded-full overflow-hidden border border-slate-200 relative">
+                    <Image 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      fill 
+                      className="object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
                     <Camera className="w-6 h-6 text-slate-400" />
@@ -629,6 +642,7 @@ export default function AddCustomer() {
             </div>
           </div>
         )}
+        {toast && <Toast {...toast} />}
       </main>
 
       <div className="fixed bottom-0 left-0 w-full p-4 bg-white border-t border-slate-200 z-50">

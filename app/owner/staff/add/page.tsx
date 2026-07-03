@@ -6,8 +6,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { hashPin } from '@/lib/authHelper';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '@/firebase';
+import { supabase } from '@/src/supabaseClient';
 import { logActivity } from '@/lib/activityLogger';
 import { wrapRoute } from '@/lib/permissionGuard';
 import { safeGet } from '@/lib/utils';
@@ -69,20 +68,6 @@ function AddStaff() {
         const creatorId = 'owner';
         const sanitizedRoute = sanitizeString(route);
 
-        const newStaff = {
-          id: Date.now(),
-          name: nameVal.value,
-          phone: phoneVal.value,
-          role: sanitizeString(role),
-          route: sanitizedRoute,
-          pin: 'HIDDEN', // don't expose raw PIN 
-          encryptedPin: hashPin(cleanPin),
-          active: true,
-          createdBy: creatorId,
-          failedPinAttempts: 0,
-          permissions: role === 'Manager' ? permissions : undefined
-        };
-
         const currentOwnerId = safeGet('ownerId');
         const currentBusinessId = safeGet('businessId');
         
@@ -90,11 +75,40 @@ function AddStaff() {
              throw new Error("Action Blocked: businessId is missing from session.");
         }
         
-        await setDoc(doc(db, 'staff_users', phoneVal.value), {
-            ...newStaff,
-            ownerId: currentOwnerId || '',
-            businessId: currentBusinessId
+        const dbRole = role === 'Delivery Partner' ? 'staff' : role.toLowerCase();
+
+        // 2. Call the admin API to create the user
+        const response = await fetch('/api/admin/create-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: phoneVal.value, // Using the phone field for email/identifier
+            password: cleanPin,
+            name: nameVal.value,
+            role: dbRole,
+            business_id: currentBusinessId
+          })
         });
+
+        const apiResult = await response.json();
+        if (!response.ok) {
+          throw new Error(apiResult.error || 'Failed to create staff account');
+        }
+
+        const newStaff = {
+          id: apiResult.userId,
+          name: nameVal.value,
+          phone: phoneVal.value,
+          role: sanitizeString(role),
+          route: sanitizedRoute,
+          pin: 'HIDDEN',
+          active: true,
+          createdBy: creatorId,
+          failedPinAttempts: 0,
+          permissions: role === 'Manager' ? permissions : undefined
+        };
 
         setStaff([...staff, newStaff]);
         
@@ -133,11 +147,11 @@ function AddStaff() {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">Phone / Email *</label>
+              <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">Email Address *</label>
               <input 
-                type="text" 
+                type="email" 
                 className="w-full mt-1 bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900"
-                placeholder="Enter mobile or email"
+                placeholder="Enter staff email"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 required
