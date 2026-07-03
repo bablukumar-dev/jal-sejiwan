@@ -18,7 +18,9 @@ const getMetadataBase = () => {
   const url = process.env.APP_URL;
   if (!url) return new URL('https://jalsejiwan.in');
   try {
-    return new URL(url);
+    const u = new URL(url);
+    u.protocol = 'https:'; // Force https
+    return u;
   } catch {
     return new URL('https://jalsejiwan.in');
   }
