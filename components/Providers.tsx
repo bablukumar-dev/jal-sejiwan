@@ -7,7 +7,6 @@ import SyncIndicator from '@/components/SyncIndicator';
 import { usePathname } from 'next/navigation';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Store } from 'lucide-react';
-import { ClerkProvider } from '@clerk/nextjs';
 
 function ErrorFallback({ error }: { error: Error }) {
   return (
@@ -46,18 +45,15 @@ function GuardWrapper({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   return (
-    <ClerkProvider publishableKey={publishableKey}>
-      <AppProvider>
-        <BackgroundSync />
-        <SyncIndicator />
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <GuardWrapper>
-            {children}
-          </GuardWrapper>
-        </ErrorBoundary>
-      </AppProvider>
-    </ClerkProvider>
+    <AppProvider>
+      <BackgroundSync />
+      <SyncIndicator />
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <GuardWrapper>
+          {children}
+        </GuardWrapper>
+      </ErrorBoundary>
+    </AppProvider>
   );
 }

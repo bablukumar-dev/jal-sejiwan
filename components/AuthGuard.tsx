@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
-import { supabase } from '@/src/supabaseClient';
+import { useClerk } from '@clerk/nextjs';
 
 const publicPaths = [
   '/login',
@@ -21,6 +21,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { currentUser } = useAppContext();
   const [mounted, setMounted] = useState(false);
+  const clerk = useClerk();
 
   useEffect(() => {
     requestAnimationFrame(() => {
@@ -77,7 +78,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         const inactiveTime = Date.now() - parseInt(lastActivity, 10);
         if (inactiveTime > 30 * 60 * 1000) { // 30 minutes in milliseconds
           try {
-            await supabase.auth.signOut();
+            await clerk.signOut();
           } catch (e) {
             console.error('Failed to sign out on timeout:', e);
           }
@@ -93,7 +94,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       });
       clearInterval(interval);
     };
-  }, [pathname]);
+  }, [pathname, clerk]);
 
   if (!mounted) {
     if (!publicPaths.includes(pathname || '') && pathname !== '/unauthorized') {

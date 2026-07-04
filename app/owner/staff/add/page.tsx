@@ -10,14 +10,14 @@ import { supabase } from '@/src/supabaseClient';
 import { logActivity } from '@/lib/activityLogger';
 import { wrapRoute } from '@/lib/permissionGuard';
 import { safeGet } from '@/lib/utils';
-import { sanitizeString, validateName, validatePhone } from '@/lib/validation';
+import { sanitizeString, validateName, validateEmail } from '@/lib/validation';
 
 function AddStaff() {
   const router = useRouter();
   const { staff, setStaff, routes, setRoutes, customers, setCustomers } = useAppContext();
   
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [role, setRole] = useState('Delivery Partner');
   const [route, setRoute] = useState(routes[0] || '');
   const [pin, setPin] = useState('');
@@ -47,9 +47,9 @@ function AddStaff() {
           return;
         }
 
-        const phoneVal = validatePhone(phone);
-        if (!phoneVal.valid) {
-          alert(`Phone Error: ${phoneVal.error}`);
+        const emailVal = validateEmail(email);
+        if (!emailVal.valid) {
+          alert(`Email Error: ${emailVal.error}`);
           return;
         }
 
@@ -84,7 +84,7 @@ function AddStaff() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            email: phoneVal.value, // Using the phone field for email/identifier
+            email: emailVal.value, // Using the email field for identifier
             password: cleanPin,
             name: nameVal.value,
             role: dbRole,
@@ -100,7 +100,7 @@ function AddStaff() {
         const newStaff = {
           id: apiResult.userId,
           name: nameVal.value,
-          phone: phoneVal.value,
+          phone: emailVal.value,
           role: sanitizeString(role),
           route: sanitizedRoute,
           pin: 'HIDDEN',
@@ -152,8 +152,8 @@ function AddStaff() {
                 type="email" 
                 className="w-full mt-1 bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900"
                 placeholder="Enter staff email"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import '@/lib/clerkEnvFix';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -9,20 +10,118 @@ import { useAppContext } from '@/app/context/AppContext';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { useSignIn, useSignUp, useAuth } from '@clerk/nextjs';
+import { debugClerkConfig } from '@/lib/debugAuth';
+
+function AuthLoadingScreen() {
+  const [progress, setProgress] = useState(15);
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 95) {
+          clearInterval(timer);
+          return 95;
+        }
+        const increment = Math.floor(Math.random() * 15) + 5;
+        const next = prev + increment;
+        
+        // Update active step based on progress thresholds
+        if (next >= 75) {
+          setActiveStep(2);
+        } else if (next >= 40) {
+          setActiveStep(1);
+        }
+        
+        return Math.min(next, 95);
+      });
+    }, 200);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const steps = [
+    { label: 'Initializing Auth SDK...', desc: 'Verifying keys & mounting Clerk client' },
+    { label: 'Connecting to Database...', desc: 'Checking persistence & platform status' },
+    { label: 'Optimizing Environment...', desc: 'Finalizing session context' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
+      <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+              <div className="w-5 h-5 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Setting up Secure Session</h2>
+              <p className="text-[10px] text-slate-500 font-mono">Status: Processing...</p>
+            </div>
+          </div>
+          <span className="text-sm font-extrabold text-blue-600 font-mono">{progress}%</span>
+        </div>
+
+        {/* Determinate Progress Bar */}
+        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mb-6 relative">
+          <div 
+            className="bg-blue-600 h-full rounded-full transition-all duration-300 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        {/* Multi-step Status Indicator */}
+        <div className="space-y-4">
+          {steps.map((step, idx) => {
+            const isCompleted = activeStep > idx;
+            const isActive = activeStep === idx;
+            const isPending = activeStep < idx;
+
+            return (
+              <div 
+                key={idx} 
+                className={`flex gap-3 items-start transition-opacity duration-300 ${
+                  isPending ? 'opacity-40' : 'opacity-100'
+                }`}
+              >
+                <div className="mt-0.5">
+                  {isCompleted ? (
+                    <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  ) : isActive ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+                  ) : (
+                    <div className="w-4 h-4 rounded-full bg-slate-200 border border-slate-300" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className={`text-xs font-semibold ${isActive ? 'text-blue-600 font-bold' : isCompleted ? 'text-slate-800' : 'text-slate-500'}`}>
+                    {step.label}
+                  </h3>
+                  <p className="text-[10px] text-slate-400 truncate leading-relaxed">
+                    {step.desc}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setCurrentUser, currentUser } = useAppContext();
 
-  const hasClerkKey = typeof window !== 'undefined' ? !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY : false;
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const clerkSignIn = hasClerkKey ? useSignIn() : { isLoaded: true, signIn: null, setActive: null };
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const clerkSignUp = hasClerkKey ? useSignUp() : { isLoaded: true, signUp: null, setActive: null };
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const clerkAuth = hasClerkKey ? useAuth() : { isLoaded: true, isSignedIn: false, userId: null };
+  const clerkSignIn = useSignIn();
+  const clerkSignUp = useSignUp();
+  const clerkAuth = useAuth();
 
   const isSignInLoaded = clerkSignIn.isLoaded;
   const signIn = clerkSignIn.signIn;
@@ -34,7 +133,23 @@ function LoginContent() {
 
   const isSignedIn = clerkAuth.isSignedIn;
   const userId = clerkAuth.userId;
-  
+
+  useEffect(() => {
+    console.log("--- Forensic Audit: Clerk Initialization ---");
+    console.log("isSignInLoaded:", isSignInLoaded);
+    console.log("isSignUpLoaded:", isSignUpLoaded);
+    console.log("Publishable Key Present:", !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+    console.log("Clerk loaded:", isSignInLoaded && isSignUpLoaded);
+    
+    if (isSignInLoaded && isSignUpLoaded) {
+      console.log("Clerk Instance Structure:", {
+        signIn: !!signIn,
+        signUp: !!signUp,
+        hasCreate: !!signIn?.create
+      });
+    }
+  }, [isSignInLoaded, isSignUpLoaded, signIn, signUp]);
+
   const [role, setRole] = useState<'owner' | 'staff' | 'manager'>('owner');
   
   // Auth state
@@ -57,28 +172,58 @@ function LoginContent() {
     const r = targetRole?.toLowerCase();
     localStorage.setItem('userRole', r);
     
-    if (r === 'owner') {
-      router.push('/owner/dashboard');
-    } else if (r === 'manager') {
-      router.push('/manager/dashboard');
+    if (r === 'owner' || r === 'manager') {
+      router.replace('/owner/dashboard');
     } else if (r === 'staff') {
-      router.push('/staff/dashboard');
+      router.replace('/staff/dashboard');
     } else {
-      router.push('/');
+      router.replace('/');
     }
   }, [router]);
 
   const checkRoleAndRedirect = useCallback(async (userId: string) => {
     try {
+      console.log("--- Forensic Audit: Role Fetch Check ---");
+      console.log("Checking role for user ID:", userId);
+      
       const { data: userData, error: fetchError } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
 
+      console.log("Supabase Audit Response:", { 
+        hasData: !!userData, 
+        role: userData?.role,
+        error: fetchError 
+      });
+
       if (fetchError || !userData) {
-        console.error("User fetch error:", fetchError);
-        setError("User not found in database. Please contact the owner.");
+        console.log("User not found in database, checking for sync...");
+        
+        // If user not found, they might be the first user or just logged in via Clerk
+        // Let's attempt to create them with 'owner' role if no users exist, or 'staff' otherwise
+        const { count } = await supabase.from('users').select('*', { count: 'exact', head: true });
+        const isFirstUser = count === 0;
+
+        const { data: newUser, error: createError } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            role: isFirstUser ? 'owner' : 'staff',
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error("User sync error:", createError);
+          setError("Failed to sync user data. Please try again.");
+          return;
+        }
+
+        console.log("New user synced successfully:", newUser);
+        router.push(newUser.role === 'owner' ? '/owner/dashboard' : '/staff/dashboard');
         return;
       }
 
@@ -89,7 +234,7 @@ function LoginContent() {
       console.error(e);
       setError("Error checking user role");
     }
-  }, [redirectBasedOnRole]);
+  }, [redirectBasedOnRole, router]);
 
   useEffect(() => {
     // If already signed in, check role and redirect
@@ -100,12 +245,14 @@ function LoginContent() {
   }, [isSignedIn, userId, checkRoleAndRedirect]);
 
   useEffect(() => {
+    debugClerkConfig();
     // Check if users table is empty to allow first owner signup
     const checkInitialSetup = async () => {
       try {
         const { count, error } = await supabase
           .from('users')
-          .select('*', { count: 'exact', head: true });
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'owner');
         
         if (!error) {
           setIsUsersTableEmpty(count === 0);
@@ -118,13 +265,20 @@ function LoginContent() {
     checkInitialSetup();
   }, []);
 
+  if (!isSignInLoaded || !isSignUpLoaded) {
+    return <AuthLoadingScreen />;
+  }
+
   const handleEmailAuth = async () => {
-    if (!hasClerkKey) {
-      setError("Clerk is not configured. Please set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable.");
-      return;
-    }
-    if (!isSignInLoaded || !isSignUpLoaded) {
-      setError("Authentication system is loading... Please try again in a few seconds.");
+    console.log("--- Forensic Audit: Button Execution Trace ---");
+    console.log("Login button clicked");
+    console.log("Mode:", isSignUp ? "signup" : "signin");
+    console.log("isLoaded State:", { isSignInLoaded, isSignUpLoaded });
+    console.log("Sign In Object:", !!signIn);
+    
+    if (!isSignInLoaded || !isSignUpLoaded || !signIn || !signUp) {
+      console.warn("Audit Failure: Exit early due to Clerk not loaded");
+      setError("Authentication system is loading... Please wait a moment.");
       return;
     }
     if (!email || !password) {
@@ -139,11 +293,12 @@ function LoginContent() {
     try {
       if (isSignUp) {
         if (isUsersTableEmpty === false) {
-          setEmailError('Public signup is disabled. Only the owner can create new accounts.');
+          setEmailError('Registration is disabled. Please contact the administrator.');
           setIsLoading(false);
           return;
         }
 
+        console.log("Attempting signup...");
         const result = await signUp.create({
           emailAddress: email.trim(),
           password,
@@ -152,48 +307,48 @@ function LoginContent() {
         await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
         setVerifying(true);
       } else {
+        console.log("Attempting signin for:", email.trim());
         const result = await signIn.create({
           identifier: email.trim(),
           password: password,
         });
 
         if (result.status === "complete") {
+          console.log("Signin complete, activating session...");
           await setSignInActive({ session: result.createdSessionId });
           await checkRoleAndRedirect(result.createdUserId as string);
+        } else if (result.status === "needs_first_factor") {
+          setError('Further authentication steps are required. Please check your email.');
         } else {
-          setError('Authentication failed. Please check your credentials.');
+          setError('Authentication failed. Status: ' + result.status);
         }
       }
     } catch (err: any) {
-      setEmailError(err.errors?.[0]?.message || err.message || 'Authentication failed');
+      console.error("Auth error details:", err);
+      const errorMessage = err.errors?.[0]?.longMessage || err.errors?.[0]?.message || err.message || 'Authentication failed';
+      setEmailError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleLogin = async () => {
-    if (!hasClerkKey) {
-      setError("Clerk is not configured. Please set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable.");
+  const handleOAuthLogin = async (strategy: "oauth_google" | "oauth_facebook" | "oauth_apple") => {
+    if (!isSignInLoaded) {
       return;
     }
-    if (!isSignInLoaded) return;
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin.replace(/^http:/, 'https:') : '';
       await signIn.authenticateWithRedirect({
-        strategy: "oauth_google",
+        strategy,
         redirectUrl: `${origin}/`,
         redirectUrlComplete: `${origin}/`,
       });
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || err.message || 'Google login failed');
+      setError(err.errors?.[0]?.message || err.message || 'Login failed');
     }
   };
 
   const handleVerification = async () => {
-    if (!hasClerkKey) {
-      setError("Clerk is not configured. Please set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable.");
-      return;
-    }
     if (!isSignUpLoaded) return;
     setIsLoading(true);
     try {
@@ -328,6 +483,7 @@ function LoginContent() {
                 className="w-full bg-transparent px-2 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-300 font-sans"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && handleEmailAuth()}
               />
             </div>
           </div>
@@ -370,17 +526,29 @@ function LoginContent() {
               <div className="h-px flex-1 bg-slate-100" />
             </div>
 
-            <div className="w-full mt-4">
+            <div className="w-full mt-4 space-y-3">
               <button
-                onClick={handleGoogleLogin}
-                className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition"
+                onClick={() => handleOAuthLogin("oauth_google")}
+                className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-all active:scale-[0.98] shadow-sm text-sm"
               >
-                <img
-                  src="https://www.svgrepo.com/show/475656/google-color.svg"
-                  alt="Google"
-                  className="w-5 h-5"
-                />
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
                 Continue with Google
+              </button>
+              
+              <button
+                onClick={() => handleOAuthLogin("oauth_facebook")}
+                className="w-full bg-[#1877F2] text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#166fe5] transition-all active:scale-[0.98] shadow-sm text-sm"
+              >
+                <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" alt="Facebook" className="w-5 h-5 brightness-0 invert" />
+                Continue with Facebook
+              </button>
+
+              <button
+                onClick={() => handleOAuthLogin("oauth_apple")}
+                className="w-full bg-black text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-zinc-900 transition-all active:scale-[0.98] shadow-sm text-sm"
+              >
+                <img src="https://www.svgrepo.com/show/475635/apple-color.svg" alt="Apple" className="w-5 h-5 brightness-0 invert" />
+                Continue with Apple
               </button>
             </div>
           </>

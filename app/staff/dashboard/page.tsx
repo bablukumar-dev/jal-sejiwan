@@ -9,7 +9,9 @@ import { supabase } from '@/src/supabaseClient';
 import OnboardingOverlay from '@/components/OnboardingOverlay';
 import TopAppBar from '@/components/TopAppBar';
 
-export default function StaffDashboard() {
+import { wrapRoute } from '@/lib/permissionGuard';
+
+function StaffDashboard() {
   const { customers, deliveries, payments, inventory, staff, businessInfo, currentUser } = useAppContext();
   const [userName, setUserName] = useState('');
   const [staffRoute, setStaffRoute] = useState('');
@@ -291,3 +293,5 @@ export default function StaffDashboard() {
     </div>
   );
 }
+
+export default wrapRoute(StaffDashboard, { requiredRole: 'staff' });

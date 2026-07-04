@@ -140,9 +140,20 @@ export function wrapRoute<P extends object>(
       }
 
       if (!isAllowed) {
-        // Redirection logic matching JalSejiwan flow
-        if (role === 'staff') {
-          router.replace('/staff/dashboard');
+        // Role-based redirection logic to ensure users end up in the correct dashboard
+        const savedRole = localStorage.getItem('userRole')?.toLowerCase();
+        
+        if (savedRole) {
+          // If the user is on the wrong dashboard, redirect them to their specific one
+          if (savedRole === 'owner') {
+            router.replace('/owner/dashboard');
+          } else if (savedRole === 'manager') {
+            router.replace('/owner/dashboard'); // Assuming owner dashboard is shared with managers
+          } else if (savedRole === 'staff') {
+            router.replace('/staff/dashboard');
+          } else {
+            router.replace('/unauthorized');
+          }
         } else {
           router.replace('/login');
         }
