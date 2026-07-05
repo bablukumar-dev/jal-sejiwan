@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { useUser, useAuth } from '@clerk/nextjs';
 
 import { supabase } from '@/src/supabaseClient';
+import { getUnsyncedDeliveries } from '@/lib/idb';
 
 export type Customer = {
   id: number;
@@ -154,6 +155,7 @@ type AppContextType = {
   setSyncProgress: (progress: number) => void;
   currentUser: CurrentUser | null;
   setCurrentUser: React.Dispatch<React.SetStateAction<CurrentUser | null>>;
+  unsyncedCount: number;
 };
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -295,6 +297,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [isBackgroundSyncing, setIsBackgroundSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
+  const [unsyncedCount, setUnsyncedCount] = useState(0);
 
   const latestStateRef = useRef({
     customers,
@@ -429,6 +432,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.error("Failed to load local storage cache", e);
       }
+      
+      // Update unsynced count on init
+      getUnsyncedDeliveries().then(pending => setUnsyncedCount(pending.length));
+      
       setIsInitialized(true);
     };
     loadCache();
@@ -566,6 +573,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('hasUnsyncedChanges', 'false');
       setSyncStatus('synced');
       lastRemoteData.current = stringified;
+      
+      // Update unsynced count after successful sync
+      const pending = await getUnsyncedDeliveries();
+      setUnsyncedCount(pending.length);
     } catch (e) {
       console.error("Failed to sync state to workspace manually/reconnect", e);
       setSyncStatus(navigator.onLine ? 'error' : 'pending');
@@ -658,6 +669,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('hasUnsyncedChanges', 'false');
         setSyncStatus('synced');
         lastRemoteData.current = currentLocalStr;
+        
+        // Update count after sync
+        const pending = await getUnsyncedDeliveries();
+        setUnsyncedCount(pending.length);
       } catch (e) {
         console.error("Failed to sync state to workspace", e);
         setSyncStatus(navigator.onLine ? 'error' : 'pending');
@@ -678,8 +693,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const interval = setInterval(() => {
-      if (navigator.onLine && hasUnsyncedChangesRef.current && ownerId) {
+    const interval = setInterval(async () => {
+      const pending = await getUnsyncedDeliveries();
+      setUnsyncedCount(pending.length);
+
+      if (navigator.onLine && (hasUnsyncedChangesRef.current || pending.length > 0) && ownerId) {
         triggerSync();
       }
     }, 15000); // Poll connection and sync status every 15 seconds
@@ -705,8 +723,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setBackgroundSyncing: setIsBackgroundSyncing,
     setSyncProgress,
     currentUser,
-    setCurrentUser
-  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, isBackgroundSyncing, syncProgress, triggerSync, currentUser]);
+    setCurrentUser,
+    unsyncedCount
+  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, isBackgroundSyncing, syncProgress, triggerSync, currentUser, unsyncedCount]);
 
   return (
     <AppContext.Provider value={contextValue}>

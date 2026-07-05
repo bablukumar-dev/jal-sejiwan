@@ -66,7 +66,7 @@ export default function AboutPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             <div className="flex gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition">
-              <div className="text-blue-600 shrink-0"><Truck className="w-6 h-6" /></div>
+              <div className="text-blue-600 shrink-0"></div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base">Route Tracking & Planning</h3>
                 <p className="text-sm text-slate-600 mt-1">
@@ -76,7 +76,7 @@ export default function AboutPage() {
             </div>
 
             <div className="flex gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition">
-              <div className="text-blue-600 shrink-0"><Users className="w-6 h-6" /></div>
+              <div className="text-blue-600 shrink-0"></div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base">Customer Management</h3>
                 <p className="text-sm text-slate-600 mt-1">
@@ -86,7 +86,7 @@ export default function AboutPage() {
             </div>
 
             <div className="flex gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition">
-              <div className="text-blue-600 shrink-0"><Receipt className="w-6 h-6" /></div>
+              <div className="text-blue-600 shrink-0"></div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base">Water Supply Billing Software</h3>
                 <p className="text-sm text-slate-600 mt-1">
@@ -96,7 +96,7 @@ export default function AboutPage() {
             </div>
 
             <div className="flex gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition">
-              <div className="text-blue-600 shrink-0"><Calendar className="w-6 h-6" /></div>
+              <div className="text-blue-600 shrink-0"></div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base">Delivery Logs & Schedule</h3>
                 <p className="text-sm text-slate-600 mt-1">
@@ -106,7 +106,7 @@ export default function AboutPage() {
             </div>
 
             <div className="flex gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition">
-              <div className="text-blue-600 shrink-0"><MessageSquare className="w-6 h-6" /></div>
+              <div className="text-blue-600 shrink-0"></div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base">WhatsApp Reminders</h3>
                 <p className="text-sm text-slate-600 mt-1">
@@ -116,7 +116,7 @@ export default function AboutPage() {
             </div>
 
             <div className="flex gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition">
-              <div className="text-blue-600 shrink-0"><Database className="w-6 h-6" /></div>
+              <div className="text-blue-600 shrink-0"></div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base">Jar Inventory Monitoring</h3>
                 <p className="text-sm text-slate-600 mt-1">
@@ -131,7 +131,7 @@ export default function AboutPage() {
         {/* Built for Indian Businesses */}
         <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6 md:p-8 space-y-4">
           <div className="flex items-center gap-3">
-            <Sparkles className="text-blue-600 w-6 h-6" />
+            
             <h2 className="text-xl md:text-2xl font-bold text-blue-900">Tailored for Indian Water Suppliers</h2>
           </div>
           <p className="text-sm md:text-base text-slate-700 leading-relaxed">

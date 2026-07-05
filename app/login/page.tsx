@@ -1,118 +1,14 @@
 'use client';
 
-import '@/lib/clerkEnvFix';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Mail, Lock, User, Store, Truck, Package } from 'lucide-react';
+import { Mail, Lock, User, Store, Truck, Package, RefreshCw } from 'lucide-react';
 import { supabase } from '@/src/supabaseClient';
 import { useAppContext } from '@/app/context/AppContext';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { useSignIn, useSignUp, useAuth } from '@clerk/nextjs';
-import { debugClerkConfig } from '@/lib/debugAuth';
-
-function AuthLoadingScreen() {
-  const [progress, setProgress] = useState(15);
-  const [activeStep, setActiveStep] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 95) {
-          clearInterval(timer);
-          return 95;
-        }
-        const increment = Math.floor(Math.random() * 15) + 5;
-        const next = prev + increment;
-        
-        // Update active step based on progress thresholds
-        if (next >= 75) {
-          setActiveStep(2);
-        } else if (next >= 40) {
-          setActiveStep(1);
-        }
-        
-        return Math.min(next, 95);
-      });
-    }, 200);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const steps = [
-    { label: 'Initializing Auth SDK...', desc: 'Verifying keys & mounting Clerk client' },
-    { label: 'Connecting to Database...', desc: 'Checking persistence & platform status' },
-    { label: 'Optimizing Environment...', desc: 'Finalizing session context' },
-  ];
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-              <div className="w-5 h-5 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">Setting up Secure Session</h2>
-              <p className="text-[10px] text-slate-500 font-mono">Status: Processing...</p>
-            </div>
-          </div>
-          <span className="text-sm font-extrabold text-blue-600 font-mono">{progress}%</span>
-        </div>
-
-        {/* Determinate Progress Bar */}
-        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mb-6 relative">
-          <div 
-            className="bg-blue-600 h-full rounded-full transition-all duration-300 ease-out"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-
-        {/* Multi-step Status Indicator */}
-        <div className="space-y-4">
-          {steps.map((step, idx) => {
-            const isCompleted = activeStep > idx;
-            const isActive = activeStep === idx;
-            const isPending = activeStep < idx;
-
-            return (
-              <div 
-                key={idx} 
-                className={`flex gap-3 items-start transition-opacity duration-300 ${
-                  isPending ? 'opacity-40' : 'opacity-100'
-                }`}
-              >
-                <div className="mt-0.5">
-                  {isCompleted ? (
-                    <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white">
-                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  ) : isActive ? (
-                    <div className="w-4 h-4 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
-                  ) : (
-                    <div className="w-4 h-4 rounded-full bg-slate-200 border border-slate-300" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className={`text-xs font-semibold ${isActive ? 'text-blue-600 font-bold' : isCompleted ? 'text-slate-800' : 'text-slate-500'}`}>
-                    {step.label}
-                  </h3>
-                  <p className="text-[10px] text-slate-400 truncate leading-relaxed">
-                    {step.desc}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function LoginContent() {
   const router = useRouter();
@@ -135,20 +31,11 @@ function LoginContent() {
   const userId = clerkAuth.userId;
 
   useEffect(() => {
-    console.log("--- Forensic Audit: Clerk Initialization ---");
-    console.log("isSignInLoaded:", isSignInLoaded);
-    console.log("isSignUpLoaded:", isSignUpLoaded);
-    console.log("Publishable Key Present:", !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
-    console.log("Clerk loaded:", isSignInLoaded && isSignUpLoaded);
-    
-    if (isSignInLoaded && isSignUpLoaded) {
-      console.log("Clerk Instance Structure:", {
-        signIn: !!signIn,
-        signUp: !!signUp,
-        hasCreate: !!signIn?.create
-      });
+    // Basic auth check
+    if (isSignedIn && userId) {
+      // Redirect or logic for signed in users
     }
-  }, [isSignInLoaded, isSignUpLoaded, signIn, signUp]);
+  }, [isSignedIn, userId]);
 
   const [role, setRole] = useState<'owner' | 'staff' | 'manager'>('owner');
   
@@ -218,12 +105,13 @@ function LoginContent() {
 
         if (createError) {
           console.error("User sync error:", createError);
-          setError("Failed to sync user data. Please try again.");
+          setError("Session finalization failed. Please refresh.");
+          setIsLoading(false);
           return;
         }
 
         console.log("New user synced successfully:", newUser);
-        router.push(newUser.role === 'owner' ? '/owner/dashboard' : '/staff/dashboard');
+        redirectBasedOnRole(newUser.role);
         return;
       }
 
@@ -232,9 +120,10 @@ function LoginContent() {
       redirectBasedOnRole(userData.role);
     } catch (e) {
       console.error(e);
-      setError("Error checking user role");
+      setError("Login failed. Please refresh.");
+      setIsLoading(false);
     }
-  }, [redirectBasedOnRole, router]);
+  }, [redirectBasedOnRole]);
 
   useEffect(() => {
     // If already signed in, check role and redirect
@@ -245,7 +134,6 @@ function LoginContent() {
   }, [isSignedIn, userId, checkRoleAndRedirect]);
 
   useEffect(() => {
-    debugClerkConfig();
     // Check if users table is empty to allow first owner signup
     const checkInitialSetup = async () => {
       try {
@@ -266,23 +154,18 @@ function LoginContent() {
   }, []);
 
   if (!isSignInLoaded || !isSignUpLoaded) {
-    return <AuthLoadingScreen />;
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-6 h-6 border-2 border-slate-100 border-t-blue-600 rounded-full animate-spin mb-3" />
+        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Initializing</p>
+      </div>
+    );
   }
 
   const handleEmailAuth = async () => {
-    console.log("--- Forensic Audit: Button Execution Trace ---");
-    console.log("Login button clicked");
-    console.log("Mode:", isSignUp ? "signup" : "signin");
-    console.log("isLoaded State:", { isSignInLoaded, isSignUpLoaded });
-    console.log("Sign In Object:", !!signIn);
-    
-    if (!isSignInLoaded || !isSignUpLoaded || !signIn || !signUp) {
-      console.warn("Audit Failure: Exit early due to Clerk not loaded");
-      setError("Authentication system is loading... Please wait a moment.");
-      return;
-    }
+    if (!isSignInLoaded || !isSignUpLoaded || !signIn || !signUp) return;
     if (!email || !password) {
-      setEmailError('Please enter both email and password');
+      setEmailError('Required');
       return;
     }
 
@@ -293,58 +176,55 @@ function LoginContent() {
     try {
       if (isSignUp) {
         if (isUsersTableEmpty === false) {
-          setEmailError('Registration is disabled. Please contact the administrator.');
-          setIsLoading(false);
+          setError('Registration disabled');
           return;
         }
-
-        console.log("Attempting signup...");
-        const result = await signUp.create({
-          emailAddress: email.trim(),
-          password,
-        });
-
+        await signUp.create({ emailAddress: email.trim(), password });
         await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
         setVerifying(true);
       } else {
-        console.log("Attempting signin for:", email.trim());
-        const result = await signIn.create({
-          identifier: email.trim(),
-          password: password,
+        const result = await signIn.create({ 
+          identifier: email.trim(), 
+          password 
         });
 
         if (result.status === "complete") {
-          console.log("Signin complete, activating session...");
           await setSignInActive({ session: result.createdSessionId });
-          await checkRoleAndRedirect(result.createdUserId as string);
-        } else if (result.status === "needs_first_factor") {
-          setError('Further authentication steps are required. Please check your email.');
+          // Redirection logic is triggered by useEffect(isSignedIn)
         } else {
-          setError('Authentication failed. Status: ' + result.status);
+          setError(`Authentication Status: ${result.status}`);
         }
       }
     } catch (err: any) {
-      console.error("Auth error details:", err);
-      const errorMessage = err.errors?.[0]?.longMessage || err.errors?.[0]?.message || err.message || 'Authentication failed';
-      setEmailError(errorMessage);
+      setError(err.errors?.[0]?.longMessage || err.message || 'Authentication failed');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleOAuthLogin = async (strategy: "oauth_google" | "oauth_facebook" | "oauth_apple") => {
-    if (!isSignInLoaded) {
-      return;
-    }
+    if (!isSignInLoaded) return;
+    
+    setIsLoading(true);
+    setError('');
+
     try {
-      const origin = typeof window !== 'undefined' ? window.location.origin.replace(/^http:/, 'https:') : '';
+      // Robust origin detection for production environment
+      let origin = typeof window !== 'undefined' ? window.location.origin : '';
+      
+      // Force HTTPS for production redirects to Clerk
+      if (origin.includes('run.app') || origin.includes('jalsejiwan.in')) {
+        origin = origin.replace('http://', 'https://');
+      }
+      
       await signIn.authenticateWithRedirect({
         strategy,
-        redirectUrl: `${origin}/`,
-        redirectUrlComplete: `${origin}/`,
+        redirectUrl: origin,
+        redirectUrlComplete: origin,
       });
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || err.message || 'Login failed');
+      setError(err.errors?.[0]?.longMessage || err.message || 'Authentication failed');
+      setIsLoading(false);
     }
   };
 
@@ -443,10 +323,22 @@ function LoginContent() {
           </div>
         )}
 
+        {/* Error Banner */}
         {error && (
-          <div className="w-full mb-4 p-4 bg-red-50 text-red-600 text-xs rounded-2xl border border-red-100 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1 flex-shrink-0" />
-            <p className="leading-relaxed">{error}</p>
+          <div className="w-full mb-6 p-4 bg-rose-50 border-2 border-rose-100 rounded-2xl animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              <h3 className="text-sm font-bold text-rose-900">Authentication Issue</h3>
+            </div>
+            <p className="text-xs text-rose-700 font-medium leading-relaxed pl-5">
+              {error}
+            </p>
+            <button 
+              onClick={() => setError('')}
+              className="mt-3 text-[10px] font-bold text-rose-500 uppercase tracking-widest hover:text-rose-600 transition-colors pl-5"
+            >
+              Dismiss Notification
+            </button>
           </div>
         )}
         
@@ -513,9 +405,16 @@ function LoginContent() {
           id="auth-submit-btn"
           onClick={handleEmailAuth}
           disabled={isLoading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl active:scale-[0.98] transition-all mb-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200 font-sans"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl active:scale-[0.98] transition-all mb-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200 font-sans flex items-center justify-center gap-2"
         >
-          {isLoading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
+          {isLoading ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>Logging in...</span>
+            </>
+          ) : (
+            isSignUp ? 'Create Account' : 'Login to Dashboard'
+          )}
         </button>
 
         {!isSignUp && (
@@ -531,7 +430,13 @@ function LoginContent() {
                 onClick={() => handleOAuthLogin("oauth_google")}
                 className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-all active:scale-[0.98] shadow-sm text-sm"
               >
-                <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+                <Image 
+                  src="https://www.svgrepo.com/show/475656/google-color.svg" 
+                  alt="Google" 
+                  width={20}
+                  height={20}
+                  className="w-5 h-5" 
+                />
                 Continue with Google
               </button>
               
@@ -539,7 +444,13 @@ function LoginContent() {
                 onClick={() => handleOAuthLogin("oauth_facebook")}
                 className="w-full bg-[#1877F2] text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#166fe5] transition-all active:scale-[0.98] shadow-sm text-sm"
               >
-                <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" alt="Facebook" className="w-5 h-5 brightness-0 invert" />
+                <Image 
+                  src="https://www.svgrepo.com/show/475647/facebook-color.svg" 
+                  alt="Facebook" 
+                  width={20}
+                  height={20}
+                  className="w-5 h-5 brightness-0 invert" 
+                />
                 Continue with Facebook
               </button>
 
@@ -547,7 +458,13 @@ function LoginContent() {
                 onClick={() => handleOAuthLogin("oauth_apple")}
                 className="w-full bg-black text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-zinc-900 transition-all active:scale-[0.98] shadow-sm text-sm"
               >
-                <img src="https://www.svgrepo.com/show/475635/apple-color.svg" alt="Apple" className="w-5 h-5 brightness-0 invert" />
+                <Image 
+                  src="https://www.svgrepo.com/show/475635/apple-color.svg" 
+                  alt="Apple" 
+                  width={20}
+                  height={20}
+                  className="w-5 h-5 brightness-0 invert" 
+                />
                 Continue with Apple
               </button>
             </div>
@@ -583,7 +500,11 @@ function LoginContent() {
 
 export default function Login() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center font-bold text-slate-500">Loading auth...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
       <LoginContent />
     </Suspense>
   );

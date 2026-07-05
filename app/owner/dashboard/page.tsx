@@ -9,7 +9,6 @@ import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect, useMemo } from 'react';
 import { wrapRoute } from '@/lib/permissionGuard';
 import OnboardingOverlay from '@/components/OnboardingOverlay';
-import OnlineStatusBadge from '@/components/OnlineStatusBadge';
 import { safeGet } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { checkClientRateLimit } from '@/lib/rateLimit';

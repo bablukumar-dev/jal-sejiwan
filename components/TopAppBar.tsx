@@ -4,10 +4,11 @@ import { ArrowLeft, UserCircle, LogOut, Bell } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import OnlineStatusBadge from '@/components/OnlineStatusBadge';
+import SyncStatusIndicator from '@/components/SyncStatusIndicator';
 import { useAppContext } from '@/app/context/AppContext';
 import { useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { useClerk } from '@clerk/nextjs';
 import { supabase } from '@/src/supabaseClient';
 
 interface TopAppBarProps {
@@ -27,10 +28,17 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
     return isLowInventory || hasMissedPayments;
   }, [inventory.fullCans, customers]);
 
+  const { signOut } = useClerk();
+
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    window.location.reload();
+    try {
+      await signOut();
+      router.push('/login');
+    } catch (e) {
+      console.error('Logout failed:', e);
+      // Fallback redirect
+      window.location.href = '/login';
+    }
   };
 
   return (
@@ -77,7 +85,7 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
               <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
             </div>
           )}
-          <OnlineStatusBadge />
+          <SyncStatusIndicator />
           <button 
             onClick={handleSignOut}
             className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors shrink-0"
