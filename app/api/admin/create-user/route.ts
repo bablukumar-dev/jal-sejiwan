@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/src/supabaseAdmin';
-import { clerkClient } from '@clerk/nextjs/server';
 
 export async function POST(req: NextRequest) {
   try {
     const supabaseAdmin = getSupabaseAdmin();
     const { email, password, name, role, business_id } = await req.json();
 
-    // 1. Create user in Clerk
-    const clerkUser = await clerkClient.users.createUser({
-      emailAddress: [email],
+    // 1. Create user in Supabase Auth
+    const { data: userData, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
+      email: email,
       password: password,
-      firstName: name,
+      email_confirm: true,
+      user_metadata: { name: name }
     });
-
-    const newUserId = clerkUser.id;
+    
+    if (signUpError) throw signUpError;
+    const newUserId = userData.user.id;
 
     // 2. Insert into the Supabase users table
     const { error: insertError } = await supabaseAdmin.from('users').insert({
@@ -26,11 +27,8 @@ export async function POST(req: NextRequest) {
     });
 
     if (insertError) {
-      try {
-        await clerkClient.users.deleteUser(newUserId);
-      } catch (delErr) {
-        console.error('Error rolling back Clerk user creation:', delErr);
-      }
+      // Rollback: delete user
+      await supabaseAdmin.auth.admin.deleteUser(newUserId);
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 

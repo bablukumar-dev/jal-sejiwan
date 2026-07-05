@@ -8,7 +8,6 @@ import SyncStatusIndicator from '@/components/SyncStatusIndicator';
 import { useAppContext } from '@/app/context/AppContext';
 import { useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { useClerk } from '@clerk/nextjs';
 import { supabase } from '@/src/supabaseClient';
 
 interface TopAppBarProps {
@@ -28,11 +27,9 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
     return isLowInventory || hasMissedPayments;
   }, [inventory.fullCans, customers]);
 
-  const { signOut } = useClerk();
-
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await supabase.auth.signOut();
       router.push('/login');
     } catch (e) {
       console.error('Logout failed:', e);

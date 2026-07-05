@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { clerkClient } from '@clerk/nextjs/server';
+import { getSupabaseAdmin } from '@/src/supabaseAdmin';
 
 export async function POST(req: NextRequest) {
   try {
     const { userId, password } = await req.json();
+    const supabaseAdmin = getSupabaseAdmin();
     
-    // Update password in Clerk
-    await clerkClient.users.updateUser(userId, {
-      password: password,
+    // Update password in Supabase Auth
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        password: password,
     });
+
+    if (updateError) throw updateError;
 
     return NextResponse.json({ message: 'User updated successfully' });
   } catch (err: any) {

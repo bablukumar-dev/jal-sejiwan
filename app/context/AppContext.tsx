@@ -2,8 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 
-import { useUser, useAuth } from '@clerk/nextjs';
-
 import { supabase } from '@/src/supabaseClient';
 import { getUnsyncedDeliveries } from '@/lib/idb';
 
@@ -227,25 +225,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return null;
   });
 
-  const clerkUser = useUser();
-  const clerkAuth = useAuth();
-
-  const isUserLoaded = clerkUser.isLoaded;
-  const user = clerkUser.user;
-
   useEffect(() => {
-    if (isUserLoaded && user) {
-      const fetchUserData = async () => {
+    const fetchUserData = async (userId: string) => {
         try {
           const { data: userData } = await supabase
             .from('users')
             .select('role, business_id')
-            .eq('id', user.id)
+            .eq('id', userId)
             .single();
 
           if (userData) {
             const newUser = {
-              uid: user.id,
+              uid: userId,
               role: userData.role,
               businessId: userData.business_id
             };
@@ -264,17 +255,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
           console.error("Error fetching user data in AppProvider:", e);
         }
-      };
+    };
 
-      fetchUserData();
-    } else if (isUserLoaded && !user) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCurrentUser(null);
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('businessId');
-    }
-  }, [isUserLoaded, user]);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+            fetchUserData(session.user.id);
+        }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+            fetchUserData(session.user.id);
+        } else {
+            setCurrentUser(null);
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('businessId');
+        }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const lastRemoteData = useRef<string | null>(null);
   const snapshotReceivedRef = useRef(false);

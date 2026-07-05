@@ -4,7 +4,6 @@ import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, Ba
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { supabase } from '@/src/supabaseClient';
-import { useClerk } from '@clerk/nextjs';
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -182,11 +181,9 @@ export default function SettingsPage() {
     }
   };
 
-  const { signOut } = useClerk();
-
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await supabase.auth.signOut();
       router.push('/login');
     } catch (e) {
       console.error('Logout failed:', e);

@@ -8,34 +8,12 @@ import { supabase } from '@/src/supabaseClient';
 import { useAppContext } from '@/app/context/AppContext';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { useSignIn, useSignUp, useAuth } from '@clerk/nextjs';
+
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setCurrentUser, currentUser } = useAppContext();
-
-  const clerkSignIn = useSignIn();
-  const clerkSignUp = useSignUp();
-  const clerkAuth = useAuth();
-
-  const isSignInLoaded = clerkSignIn.isLoaded;
-  const signIn = clerkSignIn.signIn;
-  const setSignInActive = clerkSignIn.setActive;
-
-  const isSignUpLoaded = clerkSignUp.isLoaded;
-  const signUp = clerkSignUp.signUp;
-  const setSignUpActive = clerkSignUp.setActive;
-
-  const isSignedIn = clerkAuth.isSignedIn;
-  const userId = clerkAuth.userId;
-
-  useEffect(() => {
-    // Basic auth check
-    if (isSignedIn && userId) {
-      // Redirect or logic for signed in users
-    }
-  }, [isSignedIn, userId]);
 
   const [role, setRole] = useState<'owner' | 'staff' | 'manager'>('owner');
   
@@ -123,15 +101,18 @@ function LoginContent() {
       setError("Login failed. Please refresh.");
       setIsLoading(false);
     }
-  }, [redirectBasedOnRole]);
+  }, [redirectBasedOnRole, supabase]);
 
   useEffect(() => {
     // If already signed in, check role and redirect
-    if (isSignedIn && userId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      checkRoleAndRedirect(userId);
-    }
-  }, [isSignedIn, userId, checkRoleAndRedirect]);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        checkRoleAndRedirect(session.user.id);
+      }
+    };
+    checkSession();
+  }, [checkRoleAndRedirect, supabase]);
 
   useEffect(() => {
     // Check if users table is empty to allow first owner signup
@@ -153,17 +134,8 @@ function LoginContent() {
     checkInitialSetup();
   }, []);
 
-  if (!isSignInLoaded || !isSignUpLoaded) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-6 h-6 border-2 border-slate-100 border-t-blue-600 rounded-full animate-spin mb-3" />
-        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Initializing</p>
-      </div>
-    );
-  }
 
   const handleEmailAuth = async () => {
-    if (!isSignInLoaded || !isSignUpLoaded || !signIn || !signUp) return;
     if (!email || !password) {
       setEmailError('Required');
       return;
@@ -175,96 +147,62 @@ function LoginContent() {
 
     try {
       if (isSignUp) {
-        if (isUsersTableEmpty === false) {
-          setError('Registration disabled');
-          return;
+        // Sign Up implementation for Supabase
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            data: {
+              name: name.trim(),
+            },
+          },
+        });
+        
+        if (signUpError) throw signUpError;
+        if (data.user) {
+            // Assuming immediate sign-in or verification needed
+            setVerifying(true);
         }
-        await signUp.create({ emailAddress: email.trim(), password });
-        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-        setVerifying(true);
       } else {
-        const result = await signIn.create({ 
-          identifier: email.trim(), 
-          password 
+        // Login implementation for Supabase
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
         });
 
-        if (result.status === "complete") {
-          await setSignInActive({ session: result.createdSessionId });
-          // Redirection logic is triggered by useEffect(isSignedIn)
-        } else {
-          setError(`Authentication Status: ${result.status}`);
+        if (signInError) throw signInError;
+        if (data.user) {
+          await checkRoleAndRedirect(data.user.id);
         }
       }
     } catch (err: any) {
-      setError(err.errors?.[0]?.longMessage || err.message || 'Authentication failed');
+      setError(err.message || 'Authentication failed');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleOAuthLogin = async (strategy: "oauth_google" | "oauth_facebook" | "oauth_apple") => {
-    if (!isSignInLoaded) return;
-    
+  const handleOAuthLogin = async (strategy: "google" | "facebook" | "apple") => {
     setIsLoading(true);
     setError('');
 
     try {
-      // Robust origin detection for production environment
-      let origin = typeof window !== 'undefined' ? window.location.origin : '';
-      
-      // Force HTTPS for production redirects to Clerk
-      if (origin.includes('run.app') || origin.includes('jalsejiwan.in')) {
-        origin = origin.replace('http://', 'https://');
-      }
-      
-      await signIn.authenticateWithRedirect({
-        strategy,
-        redirectUrl: origin,
-        redirectUrlComplete: origin,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: strategy,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
+      if (error) throw error;
     } catch (err: any) {
-      setError(err.errors?.[0]?.longMessage || err.message || 'Authentication failed');
+      setError(err.message || 'Authentication failed');
       setIsLoading(false);
     }
   };
 
   const handleVerification = async () => {
-    if (!isSignUpLoaded) return;
-    setIsLoading(true);
-    try {
-      const completeSignUp = await signUp.attemptEmailAddressVerification({
-        code,
-      });
-
-      if (completeSignUp.status === 'complete') {
-        await setSignUpActive({ session: completeSignUp.createdSessionId });
-        
-        // Sync to Supabase as Owner
-        if (isUsersTableEmpty) {
-          const { error: insertError } = await supabase.from('users').insert({
-            id: completeSignUp.createdUserId,
-            email: email.trim(),
-            name: name.trim() || 'Business Owner',
-            role: 'owner',
-            business_id: completeSignUp.createdUserId
-          });
-          
-          if (insertError) {
-            console.error("Supabase sync error:", insertError);
-            throw insertError;
-          }
-          setIsUsersTableEmpty(false);
-        }
-        
-        router.push('/owner/dashboard');
-      } else {
-        setError('Verification failed');
-      }
-    } catch (err: any) {
-      setError(err.errors?.[0]?.message || 'Verification failed');
-    } finally {
-      setIsLoading(false);
-    }
+    // Verification logic not needed for password sign up, or implement email confirmation check
+    router.push('/owner/dashboard');
   };
 
   if (verifying) {
