@@ -193,7 +193,7 @@ function StaffManagement() {
                                 'Content-Type': 'application/json',
                               },
                               body: JSON.stringify({
-                                userId: s.id, // This should be the Clerk user ID
+                                userId: s.id, // This should be the user ID
                                 password: trimmed
                               })
                             });

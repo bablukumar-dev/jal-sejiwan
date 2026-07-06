@@ -32,7 +32,7 @@ export default function MyRoute() {
       }
     }
 
-    // 2. Otherwise use Clerk-based current user
+    // 2. Otherwise use current user
     if (currentUser && currentUser.role === 'staff') {
       const staffMember = staff.find(s => s.id.toString() === currentUser.uid) || 
                           staff.find(s => s.name === currentUser.name);

@@ -60,7 +60,7 @@ function StaffDashboard() {
       }
     }
 
-    // 2. Otherwise use Clerk-based current user
+    // 2. Otherwise use current user
     if (currentUser && currentUser.role === 'staff') {
       const staffMember = staff.find(s => s.id.toString() === currentUser.uid || s.name === (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('currentUser') || '{}').name : ''));
       

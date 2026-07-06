@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Mail, Lock, User, Store, Truck, Package, RefreshCw } from 'lucide-react';
 import { supabase } from '@/src/supabaseClient';
+import { getSupabaseAdmin } from '@/src/supabaseAdmin';
 import { useAppContext } from '@/app/context/AppContext';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
@@ -17,11 +18,8 @@ function LoginContent() {
 
   const [role, setRole] = useState<'owner' | 'staff' | 'manager'>('owner');
   
-  // Auth state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(() => searchParams.get('signup') === 'true');
-  const [name, setName] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [code, setCode] = useState('');
 
@@ -66,24 +64,29 @@ function LoginContent() {
       if (fetchError || !userData) {
         console.log("User not found in database, checking for sync...");
         
-        // If user not found, they might be the first user or just logged in via Clerk
+        // If user not found, they might be the first user or just logged in.
         // Let's attempt to create them with 'owner' role if no users exist, or 'staff' otherwise
         const { count } = await supabase.from('users').select('*', { count: 'exact', head: true });
         const isFirstUser = count === 0;
 
-        const { data: newUser, error: createError } = await supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        const { data: newUser, error: createError } = await getSupabaseAdmin()
           .from('users')
           .insert({
             id: userId,
+            email: user?.email,
+            name: user?.user_metadata?.name || 'New User',
             role: isFirstUser ? 'owner' : 'staff',
+            business_id: isFirstUser ? userId : null,
             created_at: new Date().toISOString()
           })
           .select()
           .single();
 
         if (createError) {
-          console.error("User sync error:", createError);
-          setError("Session finalization failed. Please refresh.");
+          console.error("User sync error detail:", JSON.stringify(createError, null, 2));
+          setError(`Session finalization failed: ${createError.message || 'Unknown error'}`);
           setIsLoading(false);
           return;
         }
@@ -146,24 +149,6 @@ function LoginContent() {
     setEmailError('');
 
     try {
-      if (isSignUp) {
-        // Sign Up implementation for Supabase
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: {
-            data: {
-              name: name.trim(),
-            },
-          },
-        });
-        
-        if (signUpError) throw signUpError;
-        if (data.user) {
-            // Assuming immediate sign-in or verification needed
-            setVerifying(true);
-        }
-      } else {
         // Login implementation for Supabase
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email: email.trim(),
@@ -174,7 +159,6 @@ function LoginContent() {
         if (data.user) {
           await checkRoleAndRedirect(data.user.id);
         }
-      }
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
     } finally {
@@ -182,7 +166,7 @@ function LoginContent() {
     }
   };
 
-  const handleOAuthLogin = async (strategy: "google" | "facebook" | "apple") => {
+  const handleOAuthLogin = async (strategy: "google") => {
     setIsLoading(true);
     setError('');
 
@@ -238,28 +222,26 @@ function LoginContent() {
         <p className="text-slate-500 mb-10 text-center text-sm font-medium">Smart Water Management System</p>
 
         {/* Role Selector */}
-        {!isSignUp && (
-          <div className="w-full mb-6">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Sign In As</label>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { id: 'owner', label: 'OWNER', icon: Store },
-                { id: 'staff', label: 'STAFF', icon: Truck },
-                { id: 'manager', label: 'MANAGER', icon: Package },
-              ].map((r) => (
-                <button 
-                  key={r.id}
-                  id={`role-btn-${r.id}`}
-                  onClick={() => setRole(r.id as any)}
-                  className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${role === r.id ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 text-slate-400 hover:border-slate-200 hover:bg-slate-50'}`}
-                >
-                  <r.icon className={`w-6 h-6 mb-2 ${role === r.id ? 'text-blue-600' : 'text-slate-300'}`} />
-                  <span className="text-[10px] font-bold uppercase">{r.label}</span>
-                </button>
-              ))}
-            </div>
+        <div className="w-full mb-6">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Sign In As</label>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { id: 'owner', label: 'OWNER', icon: Store },
+              { id: 'staff', label: 'STAFF', icon: Truck },
+              { id: 'manager', label: 'MANAGER', icon: Package },
+            ].map((r) => (
+              <button 
+                key={r.id}
+                id={`role-btn-${r.id}`}
+                onClick={() => setRole(r.id as any)}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${role === r.id ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 text-slate-400 hover:border-slate-200 hover:bg-slate-50'}`}
+              >
+                <r.icon className={`w-6 h-6 mb-2 ${role === r.id ? 'text-blue-600' : 'text-slate-300'}`} />
+                <span className="text-[10px] font-bold uppercase">{r.label}</span>
+              </button>
+            ))}
           </div>
-        )}
+        </div>
 
         {/* Error Banner */}
         {error && (
@@ -282,24 +264,6 @@ function LoginContent() {
         
         {/* Dynamic Inputs */}
         <div className="w-full space-y-4 mb-6">
-          {isSignUp && (
-            <div className="animate-in fade-in slide-in-from-top-2 duration-150">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1 block">Full Name</label>
-              <div className="group flex bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-transparent transition-all">
-                <span className="px-4 py-4 text-slate-300 group-focus-within:text-blue-500 transition-colors">
-                  <User className="w-5 h-5" />
-                </span>
-                <input 
-                  id="signup-name"
-                  type="text" 
-                  placeholder="John Doe" 
-                  className="w-full bg-transparent px-2 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-300 font-sans"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
           <div className="animate-in fade-in duration-150">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1 block">Email Address</label>
             <div className="group flex bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-transparent transition-all">
@@ -351,11 +315,11 @@ function LoginContent() {
               <span>Logging in...</span>
             </>
           ) : (
-            isSignUp ? 'Create Account' : 'Login to Dashboard'
+            'Login to Dashboard'
           )}
         </button>
 
-        {!isSignUp && (
+        {role === 'owner' && (
           <>
             <div className="w-full flex items-center gap-4 my-4">
               <div className="h-px flex-1 bg-slate-100" />
@@ -365,7 +329,7 @@ function LoginContent() {
 
             <div className="w-full mt-4 space-y-3">
               <button
-                onClick={() => handleOAuthLogin("oauth_google")}
+                onClick={() => handleOAuthLogin("google")}
                 className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-all active:scale-[0.98] shadow-sm text-sm"
               >
                 <Image 
@@ -377,51 +341,11 @@ function LoginContent() {
                 />
                 Continue with Google
               </button>
-              
-              <button
-                onClick={() => handleOAuthLogin("oauth_facebook")}
-                className="w-full bg-[#1877F2] text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#166fe5] transition-all active:scale-[0.98] shadow-sm text-sm"
-              >
-                <Image 
-                  src="https://www.svgrepo.com/show/475647/facebook-color.svg" 
-                  alt="Facebook" 
-                  width={20}
-                  height={20}
-                  className="w-5 h-5 brightness-0 invert" 
-                />
-                Continue with Facebook
-              </button>
-
-              <button
-                onClick={() => handleOAuthLogin("oauth_apple")}
-                className="w-full bg-black text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-zinc-900 transition-all active:scale-[0.98] shadow-sm text-sm"
-              >
-                <Image 
-                  src="https://www.svgrepo.com/show/475635/apple-color.svg" 
-                  alt="Apple" 
-                  width={20}
-                  height={20}
-                  className="w-5 h-5 brightness-0 invert" 
-                />
-                Continue with Apple
-              </button>
             </div>
           </>
         )}
 
-        {role === 'owner' && isUsersTableEmpty !== false && (
-          <p className="text-sm text-slate-500 font-sans">
-            {isSignUp ? 'Already have an account?' : "First time setting up?"}{' '}
-            <button 
-              onClick={() => setIsSignUp(!isSignUp)} 
-              className="text-blue-600 font-bold hover:underline underline-offset-4"
-            >
-              {isSignUp ? 'Log In' : 'Register as Owner'}
-            </button>
-          </p>
-        )}
-
-        {role === 'owner' && isUsersTableEmpty === false && !isSignUp && (
+        {role === 'owner' && isUsersTableEmpty === false && (
           <p className="text-xs text-slate-400 mt-4 text-center">
             Public registration is disabled. Only the owner can create new staff or manager accounts from their dashboard.
           </p>

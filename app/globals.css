@@ -2,17 +2,18 @@
 @import "tw-animate-css";
 
 @theme {
-  --font-sans: var(--font-inter);
-  --font-serif: var(--font-source-serif);
+  --font-sans: var(--font-jakarta);
+  --font-serif: var(--font-lora);
   --animate-spin-slow: spin 3s linear infinite;
 }
 
 @layer base {
-  body {
-    font-family: var(--font-source-serif), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  body, p {
+    font-family: var(--font-serif), serif;
   }
-  h1, h2, h3, h4, h5, h6,
-  .font-heading {
-    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  h1, h2, h3, h4 {
+    font-family: var(--font-sans), sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 }
