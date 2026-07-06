@@ -19,7 +19,7 @@ function ErrorFallback({ error }: { error: Error }) {
   );
 }
 
-const publicPaths = ['/login', '/', '/about', '/contact', '/privacy', '/privacy-policy', '/terms', '/terms-and-conditions', '/unauthorized'];
+const publicPaths = ['/login', '/signup', '/', '/about', '/contact', '/privacy', '/privacy-policy', '/terms', '/terms-and-conditions', '/unauthorized'];
 
 function GuardWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -27,7 +27,7 @@ function GuardWrapper({ children }: { children: React.ReactNode }) {
   // Use a more robust check for public paths
   const isPublicPath = pathname ? (
     publicPaths.includes(pathname) || 
-    pathname.startsWith('/login') || 
+    pathname.startsWith('/login') ||
     pathname.startsWith('/signup')
   ) : true; // Default to true during hydration if pathname is null
 

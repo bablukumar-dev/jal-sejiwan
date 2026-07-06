@@ -5,6 +5,7 @@ export async function POST(req: NextRequest) {
   try {
     const { userId, password } = await req.json();
     const supabaseAdmin = getSupabaseAdmin();
+    if (!supabaseAdmin) throw new Error("Supabase Admin client not configured");
     
     // Update password in Supabase Auth
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {

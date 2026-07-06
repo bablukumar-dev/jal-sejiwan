@@ -6,6 +6,7 @@ import { supabase } from '@/src/supabaseClient';
 
 const publicPaths = [
   '/login',
+  '/signup',
   '/',
   '/about',
   '/contact',
@@ -32,7 +33,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     if (mounted && !currentUser) {
       const isPublic = pathname ? (
         publicPaths.includes(pathname) || 
-        pathname.startsWith('/login') || 
+        pathname.startsWith('/login') ||
         pathname.startsWith('/signup')
       ) : true;
       
@@ -49,7 +50,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!pathname) return;
 
     const isPublic = publicPaths.includes(pathname) || 
-                    pathname.startsWith('/login') || 
+                    pathname.startsWith('/login') ||
                     pathname.startsWith('/signup');
 
     if (isPublic) {

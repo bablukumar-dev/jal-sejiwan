@@ -5,6 +5,7 @@ import { useAppContext } from '@/app/context/AppContext';
 
 const publicPaths = [
   '/login',
+  '/signup',
   '/',
   '/about',
   '/contact',
@@ -34,7 +35,7 @@ export function RoleGuard({ children }: { children: React.ReactNode }) {
     const isPublic = pathname ? (
       publicPaths.includes(pathname) || 
       pathname.startsWith('/login') || 
-      pathname.startsWith('/signup') ||
+      pathname.startsWith('/signup') || 
       pathname === '/unauthorized'
     ) : true;
 

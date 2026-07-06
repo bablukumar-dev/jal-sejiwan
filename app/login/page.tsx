@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, User, Store, Truck, Package, RefreshCw } from 'lucide-react';
 import { supabase } from '@/src/supabaseClient';
@@ -71,18 +72,42 @@ function LoginContent() {
 
         const { data: { user } } = await supabase.auth.getUser();
         
-        const { data: newUser, error: createError } = await getSupabaseAdmin()
-          .from('users')
-          .insert({
-            id: userId,
-            email: user?.email,
-            name: user?.user_metadata?.name || 'New User',
-            role: isFirstUser ? 'owner' : 'staff',
-            business_id: isFirstUser ? userId : null,
-            created_at: new Date().toISOString()
-          })
-          .select()
-          .single();
+        const adminClient = getSupabaseAdmin();
+        let newUser = null;
+        let createError = null;
+        
+        if (adminClient) {
+          const { data, error } = await adminClient
+            .from('users')
+            .insert({
+              id: userId,
+              email: user?.email,
+              name: user?.user_metadata?.name || 'New User',
+              role: isFirstUser ? 'owner' : 'staff',
+              business_id: isFirstUser ? userId : null,
+              created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+          newUser = data;
+          createError = error;
+        } else {
+          // Fallback to standard client
+          const { data, error } = await supabase
+            .from('users')
+            .insert({
+              id: userId,
+              email: user?.email,
+              name: user?.user_metadata?.name || 'New User',
+              role: isFirstUser ? 'owner' : 'staff',
+              business_id: isFirstUser ? userId : null,
+              created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+          newUser = data;
+          createError = error;
+        }
 
         if (createError) {
           console.error("User sync error detail:", JSON.stringify(createError, null, 2));
@@ -350,6 +375,13 @@ function LoginContent() {
             Public registration is disabled. Only the owner can create new staff or manager accounts from their dashboard.
           </p>
         )}
+
+        <p className="text-sm text-slate-500 mt-6 text-center font-sans">
+          Don&apos;t have an account?{' '}
+          <Link href="/signup" className="text-blue-600 hover:text-blue-700 font-bold hover:underline transition-colors">
+            Sign Up
+          </Link>
+        </p>
 
         <div className="mt-auto pt-8 w-full flex flex-col items-center gap-4">
           <div className="h-px w-full bg-slate-100" />

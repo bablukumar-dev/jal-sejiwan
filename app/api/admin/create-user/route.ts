@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/src/supabaseAdmin';
 export async function POST(req: NextRequest) {
   try {
     const supabaseAdmin = getSupabaseAdmin();
+    if (!supabaseAdmin) throw new Error("Supabase Admin client not configured");
     const { email, password, name, role, business_id } = await req.json();
 
     // 1. Create user in Supabase Auth
