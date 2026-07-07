@@ -155,6 +155,7 @@ type AppContextType = {
   currentUser: CurrentUser | null;
   setCurrentUser: React.Dispatch<React.SetStateAction<CurrentUser | null>>;
   unsyncedCount: number;
+  authLoading: boolean;
 };
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -215,6 +216,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const { auth, db } = getFirebase();
@@ -244,18 +246,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           } else {
             setCurrentUser(null);
           }
+          setAuthLoading(false);
         }, (error: any) => {
           console.error("Error listening to user data:", error);
           if (error.code === 'permission-denied') {
             console.error("FIRESTORE PERMISSION DENIED: Please ensure your security rules allow reading from the 'users' collection.");
           }
           setCurrentUser(null);
+          setAuthLoading(false);
         });
       } else {
         setCurrentUser(null);
         setOwnerId(null);
         localStorage.removeItem('businessId');
         localStorage.removeItem('userRole');
+        setAuthLoading(false);
       }
     });
 
@@ -513,8 +518,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSyncProgress,
     currentUser,
     setCurrentUser,
-    unsyncedCount
-  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, isBackgroundSyncing, syncProgress, triggerSync, currentUser, unsyncedCount]);
+    unsyncedCount,
+    authLoading
+  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, isBackgroundSyncing, syncProgress, triggerSync, currentUser, unsyncedCount, authLoading]);
 
   return (
     <AppContext.Provider value={contextValue}>

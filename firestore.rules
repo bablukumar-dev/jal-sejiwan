@@ -28,8 +28,17 @@ service cloud.firestore {
       // Allow user to read their own document directly
       allow read: if isAuthenticated() && request.auth.uid == userId;
       
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isAuthenticated() && request.auth.uid == userId;
+      // Allow self-registration as 'owner' during signup
+      allow create: if isAuthenticated() && request.auth.uid == userId 
+        && request.resource.data.role == 'owner'
+        && request.resource.data.email is string
+        && request.resource.data.businessId is string;
+      
+      // Allow user to update their own profile, but enforce role and businessId immutability
+      allow update: if isAuthenticated() && request.auth.uid == userId 
+        && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role)
+        && (!('businessId' in request.resource.data) || request.resource.data.businessId == resource.data.businessId);
+        
       allow delete: if false;
     }
 
@@ -44,18 +53,9 @@ service cloud.firestore {
       }
     }
 
-    // 5. Allow reading public diagnostic documents (if used)
+    // 5. Allow reading public diagnostic documents
     match /_diagnostics/{docId} {
       allow read: if true;
-    }
-    
-    // 6. Generic rules for collections that have a businessId field
-    // This provides a fallback for top-level collections like 'customers', 'deliveries', etc.
-    match /{collectionName}/{docId} {
-      allow read: if isAuthenticated() && 
-        (resource == null || resource.data.businessId == getUserData().businessId);
-      allow write: if isAuthenticated() && 
-        (request.resource.data.businessId == getUserData().businessId);
     }
   }
 }

@@ -20,7 +20,7 @@ const publicPaths = [
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { currentUser } = useAppContext();
+  const { currentUser, authLoading } = useAppContext();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (mounted && !currentUser) {
+    if (mounted && !authLoading && !currentUser) {
       const isPublic = pathname ? (
         publicPaths.includes(pathname) || 
         pathname.startsWith('/login') ||
@@ -41,7 +41,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         router.push("/login");
       }
     }
-  }, [mounted, currentUser, pathname, router]);
+  }, [mounted, authLoading, currentUser, pathname, router]);
 
   // Inactivity auto-logout (30 minutes of complete inactivity)
   useEffect(() => {
@@ -96,9 +96,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     };
   }, [pathname]);
 
-  if (!mounted) {
+  if (!mounted || authLoading) {
     if (!publicPaths.includes(pathname || '') && pathname !== '/unauthorized') {
-      return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-bold text-slate-500">Checking session...</div>;
+      return (
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+            <span className="animate-pulse block w-8 h-8 rounded-full bg-blue-600/20" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-800">Verifying authorization...</h2>
+          <p className="text-xs text-slate-400 mt-1">Please wait while we secure your session credentials.</p>
+        </div>
+      );
     }
     return <>{children}</>;
   }
