@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { getFirebase } from '@/src/lib/firebase';
 import { getUnsyncedDeliveries } from '@/lib/idb';
 
@@ -220,12 +220,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const { auth, db } = getFirebase();
     if (!auth || !db) return;
 
+    let unsubDoc: (() => void) | null = null;
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (unsubDoc) {
+        unsubDoc();
+        unsubDoc = null;
+      }
+
       if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
+        const userDocRef = doc(db, 'users', user.uid);
+        unsubDoc = onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
             setCurrentUser({
               uid: user.uid,
               role: data.role,
@@ -234,14 +241,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setOwnerId(data.businessId);
             localStorage.setItem('businessId', data.businessId);
             localStorage.setItem('userRole', data.role);
+          } else {
+            setCurrentUser(null);
           }
-        } catch (error: any) {
-          console.error("Error fetching user data:", error);
+        }, (error: any) => {
+          console.error("Error listening to user data:", error);
           if (error.code === 'permission-denied') {
-            console.error("FIRESTORE PERMISSION DENIED: Please ensure your security rules allow reading from the 'users' collection. Rules should be set to: match /users/{userId} { allow read: if request.auth != null; }");
+            console.error("FIRESTORE PERMISSION DENIED: Please ensure your security rules allow reading from the 'users' collection.");
           }
           setCurrentUser(null);
-        }
+        });
       } else {
         setCurrentUser(null);
         setOwnerId(null);
@@ -249,7 +258,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('userRole');
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribe();
+      if (unsubDoc) unsubDoc();
+    };
   }, []);
 
   const lastRemoteData = useRef<string | null>(null);

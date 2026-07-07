@@ -13,10 +13,12 @@ import {
 } from 'firebase/auth';
 import { getFirebase } from '@/src/lib/firebase';
 import { getFriendlyAuthErrorMessage } from '@/lib/authHelper';
+import { useAppContext } from '@/app/context/AppContext';
 import { Suspense } from 'react';
 
 function SignupContent() {
   const router = useRouter();
+  const { currentUser } = useAppContext();
 
   const [role, setRole] = useState<'owner' | 'staff' | 'manager'>('owner');
   const [email, setEmail] = useState('');
@@ -30,6 +32,17 @@ function SignupContent() {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect logged-in users automatically
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.role === 'staff') {
+        router.replace('/staff/dashboard');
+      } else {
+        router.replace('/owner/dashboard');
+      }
+    }
+  }, [currentUser, router]);
 
   const handleSignUp = async () => {
     if (role !== 'owner') {
@@ -62,6 +75,16 @@ function SignupContent() {
         role: 'owner',
         businessId: businessId,
         createdAt: new Date().toISOString()
+      });
+
+      // Synchronously write to localStorage and context state to avoid race conditions
+      localStorage.setItem('businessId', businessId);
+      localStorage.setItem('userRole', 'owner');
+      localStorage.setItem('ownerId', businessId);
+      setCurrentUser({
+        uid: user.uid,
+        role: 'owner',
+        businessId: businessId
       });
 
       console.log("Success: User Logged In");
@@ -104,15 +127,29 @@ function SignupContent() {
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
 
+      let businessId = '';
       if (!userDoc.exists()) {
-        const businessId = `biz_${Math.random().toString(36).substring(2, 11)}`;
+        businessId = `biz_${Math.random().toString(36).substring(2, 11)}`;
         await setDoc(userDocRef, {
           email: user.email,
           role: 'owner',
           businessId: businessId,
           createdAt: new Date().toISOString()
         });
+      } else {
+        const data = userDoc.data();
+        businessId = data.businessId || '';
       }
+
+      // Synchronously write to localStorage and context state to avoid race conditions
+      localStorage.setItem('businessId', businessId);
+      localStorage.setItem('userRole', 'owner');
+      localStorage.setItem('ownerId', businessId);
+      setCurrentUser({
+        uid: user.uid,
+        role: 'owner',
+        businessId: businessId
+      });
 
       console.log("Success: User Logged In");
       router.replace('/owner/dashboard');
@@ -282,17 +319,28 @@ function SignupContent() {
 
             <div className="w-full mt-4 space-y-3">
               <button
+                type="button"
                 onClick={() => handleOAuthLogin("google")}
-                className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-all active:scale-[0.98] shadow-sm text-sm"
+                disabled={isLoading}
+                className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-all active:scale-[0.98] shadow-sm text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Image 
-                  src="https://www.svgrepo.com/show/475656/google-color.svg" 
-                  alt="Google" 
-                  width={20}
-                  height={20}
-                  className="w-5 h-5" 
-                />
-                Continue with Google
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                    <span className="text-slate-400">Connecting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Image 
+                      src="https://www.svgrepo.com/show/475656/google-color.svg" 
+                      alt="Google" 
+                      width={20}
+                      height={20}
+                      className="w-5 h-5" 
+                    />
+                    Continue with Google
+                  </>
+                )}
               </button>
             </div>
           </>

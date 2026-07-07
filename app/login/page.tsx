@@ -9,6 +9,9 @@ import { useAppContext } from '@/app/context/AppContext';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { getFriendlyAuthErrorMessage } from '@/lib/authHelper';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { getFirebase } from '@/src/lib/firebase';
 
 
 function LoginContent() {
@@ -31,14 +34,22 @@ function LoginContent() {
   const [emailError, setEmailError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Redirect logged-in users automatically
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.role === 'staff') {
+        router.replace('/staff/dashboard');
+      } else {
+        router.replace('/owner/dashboard');
+      }
+    }
+  }, [currentUser, router]);
+
   const handleEmailAuth = async () => {
     setError('');
     setIsLoading(true);
     console.log("Authenticating...");
     try {
-      const { signInWithEmailAndPassword, signOut } = await import('firebase/auth');
-      const { doc, getDoc } = await import('firebase/firestore');
-      const { getFirebase } = await import('@/src/lib/firebase');
       const { auth, db } = getFirebase();
       if (!auth || !db) throw new Error("Firebase not initialized");
 
@@ -55,6 +66,20 @@ function LoginContent() {
               return;
           }
           console.log("Success: User Logged In");
+          
+          // Synchronously populate state and localStorage before navigation to prevent race conditions
+          localStorage.setItem('businessId', data.businessId || '');
+          localStorage.setItem('userRole', data.role);
+          localStorage.setItem('ownerId', data.businessId || '');
+          if (data.role === 'staff') {
+            localStorage.setItem('staffUserId', userCredential.user.uid);
+          }
+          
+          setCurrentUser({
+            uid: userCredential.user.uid,
+            role: data.role,
+            businessId: data.businessId || ''
+          });
       } else {
           console.log("Error: User not found in database.");
           await signOut(auth);
@@ -88,17 +113,29 @@ function LoginContent() {
     setIsLoading(true);
     console.log("Authenticating...");
     try {
-      const { signInWithPopup, GoogleAuthProvider, signOut } = await import('firebase/auth');
-      const { doc, getDoc } = await import('firebase/firestore');
-      const { getFirebase } = await import('@/src/lib/firebase');
       const { auth, db } = getFirebase();
       if (!auth || !db) throw new Error("Firebase not initialized");
       
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
+      const user = userCredential.user;
 
       // Verify if the user exists as an OWNER in Firestore
-      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      let userDoc = await getDoc(doc(db, 'users', user.uid));
+      
+      // If new user, create a profile automatically as owner!
+      if (!userDoc.exists()) {
+          const businessId = `biz_${Math.random().toString(36).substring(2, 11)}`;
+          const userDocRef = doc(db, 'users', user.uid);
+          await setDoc(userDocRef, {
+            email: user.email,
+            role: 'owner',
+            businessId: businessId,
+            createdAt: new Date().toISOString()
+          });
+          userDoc = await getDoc(userDocRef);
+      }
+
       if (userDoc.exists()) {
           const data = userDoc.data();
           if (data.role.toLowerCase() !== 'owner') {
@@ -109,9 +146,18 @@ function LoginContent() {
               return;
           }
           console.log("Success: User Logged In");
+          
+          // Synchronously populate state and localStorage before navigation to prevent race conditions
+          localStorage.setItem('businessId', data.businessId || '');
+          localStorage.setItem('userRole', data.role);
+          localStorage.setItem('ownerId', data.businessId || '');
+          
+          setCurrentUser({
+            uid: user.uid,
+            role: data.role,
+            businessId: data.businessId || ''
+          });
       } else {
-          // If the user doesn't exist, we might need to handle automatic OWNER creation or 
-          // strict invitation-only login. Assuming strict lookup based on instructions.
           console.log("Error: User not found in database.");
           await signOut(auth);
           setError("User not found in database.");
@@ -141,6 +187,20 @@ function LoginContent() {
     // Verification logic not needed for password sign up, or implement email confirmation check
     router.push('/owner/dashboard');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
+        <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-6 border border-blue-100 shadow-sm">
+          <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-800 tracking-tight font-sans">Securing your session...</h2>
+        <p className="text-slate-500 text-sm mt-2 max-w-sm font-sans">
+          Authenticating credentials and fetching your business profile. Please keep this tab open.
+        </p>
+      </div>
+    );
+  }
 
   if (verifying) {
     return (
@@ -289,17 +349,28 @@ function LoginContent() {
 
             <div className="w-full mt-4 space-y-3">
               <button
+                type="button"
                 onClick={() => handleOAuthLogin("google")}
-                className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-all active:scale-[0.98] shadow-sm text-sm"
+                disabled={isLoading}
+                className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-all active:scale-[0.98] shadow-sm text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Image 
-                  src="https://www.svgrepo.com/show/475656/google-color.svg" 
-                  alt="Google" 
-                  width={20}
-                  height={20}
-                  className="w-5 h-5" 
-                />
-                Continue with Google
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                    <span className="text-slate-400">Connecting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Image 
+                      src="https://www.svgrepo.com/show/475656/google-color.svg" 
+                      alt="Google" 
+                      width={20}
+                      height={20}
+                      className="w-5 h-5" 
+                    />
+                    Continue with Google
+                  </>
+                )}
               </button>
             </div>
           </>

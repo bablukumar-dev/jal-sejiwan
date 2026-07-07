@@ -25,8 +25,8 @@ service cloud.firestore {
 
     // 3. Rules for the users collection
     match /users/{userId} {
-      // Allow authenticated users to read profiles
-      allow read: if isAuthenticated();
+      // Allow user to read their own document directly
+      allow read: if isAuthenticated() && request.auth.uid == userId;
       
       allow create: if isAuthenticated() && request.auth.uid == userId;
       allow update: if isAuthenticated() && request.auth.uid == userId;

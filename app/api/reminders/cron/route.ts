@@ -1,10 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/src/lib/firebase-admin';
+import { countAndCheckLimit } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    // Get IP address for rate limit tracking
+    const ip = req.headers.get('x-forwarded-for') || (req as any).ip || '127.0.0.1';
+    
+    // Rate limit: 10 requests per 15 minutes for the cron endpoint
+    const limitStatus = countAndCheckLimit(`api_reminders_cron_${ip}`, 10, 15 * 60 * 1000);
+    if (limitStatus.limited) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
+    // Cron security check
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+      console.error('CRON_SECRET environment variable is not defined!');
+      return NextResponse.json({ error: 'Unauthorized: Security configuration missing' }, { status: 401 });
+    }
+
+    const authHeader = req.headers.get('Authorization');
+    const urlSecret = req.nextUrl.searchParams.get('secret');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.split('Bearer ')[1] : null;
+
+    if (token !== cronSecret && urlSecret !== cronSecret) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid cron secret' }, { status: 401 });
+    }
+
     const db = getAdminDb();
     
     const today = new Date();
