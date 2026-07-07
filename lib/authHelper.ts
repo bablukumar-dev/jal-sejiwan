@@ -11,7 +11,7 @@ export const comparePin = (pin: string, hash: string) => {
 export function getFriendlyAuthErrorMessage(errorCode: string): string {
   switch (errorCode) {
     case 'auth/email-already-in-use':
-      return 'This email is already registered. Please sign in or use another email.';
+      return 'This email is already registered.';
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
       return 'Incorrect email or password.';
@@ -22,9 +22,9 @@ export function getFriendlyAuthErrorMessage(errorCode: string): string {
     case 'auth/weak-password':
       return 'Password must be at least 6 characters.';
     case 'auth/network-request-failed':
-      return 'Network connection lost. Please check your internet connection.';
+      return 'Please check your internet connection.';
     case 'auth/too-many-requests':
-      return 'Too many attempts. Please try again later.';
+      return 'Too many login attempts. Please try again later.';
     case 'auth/popup-closed-by-user':
       return 'Sign-in was cancelled.';
     case 'auth/requires-recent-login':
@@ -36,4 +36,18 @@ export function getFriendlyAuthErrorMessage(errorCode: string): string {
     default:
       return 'An unexpected authentication error occurred. Please try again.';
   }
+}
+
+export function setCookie(name: string, value: string, maxAgeSeconds?: number) {
+  if (typeof document === 'undefined') return;
+  let cookieString = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; SameSite=Lax; Secure`;
+  if (maxAgeSeconds !== undefined) {
+    cookieString += `; max-age=${maxAgeSeconds}`;
+  }
+  document.cookie = cookieString;
+}
+
+export function deleteCookie(name: string) {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${encodeURIComponent(name)}=; path=/; max-age=0; SameSite=Lax; Secure`;
 }

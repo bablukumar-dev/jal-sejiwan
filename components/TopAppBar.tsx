@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import SyncStatusIndicator from '@/components/SyncStatusIndicator';
 import { useAppContext } from '@/app/context/AppContext';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 
 interface TopAppBarProps {
@@ -18,7 +18,8 @@ interface TopAppBarProps {
 
 export default function TopAppBar({ title, subtitle, showBack = false, showProfile = true }: TopAppBarProps) {
   const router = useRouter();
-  const { inventory, customers, isBackgroundSyncing, syncProgress } = useAppContext();
+  const { inventory, customers, isBackgroundSyncing, syncProgress, logout } = useAppContext();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const hasAlerts = useMemo(() => {
     const isLowInventory = inventory.fullCans < 10;
@@ -27,13 +28,17 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
   }, [inventory.fullCans, customers]);
 
   const handleSignOut = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     try {
-      console.log('Auth System Removed: Sign out');
-      router.push('/login');
+      await logout();
+      router.replace('/login');
     } catch (e) {
       console.error('Logout failed:', e);
       // Fallback redirect
       window.location.href = '/login';
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -96,6 +101,15 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
           )}
         </div>
       </div>
+      {isLoggingOut && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 flex flex-col items-center max-w-xs shadow-xl border border-slate-100">
+            <RefreshCw className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+            <h3 className="text-lg font-bold text-slate-800">Signing you out...</h3>
+            <p className="text-xs text-slate-400 mt-1 text-center font-sans">Clearing authorization session and resetting cached local profile securely.</p>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

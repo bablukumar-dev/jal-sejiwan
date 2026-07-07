@@ -8,7 +8,7 @@ import { Mail, Lock, User, Store, Truck, Package, RefreshCw, Eye, EyeOff } from 
 import { useAppContext } from '@/app/context/AppContext';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { getFriendlyAuthErrorMessage } from '@/lib/authHelper';
+import { getFriendlyAuthErrorMessage, setCookie, deleteCookie } from '@/lib/authHelper';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getFirebase } from '@/src/lib/firebase';
@@ -74,6 +74,11 @@ function LoginContent() {
           if (data.role === 'staff') {
             localStorage.setItem('staffUserId', userCredential.user.uid);
           }
+          
+          const idToken = await userCredential.user.getIdToken();
+          setCookie('firebaseIdToken', idToken, 3600);
+          setCookie('userRole', data.role, 3600);
+          setCookie('businessId', data.businessId || '', 3600);
           
           setCurrentUser({
             uid: userCredential.user.uid,
@@ -151,6 +156,11 @@ function LoginContent() {
           localStorage.setItem('businessId', data.businessId || '');
           localStorage.setItem('userRole', data.role);
           localStorage.setItem('ownerId', data.businessId || '');
+          
+          const idToken = await user.getIdToken();
+          setCookie('firebaseIdToken', idToken, 3600);
+          setCookie('userRole', data.role, 3600);
+          setCookie('businessId', data.businessId || '', 3600);
           
           setCurrentUser({
             uid: user.uid,

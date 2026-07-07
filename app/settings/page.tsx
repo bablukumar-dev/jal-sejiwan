@@ -78,10 +78,12 @@ export default function SettingsPage() {
     staff, 
     routes, 
     deliveries,
-    currentUser
+    currentUser,
+    logout
   } = useAppContext();
   
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [newName, setNewName] = useState(businessInfo.ownerName);
   const [profileImage, setProfileImage] = useState<string | null>(() => {
@@ -178,14 +180,33 @@ export default function SettingsPage() {
   };
 
   const handleSignOut = async () => {
-    localStorage.clear();
-    router.push('/login');
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      router.replace('/login');
+    } catch (e) {
+      console.error('Logout failed:', e);
+      // Fallback redirect
+      window.location.href = '/login';
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const userRole = currentUser?.role || 'staff';
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 relative">
+      {isLoggingOut && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 flex flex-col items-center max-w-xs shadow-xl border border-slate-100">
+            <RefreshCcw className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+            <h3 className="text-lg font-bold text-slate-800">Signing you out...</h3>
+            <p className="text-xs text-slate-400 mt-1 text-center font-sans">Clearing authorization session and resetting cached local profile securely.</p>
+          </div>
+        </div>
+      )}
       <TopAppBar title="Profile" showBack={true} showProfile={false} />
 
       <main className="max-w-md mx-auto px-4 py-6">

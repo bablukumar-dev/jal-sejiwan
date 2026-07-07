@@ -1,10 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { getFirebase } from '@/src/lib/firebase';
 import { getUnsyncedDeliveries } from '@/lib/idb';
+import { setCookie, deleteCookie } from '@/lib/authHelper';
 
 export type Customer = {
   id: number;
@@ -156,6 +157,8 @@ type AppContextType = {
   setCurrentUser: React.Dispatch<React.SetStateAction<CurrentUser | null>>;
   unsyncedCount: number;
   authLoading: boolean;
+  logout: () => Promise<void>;
+  isLoggingOut: boolean;
 };
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -218,6 +221,54 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
+  const [isLoggingOut, setIsLoggingOutState] = useState<boolean>(false);
+  const isLoggingOutRef = useRef(false);
+  const setIsLoggingOut = useCallback((val: boolean) => {
+    isLoggingOutRef.current = val;
+    setIsLoggingOutState(val);
+  }, []);
+
+  const logout = useCallback(async () => {
+    setIsLoggingOut(true);
+    try {
+      // 1. Clear Firebase Auth session first and wait for it to fully resolve
+      const { auth } = getFirebase();
+      if (auth) {
+        await signOut(auth);
+      }
+    } catch (error) {
+      console.error("Error signing out:", error);
+    } finally {
+      // 2. Reset all context data states to avoid stale cache leaks immediately after signout resolves
+      setCustomers(initialCustomers);
+      setDeliveries(initialDeliveries);
+      setPayments(initialPayments);
+      setInventory(initialInventory);
+      setInventoryHistory(initialInventoryHistory);
+      setStaff(initialStaff);
+      setRoutes(initialRoutes);
+      setAreas(initialAreas);
+      setBusinessInfo(initialBusinessInfo);
+      
+      setCurrentUser(null);
+      setOwnerId(null);
+      
+      deleteCookie('firebaseIdToken');
+      deleteCookie('userRole');
+      deleteCookie('businessId');
+      
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('businessId');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('lastSessionActivity');
+        localStorage.clear();
+      }
+      
+      setAuthLoading(false);
+      setIsLoggingOut(false);
+    }
+  }, [setIsLoggingOut]);
+
   useEffect(() => {
     const { auth, db } = getFirebase();
     if (!auth || !db) return;
@@ -231,6 +282,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (user) {
+        try {
+          const idToken = await user.getIdToken();
+          setCookie('firebaseIdToken', idToken, 3600);
+        } catch (e) {
+          console.error("Error getting ID token in onAuthStateChanged:", e);
+        }
+
         const userDocRef = doc(db, 'users', user.uid);
         unsubDoc = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
@@ -243,8 +301,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setOwnerId(data.businessId);
             localStorage.setItem('businessId', data.businessId);
             localStorage.setItem('userRole', data.role);
+            setCookie('userRole', data.role, 3600);
+            setCookie('businessId', data.businessId, 3600);
           } else {
             setCurrentUser(null);
+            deleteCookie('firebaseIdToken');
+            deleteCookie('userRole');
+            deleteCookie('businessId');
           }
           setAuthLoading(false);
         }, (error: any) => {
@@ -253,14 +316,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             console.error("FIRESTORE PERMISSION DENIED: Please ensure your security rules allow reading from the 'users' collection.");
           }
           setCurrentUser(null);
+          deleteCookie('firebaseIdToken');
+          deleteCookie('userRole');
+          deleteCookie('businessId');
           setAuthLoading(false);
         });
       } else {
-        setCurrentUser(null);
-        setOwnerId(null);
-        localStorage.removeItem('businessId');
-        localStorage.removeItem('userRole');
-        setAuthLoading(false);
+        if (!isLoggingOutRef.current) {
+          setCurrentUser(null);
+          setOwnerId(null);
+          localStorage.removeItem('businessId');
+          localStorage.removeItem('userRole');
+          deleteCookie('firebaseIdToken');
+          deleteCookie('userRole');
+          deleteCookie('businessId');
+          setAuthLoading(false);
+        }
       }
     });
 
@@ -519,8 +590,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     currentUser,
     setCurrentUser,
     unsyncedCount,
-    authLoading
-  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, isBackgroundSyncing, syncProgress, triggerSync, currentUser, unsyncedCount, authLoading]);
+    authLoading,
+    logout,
+    isLoggingOut
+  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, isBackgroundSyncing, syncProgress, triggerSync, currentUser, unsyncedCount, authLoading, logout, isLoggingOut]);
 
   return (
     <AppContext.Provider value={contextValue}>
