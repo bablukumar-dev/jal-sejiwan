@@ -135,17 +135,10 @@ export default function CustomerService() {
 
   const handleCompleteDelivery = async (deliveryId: string) => {
     try {
+      console.log('Auth System Removed: Delivery completion disabled');
       const delivery = deliveries.find(d => String(d.id) === String(deliveryId));
       const customer = delivery ? customers.find(c => c.id === delivery.customerId) : null;
       const qty = customer?.defaultQty || delivery?.deliveredQty || 1;
-
-      const { supabase } = await import('@/src/supabaseClient');
-      
-      await supabase.from('deliveries').update({
-        status: 'completed',
-        deliveredQty: qty,
-        delivered_at: new Date().toISOString()
-      }).eq('id', deliveryId);
 
       const updated = deliveries.map(d => 
         String(d.id) === String(deliveryId) ? { ...d, status: 'completed', deliveredQty: qty } : d

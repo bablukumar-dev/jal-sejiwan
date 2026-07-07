@@ -8,6 +8,7 @@ import { Phone, Truck, Wallet, Droplet, ArrowLeftRight, AlertTriangle, ArrowRigh
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
+import { sendWhatsAppSummary } from '@/lib/reminderService';
 
 export default function CustomerDetail() {
   const params = useParams();
@@ -70,7 +71,6 @@ export default function CustomerDetail() {
         alert('Invalid phone');
         return;
       }
-      const { sendWhatsAppSummary } = await import('@/lib/reminderService');
       sendWhatsAppSummary(customer, businessInfo);
     } catch (e) {
       console.error(e);

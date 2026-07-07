@@ -8,7 +8,6 @@ import SyncStatusIndicator from '@/components/SyncStatusIndicator';
 import { useAppContext } from '@/app/context/AppContext';
 import { useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { supabase } from '@/src/supabaseClient';
 
 interface TopAppBarProps {
   title: string;
@@ -29,7 +28,7 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log('Auth System Removed: Sign out');
       router.push('/login');
     } catch (e) {
       console.error('Logout failed:', e);

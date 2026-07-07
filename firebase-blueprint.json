@@ -1,0 +1,48 @@
+{
+  "collections": {
+    "users": {
+      "description": "Stores user profile and role information",
+      "documents": {
+        "{userId}": {
+          "fields": {
+            "email": { "type": "string" },
+            "role": { "type": "string" },
+            "businessId": { "type": "string" },
+            "createdAt": { "type": "timestamp" }
+          },
+          "allow": {
+            "read": "request.auth != null && request.auth.uid == userId",
+            "write": "false"
+          }
+        }
+      }
+    },
+    "businesses": {
+      "description": "Stores business-specific data",
+      "documents": {
+        "{businessId}": {
+          "fields": {
+            "name": { "type": "string" },
+            "ownerId": { "type": "string" }
+          },
+          "allow": {
+            "read": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId",
+            "write": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId"
+          },
+          "collections": {
+            "customers": {
+              "documents": {
+                "{customerId}": {
+                  "allow": {
+                    "read": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId",
+                    "write": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

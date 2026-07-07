@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/src/supabaseClient';
+import { getAdminDb } from '@/src/lib/firebase-admin';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    const db = getAdminDb();
+    
     const today = new Date();
     // Support testing and evaluation using a manual override parameter
     const isManual = req.nextUrl.searchParams.get('manual') === 'true';
@@ -16,7 +18,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const workspacesSnap = await getDocs(collection(db, 'workspaces'));
+    const workspacesSnap = await db.collection('workspaces').get();
     const results: any[] = [];
     const todayStr = today.toISOString().split('T')[0];
 
@@ -53,9 +55,9 @@ export async function GET(req: NextRequest) {
         };
 
         // Write activity details directly to root activities collection
-        await setDoc(doc(db, 'activities', logId), activityData);
+        await db.collection('activities').doc(logId).set(activityData);
         // Write specifically to workspace nested activity logs as well
-        await setDoc(doc(db, 'workspaces', workspaceId, 'activity_logs', logId), activityData);
+        await db.collection('workspaces').doc(workspaceId).collection('activity_logs').doc(logId).set(activityData);
 
         results.push({ workspaceId, sentCount: dueCustomers.length });
       }

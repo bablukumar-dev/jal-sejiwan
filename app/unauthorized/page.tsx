@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ShieldAlert, ArrowLeft, Mail } from 'lucide-react';
-import { supabase } from '@/src/supabaseClient';
 
 interface AccessAttempt {
   id: string;

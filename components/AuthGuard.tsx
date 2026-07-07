@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
-import { supabase } from '@/src/supabaseClient';
+// Auth system removed
 
 const publicPaths = [
   '/login',
@@ -78,7 +78,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         const inactiveTime = Date.now() - parseInt(lastActivity, 10);
         if (inactiveTime > 30 * 60 * 1000) { // 30 minutes in milliseconds
           try {
-            await supabase.auth.signOut();
+            console.log('Auth System Removed: Sign out');
           } catch (e) {
             console.error('Failed to sign out on timeout:', e);
           }

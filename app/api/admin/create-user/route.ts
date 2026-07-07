@@ -1,39 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/src/supabaseAdmin';
+import { getAdminAuth, getAdminDb } from '@/src/lib/firebase-admin';
 
 export async function POST(req: NextRequest) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
-    if (!supabaseAdmin) throw new Error("Supabase Admin client not configured");
+    const adminAuth = getAdminAuth();
+    const adminDb = getAdminDb();
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const idToken = authHeader.split('Bearer ')[1];
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    
+    // Verify requester is an OWNER
+    const ownerDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
+    if (!ownerDoc.exists || ownerDoc.data()?.role !== 'owner') {
+      return NextResponse.json({ error: 'Forbidden: Only owners can create users' }, { status: 403 });
+    }
+
     const { email, password, name, role, business_id } = await req.json();
 
-    // 1. Create user in Supabase Auth
-    const { data: userData, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
-      email: email,
-      password: password,
-      email_confirm: true,
-      user_metadata: { name: name }
-    });
-    
-    if (signUpError) throw signUpError;
-    const newUserId = userData.user.id;
+    if (!email || !password || !role || !business_id) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
 
-    // 2. Insert into the Supabase users table
-    const { error: insertError } = await supabaseAdmin.from('users').insert({
-      id: newUserId,
+    // 1. Create the user in Auth
+    const userRecord = await adminAuth.createUser({
+      email,
+      password,
+      displayName: name,
+    });
+
+    // 2. Create the user document in Firestore
+    await adminDb.collection('users').doc(userRecord.uid).set({
       email,
       name,
       role,
-      business_id
+      businessId: business_id,
+      createdBy: decodedToken.uid,
+      createdAt: new Date().toISOString(),
     });
 
-    if (insertError) {
-      // Rollback: delete user
-      await supabaseAdmin.auth.admin.deleteUser(newUserId);
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ message: 'User created successfully', userId: newUserId });
+    return NextResponse.json({ 
+      message: 'User created successfully', 
+      userId: userRecord.uid 
+    });
   } catch (err: any) {
     console.error('API Error:', err);
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });

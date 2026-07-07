@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { sendReminderWhatsApp } from '@/lib/whatsappUtils';
 import { wrapRoute } from '@/lib/permissionGuard';
+import { sendWhatsAppSummary } from '@/lib/reminderService';
 
 function CustomersList() {
   const { customers: rawCustomers, deliveries = [], businessInfo } = useAppContext();
@@ -97,7 +98,6 @@ function CustomersList() {
     setIsReminding(true);
     setProgressCount(0);
     try {
-      const { sendWhatsAppSummary } = await import('@/lib/reminderService');
       let successCount = 0;
       
       const selectedCustomers = customers.filter(c => selectedCustomerIds.includes(c.id));

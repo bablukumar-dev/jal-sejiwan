@@ -157,7 +157,7 @@ function Reports() {
                   onClick={async () => {
                      try {
                        const { jsPDF } = await import('jspdf');
-                       await import('jspdf-autotable');
+                       const autoTable = (await import('jspdf-autotable')).default;
                        const doc = new jsPDF();
                        doc.setFontSize(20);
                        doc.text("Monthly Sales Report", 14, 22);
@@ -175,7 +175,7 @@ function Reports() {
                        ];
 
                        // @ts-ignore
-                       doc.autoTable({
+                       autoTable(doc, {
                          startY: 40,
                          head: [['Metric', 'Value']],
                          body: tableData,

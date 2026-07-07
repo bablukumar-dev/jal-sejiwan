@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
 import { logActivity } from '@/lib/activityLogger';
-import { supabase } from '@/src/supabaseClient';
 import ImageCropperModal from '@/components/ImageCropperModal';
 import Toast, { ToastProps } from '@/components/Toast';
 
@@ -140,18 +139,8 @@ export default function AddCustomer() {
         
         let uploadedImageURL = '';
         if (selectedImage) {
-          try {
-            setIsUploading(true);
-            const filePath = `customers/${currentBusinessId}_${newId}/profile.jpg`;
-            await supabase.storage.from('customers').upload(filePath, selectedImage, { upsert: true });
-            const { data } = supabase.storage.from('customers').getPublicUrl(filePath);
-            uploadedImageURL = data.publicUrl;
-          } catch (uploadError) {
-            console.error("Supabase Storage upload error:", uploadError);
-            setToast({ message: 'Image upload failed, but customer will be saved.', type: 'error', onClose: () => setToast(null) });
-          } finally {
-            setIsUploading(false);
-          }
+            // Auth system removed - Storage upload simulated
+            uploadedImageURL = URL.createObjectURL(selectedImage);
         }
 
         const newCustomer = {

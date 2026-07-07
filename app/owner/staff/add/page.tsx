@@ -5,8 +5,8 @@ import BottomNav from '@/components/BottomNav';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
+import { getFirebase } from '@/src/lib/firebase';
 import { hashPin } from '@/lib/authHelper';
-import { supabase } from '@/src/supabaseClient';
 import { logActivity } from '@/lib/activityLogger';
 import { wrapRoute } from '@/lib/permissionGuard';
 import { safeGet } from '@/lib/utils';
@@ -77,11 +77,18 @@ function AddStaff() {
         
         const dbRole = role === 'Delivery Partner' ? 'staff' : role.toLowerCase();
 
+        const { auth } = getFirebase();
+        if (!auth.currentUser) {
+          throw new Error("No authenticated user");
+        }
+        const idToken = await auth.currentUser.getIdToken();
+
         // 2. Call the admin API to create the user
         const response = await fetch('/api/admin/create-user', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
           },
           body: JSON.stringify({
             email: emailVal.value, // Using the email field for identifier
@@ -121,9 +128,19 @@ function AddStaff() {
 
         alert("Staff Added Successfully!");
         router.push('/owner/staff');
-    } catch (err) {
+    } catch (err: any) {
         console.error("Failed to add staff", err);
-        alert("Failed to add staff. Please try again.");
+        let msg = "Failed to add staff. Please try again.";
+        if (err.message) {
+          if (err.message.includes("email-already-in-use") || err.message.toLowerCase().includes("already in use") || err.message.toLowerCase().includes("already exists")) {
+            msg = "This email is already registered. Please use another email.";
+          } else if (err.message.includes("weak-password") || err.message.toLowerCase().includes("at least 6 characters")) {
+            msg = "Password/PIN must be at least 6 characters.";
+          } else if (err.message.includes("invalid-email") || err.message.toLowerCase().includes("invalid email")) {
+            msg = "Please enter a valid email address.";
+          }
+        }
+        alert(msg);
     }
   };
 

@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Droplet, Sparkles, ChevronRight, ChevronLeft, CheckCircle2, X, AlertCircle } from 'lucide-react';
-import { supabase } from '@/src/supabaseClient';
 
 interface OnboardingOverlayProps {
   onClose: () => void;
@@ -109,19 +108,8 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
       // Fast cache local completion
       localStorage.setItem(`onboardingCompleted_${ownerId}`, 'true');
 
-      // Sync backend asynchronously to prevent any UI blocking
-      try {
-        const { error } = await supabase
-          .from('users')
-          .update({ onboarding_completed: true })
-          .eq('id', ownerId);
-        
-        if (error) {
-          console.error("Supabase onboarding update failed completely:", error);
-        }
-      } catch (e1) {
-        console.warn("Error during onboarding completion:", e1);
-      }
+      // Sync backend asynchronously removed (Auth System Removed)
+      console.log("Auth System Removed: onboarding completion");
     }
     // Close overlay state
     onClose();

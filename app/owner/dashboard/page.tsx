@@ -12,6 +12,7 @@ import OnboardingOverlay from '@/components/OnboardingOverlay';
 import { safeGet } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { checkClientRateLimit } from '@/lib/rateLimit';
+import { checkMonthlyAutoReminder, runBulkReminder } from '@/lib/reminderService';
 
 import { useLossDetection, LossDetectionWidget } from '@/components/LossDetectionWidget';
 import { AnalyticsDashboardSection } from '@/components/AnalyticsSection';
@@ -64,25 +65,9 @@ function OwnerDashboard() {
     if (ownerId && userRole === 'owner') {
       const localCompleted = safeGet(`onboardingCompleted_${ownerId}`);
       if (localCompleted !== 'true') {
-        const checkDb = async () => {
-          try {
-            const { supabase } = await import('@/src/supabaseClient');
-            const { data: userDoc, error } = await supabase.from('users').select('onboardingCompleted').eq('id', ownerId).single();
-            if (userDoc && !error) {
-              if (userDoc.onboardingCompleted === true) {
-                localStorage.setItem(`onboardingCompleted_${ownerId}`, 'true');
-              } else {
-                setShowOnboarding(true);
-              }
-            } else {
-              setShowOnboarding(true);
-            }
-          } catch (e) {
-            console.error("Failed to query onboardingCompleted status", e);
-            setShowOnboarding(true);
-          }
-        };
-        checkDb();
+        // Auth System Removed: Onboarding status check disabled. 
+        // Assuming onboarding completed for now.
+        console.log("Auth System Removed: Onboarding status check disabled");
       }
     }
   }, []);
@@ -90,7 +75,6 @@ function OwnerDashboard() {
   // Auto Monthly Reminder Check
   useEffect(() => {
     const doAutoMinder = async () => {
-      const { checkMonthlyAutoReminder } = await import('@/lib/reminderService');
       await checkMonthlyAutoReminder(customers, businessInfo);
     };
     doAutoMinder();
@@ -116,7 +100,6 @@ function OwnerDashboard() {
     
     setIsReminding(true);
     try {
-      const { runBulkReminder } = await import('@/lib/reminderService');
       const result = await runBulkReminder(customers, businessInfo);
       if (result.success) {
         localStorage.setItem('lastSentDateRemindAll', todayStr);

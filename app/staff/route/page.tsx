@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { sendReminderWhatsApp } from '@/lib/whatsappUtils';
 
 export default function MyRoute() {
   const router = useRouter();
@@ -266,7 +267,6 @@ export default function MyRoute() {
                         </a>
                         <button onClick={async () => {
                           try {
-                            const { sendReminderWhatsApp } = await import('@/lib/whatsappUtils');
                             sendReminderWhatsApp(customer, businessInfo);
                           } catch (e) {
                             alert('Failed to send reminder');

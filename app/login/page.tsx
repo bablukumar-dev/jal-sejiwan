@@ -4,208 +4,136 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Lock, User, Store, Truck, Package, RefreshCw } from 'lucide-react';
-import { supabase } from '@/src/supabaseClient';
-import { getSupabaseAdmin } from '@/src/supabaseAdmin';
+import { Mail, Lock, User, Store, Truck, Package, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { useAppContext } from '@/app/context/AppContext';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import { getFriendlyAuthErrorMessage } from '@/lib/authHelper';
 
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setCurrentUser, currentUser } = useAppContext();
-
   const [role, setRole] = useState<'owner' | 'staff' | 'manager'>('owner');
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [code, setCode] = useState('');
 
   // App State
-  const [isUsersTableEmpty, setIsUsersTableEmpty] = useState<boolean | null>(null);
+  const [isUsersTableEmpty, setIsUsersTableEmpty] = useState<boolean>(false);
 
   // Errors & Messages
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const redirectBasedOnRole = useCallback((targetRole: string) => {
-    const r = targetRole?.toLowerCase();
-    localStorage.setItem('userRole', r);
-    
-    if (r === 'owner' || r === 'manager') {
-      router.replace('/owner/dashboard');
-    } else if (r === 'staff') {
-      router.replace('/staff/dashboard');
-    } else {
-      router.replace('/');
-    }
-  }, [router]);
-
-  const checkRoleAndRedirect = useCallback(async (userId: string) => {
+  const handleEmailAuth = async () => {
+    setError('');
+    setIsLoading(true);
+    console.log("Authenticating...");
     try {
-      console.log("--- Forensic Audit: Role Fetch Check ---");
-      console.log("Checking role for user ID:", userId);
+      const { signInWithEmailAndPassword, signOut } = await import('firebase/auth');
+      const { doc, getDoc } = await import('firebase/firestore');
+      const { getFirebase } = await import('@/src/lib/firebase');
+      const { auth, db } = getFirebase();
+      if (!auth || !db) throw new Error("Firebase not initialized");
+
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      const { data: userData, error: fetchError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      console.log("Supabase Audit Response:", { 
-        hasData: !!userData, 
-        role: userData?.role,
-        error: fetchError 
-      });
-
-      if (fetchError || !userData) {
-        console.log("User not found in database, checking for sync...");
-        
-        // If user not found, they might be the first user or just logged in.
-        // Let's attempt to create them with 'owner' role if no users exist, or 'staff' otherwise
-        const { count } = await supabase.from('users').select('*', { count: 'exact', head: true });
-        const isFirstUser = count === 0;
-
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        const adminClient = getSupabaseAdmin();
-        let newUser = null;
-        let createError = null;
-        
-        if (adminClient) {
-          const { data, error } = await adminClient
-            .from('users')
-            .insert({
-              id: userId,
-              email: user?.email,
-              name: user?.user_metadata?.name || 'New User',
-              role: isFirstUser ? 'owner' : 'staff',
-              business_id: isFirstUser ? userId : null,
-              created_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-          newUser = data;
-          createError = error;
-        } else {
-          // Fallback to standard client
-          const { data, error } = await supabase
-            .from('users')
-            .insert({
-              id: userId,
-              email: user?.email,
-              name: user?.user_metadata?.name || 'New User',
-              role: isFirstUser ? 'owner' : 'staff',
-              business_id: isFirstUser ? userId : null,
-              created_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-          newUser = data;
-          createError = error;
-        }
-
-        if (createError) {
-          console.error("User sync error detail:", JSON.stringify(createError, null, 2));
-          setError(`Session finalization failed: ${createError.message || 'Unknown error'}`);
+      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      if (userDoc.exists()) {
+          const data = userDoc.data();
+          if (data.role.toLowerCase() !== role) {
+              console.log("Error: Unauthorized role access.");
+              await signOut(auth);
+              setError(`This account is not authorized as ${role}.`);
+              setIsLoading(false);
+              return;
+          }
+          console.log("Success: User Logged In");
+      } else {
+          console.log("Error: User not found in database.");
+          await signOut(auth);
+          setError("User not found in database.");
           setIsLoading(false);
           return;
-        }
-
-        console.log("New user synced successfully:", newUser);
-        redirectBasedOnRole(newUser.role);
-        return;
       }
-
-      // If logging in via email/password, we check if role matches selection
-      // If logging in via Google, we just follow the database role
-      redirectBasedOnRole(userData.role);
-    } catch (e) {
-      console.error(e);
-      setError("Login failed. Please refresh.");
-      setIsLoading(false);
-    }
-  }, [redirectBasedOnRole, supabase]);
-
-  useEffect(() => {
-    // If already signed in, check role and redirect
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        checkRoleAndRedirect(session.user.id);
-      }
-    };
-    checkSession();
-  }, [checkRoleAndRedirect, supabase]);
-
-  useEffect(() => {
-    // Check if users table is empty to allow first owner signup
-    const checkInitialSetup = async () => {
-      try {
-        const { count, error } = await supabase
-          .from('users')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'owner');
-        
-        if (!error) {
-          setIsUsersTableEmpty(count === 0);
-        }
-      } catch (err) {
-        console.error("Error checking initial setup:", err);
-      }
-    };
-    
-    checkInitialSetup();
-  }, []);
-
-
-  const handleEmailAuth = async () => {
-    if (!email || !password) {
-      setEmailError('Required');
-      return;
-    }
-
-    setIsLoading(true);
-    setError('');
-    setEmailError('');
-
-    try {
-        // Login implementation for Supabase
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-
-        if (signInError) throw signInError;
-        if (data.user) {
-          await checkRoleAndRedirect(data.user.id);
-        }
+      
+      router.replace(role === 'staff' ? '/staff/dashboard' : '/owner/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
-    } finally {
+      console.log(`Error: ${err.message || 'Login failed.'}`);
+      if (err.code) {
+        if (err.code === 'permission-denied') {
+          setError("Firebase Permission Denied: Unable to read user profile. Please check your Firestore security rules.");
+        } else {
+          setError(getFriendlyAuthErrorMessage(err.code));
+        }
+      } else {
+        setError("Login failed. Please check your credentials and try again.");
+      }
       setIsLoading(false);
     }
   };
 
   const handleOAuthLogin = async (strategy: "google") => {
-    setIsLoading(true);
+    if (role !== 'owner') {
+      setError("Only owners can use Google Login.");
+      return;
+    }
     setError('');
-
+    setIsLoading(true);
+    console.log("Authenticating...");
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: strategy,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      if (error) throw error;
+      const { signInWithPopup, GoogleAuthProvider, signOut } = await import('firebase/auth');
+      const { doc, getDoc } = await import('firebase/firestore');
+      const { getFirebase } = await import('@/src/lib/firebase');
+      const { auth, db } = getFirebase();
+      if (!auth || !db) throw new Error("Firebase not initialized");
+      
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+
+      // Verify if the user exists as an OWNER in Firestore
+      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      if (userDoc.exists()) {
+          const data = userDoc.data();
+          if (data.role.toLowerCase() !== 'owner') {
+              console.log("Error: Unauthorized role access.");
+              await signOut(auth);
+              setError("Unauthorized role access. Only owners can use Google Login.");
+              setIsLoading(false);
+              return;
+          }
+          console.log("Success: User Logged In");
+      } else {
+          // If the user doesn't exist, we might need to handle automatic OWNER creation or 
+          // strict invitation-only login. Assuming strict lookup based on instructions.
+          console.log("Error: User not found in database.");
+          await signOut(auth);
+          setError("User not found in database.");
+          setIsLoading(false);
+          return;
+      }
+      
+      router.replace('/owner/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
-      setIsLoading(false);
+       console.log(`Error: ${err.message || 'Google login failed.'}`);
+       if (err.code) {
+         if (err.code === 'permission-denied') {
+           setError("Firebase Permission Denied: Unable to read user profile after Google login. Please check your Firestore security rules.");
+         } else if (err.code === 'auth/unauthorized-domain') {
+           setError("This domain is not authorized in Firebase Console. Please add 'ais-dev-4lwfomiixgmtpzlqyz5n6a-647035563969.asia-east1.run.app' to your Firebase Authentication domains.");
+         } else {
+           setError(getFriendlyAuthErrorMessage(err.code));
+         }
+       } else {
+         setError("Google login failed. Please try again.");
+       }
+       setIsLoading(false);
     }
   };
 
@@ -314,13 +242,20 @@ function LoginContent() {
               </span>
               <input 
                 id="login-password"
-                type="password" 
+                type={showPassword ? 'text' : 'password'} 
                 placeholder="••••••••" 
                 className="w-full bg-transparent px-2 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-300 font-sans"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setEmailError(''); }}
                 onKeyDown={(e) => e.key === 'Enter' && handleEmailAuth()}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="px-4 py-4 text-slate-400 hover:text-blue-600 transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
           </div>
           {emailError && (

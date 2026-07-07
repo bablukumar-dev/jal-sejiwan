@@ -8,7 +8,6 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
 import { logActivity } from '@/lib/activityLogger';
-import { supabase } from '@/src/supabaseClient';
 
 export default function EditCustomer() {
   const router = useRouter();
@@ -81,18 +80,8 @@ export default function EditCustomer() {
         
         let uploadedImageURL = customer?.imageURL || '';
         if (selectedImage) {
-          try {
-            setIsUploading(true);
-            const filePath = `customers/${currentBusinessId}_${customerId}/profile.jpg`;
-            await supabase.storage.from('customers').upload(filePath, selectedImage, { upsert: true });
-            const { data } = supabase.storage.from('customers').getPublicUrl(filePath);
-            uploadedImageURL = data.publicUrl;
-          } catch (uploadError) {
-            console.error("Supabase Storage upload error:", uploadError);
-            alert("Image upload failed, but customer will be updated without the new image.");
-          } finally {
-            setIsUploading(false);
-          }
+            // Auth system removed - Storage upload simulated
+            uploadedImageURL = URL.createObjectURL(selectedImage);
         } else if (imagePreview === null) {
           uploadedImageURL = '';
         }

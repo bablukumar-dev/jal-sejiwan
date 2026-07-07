@@ -7,9 +7,9 @@ import BottomNav from '@/components/BottomNav';
 import { Users, UserPlus, Search, Phone, Mail, Route, Filter, TrendingUp, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Key } from 'lucide-react';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState } from 'react';
-import { supabase } from '@/src/supabaseClient';
-import { hashPin } from '@/lib/authHelper';
+import { hashPin, getFriendlyAuthErrorMessage } from '@/lib/authHelper';
 import { wrapRoute } from '@/lib/permissionGuard';
+import { getFirebase } from '@/src/lib/firebase';
 
 const safeGet = (key: string): string | null => {
   if (typeof window === "undefined") return null;
@@ -177,7 +177,7 @@ function StaffManagement() {
                   >
                     <Phone className="w-3.5 h-3.5 text-blue-600" /> Call Staff
                   </a>
-                  <button 
+                   <button 
                     type="button"
                     onClick={async () => {
                       const newPassword = prompt(`Enter new Login Password for ${s.name}:`);
@@ -187,10 +187,17 @@ function StaffManagement() {
                           alert('Password cannot be empty!');
                         } else {
                           try {
+                            const { auth } = getFirebase();
+                            if (!auth || !auth.currentUser) {
+                              throw new Error("No authenticated user found. Please login again.");
+                            }
+                            const idToken = await auth.currentUser.getIdToken();
+
                             const response = await fetch('/api/admin/update-user', {
                               method: 'POST',
                               headers: {
                                 'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${idToken}`
                               },
                               body: JSON.stringify({
                                 userId: s.id, // This should be the user ID
@@ -204,7 +211,15 @@ function StaffManagement() {
                             alert(`Password updated successfully for ${s.name}!`);
                           } catch (err: any) {
                             console.error("Failed to update password", err);
-                            alert(`Error: ${err.message}`);
+                            let msg = "Failed to update password. Please try again.";
+                            if (err.message) {
+                              if (err.message.includes("at least 6 characters") || err.message.toLowerCase().includes("weak")) {
+                                msg = "Password must be at least 6 characters.";
+                              } else {
+                                msg = err.message;
+                              }
+                            }
+                            alert(msg);
                           }
                         }
                       }

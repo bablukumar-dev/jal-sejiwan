@@ -5,7 +5,6 @@
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { useState, useEffect, useMemo, memo } from 'react';
-import { supabase } from '@/src/supabaseClient';
 import { useAppContext } from '@/app/context/AppContext';
 import { 
   Activity, 
@@ -88,73 +87,12 @@ export default function ActivityLogDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
 
-// Load live activity logs from Supabase
+  // Load mock activity logs
   useEffect(() => {
-    if (!currentUser || !currentUser.businessId) {
-      console.warn("businessId not available yet");
-      setIsLoading(false);
-      setIsLoaded(true);
-      return;
-    }
-
-    const businessId = currentUser.businessId;
-
-    const fetchLogs = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('activities')
-          .select('*')
-          .eq('businessId', businessId)
-          .order('timestamp', { ascending: false })
-          .limit(100);
-
-        if (error) {
-          console.error("Supabase listener error:", error);
-          setIsLoading(false);
-          setIsLoaded(true);
-          return;
-        }
-
-        if (!data || data.length === 0) {
-          setLogs([]);
-          setIsLoading(false);
-          setIsLive(true);
-          setIsLoaded(true);
-          return;
-        }
-
-        const fetchedLogs = data as ActivityLog[];
-
-        setLogs(fetchedLogs);
-        setIsLoading(false);
-        setIsLive(true);
-        setIsLoaded(true);
-      } catch (e) {
-        console.error("Failed to setup real-time activity log subscription:", e);
-        setIsLoading(false);
-        setIsLoaded(true);
-      }
-    };
-
-    fetchLogs();
-
-    const channel = supabase
-      .channel('activities-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'activities', filter: `businessId=eq.${businessId}` },
-        () => {
-          fetchLogs();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser.businessId]);
+    setIsLoading(false);
+    setIsLoaded(true);
+    setLogs([]);
+  }, []);
 
   // Seeding mock fallback logs if database is empty - ensures pristine UI immediately
   const fallbackLogs: ActivityLog[] = useMemo(() => {

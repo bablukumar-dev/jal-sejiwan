@@ -92,7 +92,7 @@ export function meetsRoleRequirement(userRole: string | null, requiredRole: User
  */
 export function getCurrentUserRole(): UserRole {
   if (typeof window === 'undefined') return 'staff';
-  const role = localStorage.getItem('userRole');
+  const role = (localStorage.getItem('userRole') || '').toLowerCase();
   if (role === 'owner') return 'owner';
   if (role === 'manager') return 'manager';
   return 'staff';

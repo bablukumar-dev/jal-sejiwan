@@ -5,7 +5,6 @@ import { Truck, Wallet, Droplet, ArrowRight, FileText, ChevronRight, Route, Down
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/src/supabaseClient';
 import OnboardingOverlay from '@/components/OnboardingOverlay';
 import TopAppBar from '@/components/TopAppBar';
 

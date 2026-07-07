@@ -3,7 +3,6 @@
 import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle, CheckCircle2, Search, ChevronDown, RefreshCcw, Database, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
-import { supabase } from '@/src/supabaseClient';
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -169,10 +168,7 @@ export default function SettingsPage() {
         setBusinessInfo({ ...businessInfo, ownerName: cleanName });
       } else {
         setUserName(cleanName);
-        // In a real app, you'd call a DB update here
-        if (currentUser) {
-           await supabase.from('users').update({ name: cleanName }).eq('id', currentUser.uid);
-        }
+        console.log("Auth System Removed: User DB update skipped");
       }
       setIsEditingProfile(false);
     } catch (e) {
@@ -182,13 +178,8 @@ export default function SettingsPage() {
   };
 
   const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      router.push('/login');
-    } catch (e) {
-      console.error('Logout failed:', e);
-      window.location.href = '/login';
-    }
+    localStorage.clear();
+    router.push('/login');
   };
 
   const userRole = currentUser?.role || 'staff';

@@ -4,8 +4,15 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Lock, Store, Truck, Package, RefreshCw } from 'lucide-react';
-import { supabase } from '@/src/supabaseClient';
+import { Mail, Lock, Store, Truck, Package, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithPopup, 
+  GoogleAuthProvider 
+} from 'firebase/auth';
+import { getFirebase } from '@/src/lib/firebase';
+import { getFriendlyAuthErrorMessage } from '@/lib/authHelper';
 import { Suspense } from 'react';
 
 function SignupContent() {
@@ -15,6 +22,8 @@ function SignupContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Errors & Messages
   const [error, setError] = useState('');
@@ -23,96 +32,101 @@ function SignupContent() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignUp = async () => {
-    setError('');
-    setEmailError('');
-    setPasswordError('');
-
-    if (!email) {
-      setEmailError('Email is required');
+    if (role !== 'owner') {
+      setError("Only owners can sign up directly. Staff and Managers must be added by their Owner.");
       return;
     }
-    if (!password) {
-      setPasswordError('Password is required');
-      return;
-    }
-    if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
+    if (!email || !password) {
+      setError("Email and password are required.");
       return;
     }
     if (password !== confirmPassword) {
-      setPasswordError('Passwords do not match');
+      setError("Passwords do not match.");
       return;
     }
 
+    setError('');
     setIsLoading(true);
-
+    
     try {
-      // 1. Sign up user via Supabase Auth
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: {
-            role,
-            name: email.trim().split('@')[0],
-          }
-        }
+      const { auth, db } = getFirebase();
+      if (!auth || !db) throw new Error("Firebase not initialized");
+
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Create owner document
+      const businessId = `biz_${Math.random().toString(36).substring(2, 11)}`;
+      await setDoc(doc(db, 'users', user.uid), {
+        email: user.email,
+        role: 'owner',
+        businessId: businessId,
+        createdAt: new Date().toISOString()
       });
 
-      if (signUpError) throw signUpError;
-
-      if (data?.user) {
-        // 2. Insert into the public.users table to save their role
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const response = await fetch('/api/auth/create-profile', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session?.access_token}`
-            },
-            body: JSON.stringify({
-              userId: data.user.id,
-              email: email.trim(),
-              name: email.trim().split('@')[0],
-              role: role,
-              business_id: role === 'owner' ? data.user.id : null,
-            })
-          });
-
-          if (!response.ok) {
-            console.error('Failed to create user profile');
-          }
-        } catch (err) {
-          console.error("Profile creation error:", err);
-        }
-
-        // Successfully registered! Let's redirect to Login
-        router.push('/login?registered=true');
-      } else {
-        throw new Error("Could not create user account.");
-      }
+      console.log("Success: User Logged In");
+      router.replace('/owner/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
-    } finally {
+      console.error("Signup error:", err);
+      if (err.code) {
+        if (err.code === 'permission-denied') {
+          setError("Firebase Permission Denied: Your Firestore security rules are blocking the account creation. Please ensure 'users' collection allows writes for authenticated users.");
+        } else if (err.code === 'auth/unauthorized-domain') {
+          setError("This domain is not authorized in Firebase Console. Please add 'ais-dev-4lwfomiixgmtpzlqyz5n6a-647035563969.asia-east1.run.app' to your Firebase Authentication domains.");
+        } else {
+          setError(getFriendlyAuthErrorMessage(err.code));
+        }
+      } else {
+        setError("An unexpected error occurred during signup. Please try again.");
+      }
       setIsLoading(false);
     }
   };
 
   const handleOAuthLogin = async (strategy: "google") => {
-    setIsLoading(true);
-    setError('');
+    if (role !== 'owner') {
+      setError("Only owners can use Google Login.");
+      return;
+    }
 
+    setError('');
+    setIsLoading(true);
+    
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: strategy,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      if (error) throw error;
+      const { auth, db } = getFirebase();
+      if (!auth || !db) throw new Error("Firebase not initialized");
+
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+      const user = userCredential.user;
+
+      // Check if user document exists
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        const businessId = `biz_${Math.random().toString(36).substring(2, 11)}`;
+        await setDoc(userDocRef, {
+          email: user.email,
+          role: 'owner',
+          businessId: businessId,
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      console.log("Success: User Logged In");
+      router.replace('/owner/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      console.error("OAuth error:", err);
+      if (err.code) {
+        if (err.code === 'auth/unauthorized-domain') {
+          setError("This domain is not authorized in Firebase Console. Please add 'ais-dev-4lwfomiixgmtpzlqyz5n6a-647035563969.asia-east1.run.app' to your Firebase Authentication domains.");
+        } else {
+          setError(getFriendlyAuthErrorMessage(err.code));
+        }
+      } else {
+        setError("Failed to sign in with Google. Please try again.");
+      }
       setIsLoading(false);
     }
   };
@@ -196,13 +210,20 @@ function SignupContent() {
               </span>
               <input 
                 id="signup-password"
-                type="password" 
+                type={showPassword ? 'text' : 'password'} 
                 placeholder="••••••••" 
                 className="w-full bg-transparent px-2 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-300 font-sans"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setPasswordError(''); }}
                 onKeyDown={(e) => e.key === 'Enter' && handleSignUp()}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="px-4 py-4 text-slate-400 hover:text-blue-600 transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
           </div>
 
@@ -214,13 +235,20 @@ function SignupContent() {
               </span>
               <input 
                 id="signup-confirm-password"
-                type="password" 
+                type={showConfirmPassword ? 'text' : 'password'} 
                 placeholder="••••••••" 
                 className="w-full bg-transparent px-2 py-4 outline-none font-medium text-slate-900 placeholder:text-slate-300 font-sans"
                 value={confirmPassword}
                 onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(''); }}
                 onKeyDown={(e) => e.key === 'Enter' && handleSignUp()}
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="px-4 py-4 text-slate-400 hover:text-blue-600 transition-colors"
+              >
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
             {passwordError && (
               <p className="text-red-500 text-xs mt-1 ml-1 font-medium animate-in fade-in slide-in-from-top-1 font-sans">{passwordError}</p>

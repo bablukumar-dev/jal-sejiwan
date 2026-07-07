@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Common Helpers
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function belongsToBusiness(businessId) {
+      return isAuthenticated() && getUserData().businessId == businessId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 3. Rules for the users collection
+    match /users/{userId} {
+      // Allow authenticated users to read profiles
+      allow read: if isAuthenticated();
+      
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // 4. Rules for business-scoped data
+    match /businesses/{businessId} {
+      allow read: if belongsToBusiness(businessId);
+      allow write: if belongsToBusiness(businessId) && getUserData().role == 'owner';
+
+      match /{allSubcollections=**} {
+        allow read: if belongsToBusiness(businessId);
+        allow write: if belongsToBusiness(businessId);
+      }
+    }
+
+    // 5. Allow reading public diagnostic documents (if used)
+    match /_diagnostics/{docId} {
+      allow read: if true;
+    }
+    
+    // 6. Generic rules for collections that have a businessId field
+    // This provides a fallback for top-level collections like 'customers', 'deliveries', etc.
+    match /{collectionName}/{docId} {
+      allow read: if isAuthenticated() && 
+        (resource == null || resource.data.businessId == getUserData().businessId);
+      allow write: if isAuthenticated() && 
+        (request.resource.data.businessId == getUserData().businessId);
+    }
+  }
+}

@@ -41,7 +41,7 @@ export const generateInvoicePDF = async (
   }
 
   const { jsPDF } = await import('jspdf');
-  await import('jspdf-autotable');
+  const autoTable = (await import('jspdf-autotable')).default;
 
   const doc = new jsPDF();
   
@@ -166,7 +166,7 @@ export const generateInvoicePDF = async (
   });
 
   // @ts-ignore
-  doc.autoTable({
+  autoTable(doc, {
     startY: 75,
     head: [['Date', 'Description', 'Qty', 'Rate', 'Amount']],
     body: tableBody,
@@ -224,7 +224,7 @@ export const generatePaymentReceiptPDF = async (
   }
 
   const { jsPDF } = await import('jspdf');
-  await import('jspdf-autotable');
+  const autoTable = (await import('jspdf-autotable')).default;
 
   const doc = new jsPDF();
   
@@ -305,7 +305,7 @@ export const generatePaymentReceiptPDF = async (
   ];
 
   // @ts-ignore
-  doc.autoTable({
+  autoTable(doc, {
     startY: 80,
     head: [['Date', 'Description', 'Amount']],
     body: transactions,
@@ -342,7 +342,7 @@ export const generateConsolidatedMonthlyReportPDF = async (
   }
 
   const { jsPDF } = await import('jspdf');
-  await import('jspdf-autotable');
+  const autoTable = (await import('jspdf-autotable')).default;
 
   const doc = new jsPDF();
   const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -392,7 +392,7 @@ export const generateConsolidatedMonthlyReportPDF = async (
   ];
 
   // @ts-ignore
-  doc.autoTable({
+  autoTable(doc, {
     startY: 45,
     head: [summaryData[0]],
     body: summaryData.slice(1),
