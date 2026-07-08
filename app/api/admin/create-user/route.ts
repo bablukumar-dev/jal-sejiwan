@@ -75,11 +75,20 @@ export async function POST(req: NextRequest) {
 
     // 1. Create the user in Auth
     console.log('Calling adminAuth.createUser');
-    const userRecord = await adminAuth.createUser({
-      email,
-      password,
-      displayName: name,
-    });
+    let userRecord;
+    try {
+      userRecord = await adminAuth.createUser({
+        email,
+        password,
+        displayName: name,
+      });
+    } catch (err: any) {
+      console.error('Auth createUser error:', err);
+      if (err.code === 'auth/email-already-exists') {
+        return NextResponse.json({ error: 'This email is already registered.' }, { status: 409 });
+      }
+      throw err;
+    }
     console.log('User created:', userRecord.uid);
 
     // 2. Create the user document in Firestore

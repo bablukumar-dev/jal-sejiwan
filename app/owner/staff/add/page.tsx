@@ -99,7 +99,15 @@ function AddStaff() {
           })
         });
 
-        const apiResult = await response.json();
+        const text = await response.text();
+        let apiResult;
+        try {
+            apiResult = JSON.parse(text);
+        } catch (e) {
+            console.error("Failed to parse JSON response:", text);
+            throw new Error("Server returned an invalid response.");
+        }
+        
         if (!response.ok) {
           throw new Error(apiResult.error || 'Failed to create staff account');
         }
