@@ -46,14 +46,17 @@ export function middleware(request: NextRequest) {
   const isProtectedRoute = pathname.startsWith('/owner') || 
                             pathname.startsWith('/staff') || 
                             pathname.startsWith('/settings') || 
-                            pathname.startsWith('/inventory');
+                            pathname.startsWith('/inventory') ||
+                            pathname.startsWith('/onboarding');
 
   if (isProtectedRoute) {
     const tokenCookie = request.cookies.get('firebaseIdToken');
     const roleCookie = request.cookies.get('userRole');
+    const onboardingCookie = request.cookies.get('onboardingCompleted');
     
     const token = tokenCookie?.value;
     const role = roleCookie?.value;
+    const onboardingCompleted = onboardingCookie?.value;
     
     if (!token) {
       const url = request.nextUrl.clone();
@@ -72,6 +75,7 @@ export function middleware(request: NextRequest) {
       response.cookies.delete('firebaseIdToken');
       response.cookies.delete('userRole');
       response.cookies.delete('businessId');
+      response.cookies.delete('onboardingCompleted');
       return response;
     }
     
@@ -85,9 +89,28 @@ export function middleware(request: NextRequest) {
       response.cookies.delete('firebaseIdToken');
       response.cookies.delete('userRole');
       response.cookies.delete('businessId');
+      response.cookies.delete('onboardingCompleted');
       return response;
     }
     
+    // If onboarding is not completed, and user is trying to access protected routes other than /onboarding
+    if (onboardingCompleted === 'false' && !pathname.startsWith('/onboarding') && !pathname.startsWith('/unauthorized')) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/onboarding';
+      return NextResponse.redirect(url);
+    }
+
+    // If onboarding is completed, and user tries to go to /onboarding, redirect to dashboard
+    if (onboardingCompleted === 'true' && pathname.startsWith('/onboarding')) {
+      const url = request.nextUrl.clone();
+      if (role === 'staff') {
+        url.pathname = '/staff/dashboard';
+      } else {
+        url.pathname = '/owner/dashboard';
+      }
+      return NextResponse.redirect(url);
+    }
+
     // Protect role-specific routes
     if (pathname.startsWith('/owner') || pathname.startsWith('/inventory')) {
       if (role !== 'owner') {

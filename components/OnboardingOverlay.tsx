@@ -3,12 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Droplet, Sparkles, ChevronRight, ChevronLeft, CheckCircle2, X, AlertCircle } from 'lucide-react';
+import { useAppContext } from '@/app/context/AppContext';
+import { getFirebase } from '@/src/lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 interface OnboardingOverlayProps {
   onClose: () => void;
 }
 
 export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
+  const { currentUser } = useAppContext();
   const [step, setStep] = useState(1);
   const [rect, setRect] = useState<DOMRect | null>(null);
 
@@ -103,13 +107,24 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
   const handleComplete = async () => {
     if (typeof window === 'undefined') return;
 
+    if (currentUser) {
+      try {
+        const { db } = getFirebase();
+        if (db) {
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          await updateDoc(userDocRef, {
+            dashboardTourCompleted: true,
+            updatedAt: new Date().toISOString()
+          });
+        }
+      } catch (err) {
+        console.error("Failed to update dashboardTourCompleted in Firestore:", err);
+      }
+    }
+
     const ownerId = localStorage.getItem('ownerId');
     if (ownerId) {
-      // Fast cache local completion
       localStorage.setItem(`onboardingCompleted_${ownerId}`, 'true');
-
-      // Sync backend asynchronously removed (Auth System Removed)
-      console.log("Auth System Removed: onboarding completion");
     }
     // Close overlay state
     onClose();

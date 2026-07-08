@@ -19,7 +19,7 @@ import { AnalyticsDashboardSection } from '@/components/AnalyticsSection';
 
 function OwnerDashboard() {
   const router = useRouter();
-  const { customers: rawCustomers, deliveries, payments, inventory, businessInfo, staff } = useAppContext();
+  const { customers: rawCustomers, deliveries, payments, inventory, businessInfo, staff, currentUser } = useAppContext();
 
   const customers = useMemo(() => {
     return Array.from(
@@ -60,17 +60,14 @@ function OwnerDashboard() {
 
 
   useEffect(() => {
-    const ownerId = safeGet('ownerId');
-    const userRole = safeGet('userRole');
-    if (ownerId && userRole === 'owner') {
-      const localCompleted = safeGet(`onboardingCompleted_${ownerId}`);
-      if (localCompleted !== 'true') {
-        // Auth System Removed: Onboarding status check disabled. 
-        // Assuming onboarding completed for now.
-        console.log("Auth System Removed: Onboarding status check disabled");
+    if (currentUser && currentUser.role === 'owner') {
+      if (currentUser.dashboardTourCompleted === false) {
+        requestAnimationFrame(() => {
+          setShowOnboarding(true);
+        });
       }
     }
-  }, []);
+  }, [currentUser]);
 
   // Auto Monthly Reminder Check
   useEffect(() => {

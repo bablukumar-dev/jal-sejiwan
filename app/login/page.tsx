@@ -76,14 +76,17 @@ function LoginContent() {
           }
           
           const idToken = await userCredential.user.getIdToken();
+          const onboardingCompleted = data.onboardingCompleted !== undefined ? data.onboardingCompleted : false;
           setCookie('firebaseIdToken', idToken, 3600);
           setCookie('userRole', data.role, 3600);
           setCookie('businessId', data.businessId || '', 3600);
+          setCookie('onboardingCompleted', onboardingCompleted ? 'true' : 'false', 3600);
           
           setCurrentUser({
             uid: userCredential.user.uid,
             role: data.role,
-            businessId: data.businessId || ''
+            businessId: data.businessId || '',
+            onboardingCompleted: onboardingCompleted,
           });
       } else {
           console.log("Error: User not found in database.");
@@ -93,7 +96,12 @@ function LoginContent() {
           return;
       }
       
-      router.replace(role === 'staff' ? '/staff/dashboard' : '/owner/dashboard');
+      const onboardingCompleted = data.onboardingCompleted !== undefined ? data.onboardingCompleted : false;
+      if (!onboardingCompleted) {
+        router.replace('/onboarding');
+      } else {
+        router.replace(role === 'staff' ? '/staff/dashboard' : '/owner/dashboard');
+      }
     } catch (err: any) {
       console.log(`Error: ${err.message || 'Login failed.'}`);
       if (err.code) {
@@ -158,14 +166,17 @@ function LoginContent() {
           localStorage.setItem('ownerId', data.businessId || '');
           
           const idToken = await user.getIdToken();
+          const onboardingCompleted = data.onboardingCompleted !== undefined ? data.onboardingCompleted : false;
           setCookie('firebaseIdToken', idToken, 3600);
           setCookie('userRole', data.role, 3600);
           setCookie('businessId', data.businessId || '', 3600);
+          setCookie('onboardingCompleted', onboardingCompleted ? 'true' : 'false', 3600);
           
           setCurrentUser({
             uid: user.uid,
             role: data.role,
-            businessId: data.businessId || ''
+            businessId: data.businessId || '',
+            onboardingCompleted: onboardingCompleted,
           });
       } else {
           console.log("Error: User not found in database.");
@@ -175,7 +186,12 @@ function LoginContent() {
           return;
       }
       
-      router.replace('/owner/dashboard');
+      const onboardingCompleted = data.onboardingCompleted !== undefined ? data.onboardingCompleted : false;
+      if (!onboardingCompleted) {
+        router.replace('/onboarding');
+      } else {
+        router.replace('/owner/dashboard');
+      }
     } catch (err: any) {
        console.log(`Error: ${err.message || 'Google login failed.'}`);
        if (err.code) {

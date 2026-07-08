@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { getFirebase } from '@/src/lib/firebase';
 import { getUnsyncedDeliveries } from '@/lib/idb';
 import { setCookie, deleteCookie } from '@/lib/authHelper';
@@ -125,6 +125,8 @@ export type CurrentUser = {
   uid: string;
   role: string;
   businessId: string;
+  onboardingCompleted?: boolean;
+  dashboardTourCompleted?: boolean;
 };
 
 type AppContextType = {
@@ -256,6 +258,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteCookie('firebaseIdToken');
       deleteCookie('userRole');
       deleteCookie('businessId');
+      deleteCookie('onboardingCompleted');
       
       if (typeof window !== 'undefined') {
         localStorage.removeItem('businessId');
@@ -293,21 +296,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         unsubDoc = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
+            const onboardingCompleted = data.onboardingCompleted !== undefined ? data.onboardingCompleted : false;
+            const dashboardTourCompleted = data.dashboardTourCompleted !== undefined ? data.dashboardTourCompleted : false;
+            
+            // If onboardingCompleted is missing in Firestore, safely initialize it to false
+            if (data.onboardingCompleted === undefined) {
+              updateDoc(userDocRef, { onboardingCompleted: false }).catch((err) => {
+                console.error("Safely tried to set initial onboardingCompleted: false, error:", err);
+              });
+            }
+
             setCurrentUser({
               uid: user.uid,
               role: data.role,
               businessId: data.businessId,
+              onboardingCompleted: onboardingCompleted,
+              dashboardTourCompleted: dashboardTourCompleted,
             });
             setOwnerId(data.businessId);
             localStorage.setItem('businessId', data.businessId);
             localStorage.setItem('userRole', data.role);
             setCookie('userRole', data.role, 3600);
             setCookie('businessId', data.businessId, 3600);
+            setCookie('onboardingCompleted', onboardingCompleted ? 'true' : 'false', 3600);
           } else {
             setCurrentUser(null);
             deleteCookie('firebaseIdToken');
             deleteCookie('userRole');
             deleteCookie('businessId');
+            deleteCookie('onboardingCompleted');
           }
           setAuthLoading(false);
         }, (error: any) => {

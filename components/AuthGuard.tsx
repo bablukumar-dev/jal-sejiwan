@@ -31,15 +31,28 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isLoggingOut) return;
-    if (mounted && !authLoading && !currentUser) {
+    if (mounted && !authLoading) {
       const isPublic = pathname ? (
         publicPaths.includes(pathname) || 
         pathname.startsWith('/login') ||
         pathname.startsWith('/signup')
       ) : true;
       
-      if (!isPublic) {
-        router.push("/login");
+      if (!currentUser) {
+        if (!isPublic && pathname !== '/onboarding') {
+          router.push("/login");
+        }
+      } else {
+        // User is logged in
+        if (currentUser.onboardingCompleted === false) {
+          if (pathname !== '/onboarding' && !isPublic) {
+            router.push("/onboarding");
+          }
+        } else if (currentUser.onboardingCompleted === true) {
+          if (pathname === '/onboarding') {
+            router.push(currentUser.role === 'staff' ? '/staff/dashboard' : '/owner/dashboard');
+          }
+        }
       }
     }
   }, [mounted, authLoading, currentUser, pathname, router, isLoggingOut]);
