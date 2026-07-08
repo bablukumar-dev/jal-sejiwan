@@ -38,13 +38,6 @@ const ownerOrgSchema = z.object({
   contactNumber: z.string().regex(/^[6-9]\d{9}$/, { message: "Please enter a valid 10-digit Indian phone number" }),
 });
 
-const ownerWaterSchema = z.object({
-  projectName: z.string().min(2, { message: "Project Name must be at least 2 characters" }),
-  waterScheme: z.string().min(2, { message: "Water Scheme name must be at least 2 characters" }),
-  tankName: z.string().min(2, { message: "Tank Name must be at least 2 characters" }),
-  pumpStationName: z.string().min(2, { message: "Pump Station Name must be at least 2 characters" }),
-});
-
 const ownerManagerSchema = z.object({
   managerName: z.string().optional(),
   managerEmail: z.string().email({ message: "Please enter a valid email" }).or(z.literal('')),
@@ -114,13 +107,6 @@ export default function OnboardingPage() {
     district: '',
     officeAddress: '',
     contactNumber: ''
-  });
-
-  const [ownerWater, setOwnerWater] = useState({
-    projectName: '',
-    waterScheme: '',
-    tankName: '',
-    pumpStationName: ''
   });
 
   const [ownerManager, setOwnerManager] = useState({
@@ -198,7 +184,7 @@ export default function OnboardingPage() {
   }
 
   // Calculate total steps based on role
-  const totalSteps = role === 'owner' ? 7 : 5;
+  const totalSteps = role === 'owner' ? 6 : 5;
 
   const handleNext = async () => {
     setValidationErrors({});
@@ -217,17 +203,7 @@ export default function OnboardingPage() {
           return;
         }
       } else if (currentStep === 3) {
-        const result = ownerWaterSchema.safeParse(ownerWater);
-        if (!result.success) {
-          const errors: Record<string, string> = {};
-          result.error.issues.forEach(issue => {
-            errors[issue.path[0]] = issue.message;
-          });
-          setValidationErrors(errors);
-          return;
-        }
-      } else if (currentStep === 4) {
-        // Step 4: Manager (optional but must validate if anything is typed)
+        // Step 3: Manager (optional but must validate if anything is typed)
         const result = ownerManagerSchema.safeParse(ownerManager);
         if (!result.success) {
           const errors: Record<string, string> = {};
@@ -334,8 +310,15 @@ export default function OnboardingPage() {
             }
 
             if (!response.ok) {
-              const apiResult = await response.json();
-              throw new Error(apiResult.error || 'Failed to create manager account');
+              const contentType = response.headers.get("content-type");
+              if (contentType && contentType.includes("application/json")) {
+                const apiResult = await response.json();
+                throw new Error(apiResult.error || 'Failed to create manager account');
+              } else {
+                const text = await response.text();
+                console.error("API error (not JSON):", text);
+                throw new Error('Failed to create manager account (server error)');
+              }
             }
           } catch (mErr: any) {
             console.error("Failed to create manager during onboarding:", mErr);
@@ -367,12 +350,6 @@ export default function OnboardingPage() {
           profileCompleted: true,
           updatedAt: new Date().toISOString(),
           businessInfo: updatedBusinessInfo,
-          waterSystemSetup: {
-            projectName: ownerWater.projectName,
-            waterScheme: ownerWater.waterScheme,
-            tankName: ownerWater.tankName,
-            pumpStationName: ownerWater.pumpStationName
-          }
         });
 
       } else if (role === 'manager') {
@@ -422,11 +399,10 @@ export default function OnboardingPage() {
       switch (step) {
         case 1: return <Globe className="w-5 h-5" />;
         case 2: return <Building2 className="w-5 h-5" />;
-        case 3: return <Droplets className="w-5 h-5" />;
-        case 4: return <UserPlus className="w-5 h-5" />;
-        case 5: return <Bell className="w-5 h-5" />;
-        case 6: return <FileText className="w-5 h-5" />;
-        case 7: return <CheckCircle2 className="w-5 h-5" />;
+        case 3: return <UserPlus className="w-5 h-5" />;
+        case 4: return <Bell className="w-5 h-5" />;
+        case 5: return <FileText className="w-5 h-5" />;
+        case 6: return <CheckCircle2 className="w-5 h-5" />;
         default: return <ChevronRight className="w-5 h-5" />;
       }
     } else if (role === 'manager') {
@@ -455,11 +431,10 @@ export default function OnboardingPage() {
       switch (step) {
         case 1: return "Welcome to JalSeJiwan";
         case 2: return "Organization Info";
-        case 3: return "Water System Setup";
-        case 4: return "First Manager (Optional)";
-        case 5: return "Notification Setup";
-        case 6: return "Review & Confirm";
-        case 7: return "All Done!";
+        case 3: return "First Manager (Optional)";
+        case 4: return "Notification Setup";
+        case 5: return "Review & Confirm";
+        case 6: return "All Done!";
         default: return "";
       }
     } else if (role === 'manager') {
@@ -651,67 +626,8 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 3: Water System Setup */}
+                  {/* Step 3: Create First Manager */}
                   {currentStep === 3 && (
-                    <div className="space-y-4">
-                      <p className="text-xs text-slate-400">Configure your primary source elements. This registers the initial distribution node of your JalSeJiwan dashboard.</p>
-                      
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">Project / Mission Name *</label>
-                          <input 
-                            type="text"
-                            placeholder="e.g. Jal Jeevan Mission Project 4"
-                            value={ownerWater.projectName}
-                            onChange={e => setOwnerWater({...ownerWater, projectName: e.target.value})}
-                            className={`w-full px-4 py-3 border rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${validationErrors.projectName ? 'border-red-400 bg-red-50/30' : 'border-slate-200'}`}
-                          />
-                          {validationErrors.projectName && <p className="text-red-500 text-xs mt-1 font-semibold">{validationErrors.projectName}</p>}
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">Water Distribution Scheme *</label>
-                          <input 
-                            type="text"
-                            placeholder="e.g. Gravity Feed Village Water Scheme"
-                            value={ownerWater.waterScheme}
-                            onChange={e => setOwnerWater({...ownerWater, waterScheme: e.target.value})}
-                            className={`w-full px-4 py-3 border rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${validationErrors.waterScheme ? 'border-red-400 bg-red-50/30' : 'border-slate-200'}`}
-                          />
-                          {validationErrors.waterScheme && <p className="text-red-500 text-xs mt-1 font-semibold">{validationErrors.waterScheme}</p>}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">Primary Storage Tank Name *</label>
-                            <input 
-                              type="text"
-                              placeholder="e.g. Overhead Tank (OHT) East"
-                              value={ownerWater.tankName}
-                              onChange={e => setOwnerWater({...ownerWater, tankName: e.target.value})}
-                              className={`w-full px-4 py-3 border rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${validationErrors.tankName ? 'border-red-400 bg-red-50/30' : 'border-slate-200'}`}
-                            />
-                            {validationErrors.tankName && <p className="text-red-500 text-xs mt-1 font-semibold">{validationErrors.tankName}</p>}
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">Main Pump Station Name *</label>
-                            <input 
-                              type="text"
-                              placeholder="e.g. Pump Station Node 1"
-                              value={ownerWater.pumpStationName}
-                              onChange={e => setOwnerWater({...ownerWater, pumpStationName: e.target.value})}
-                              className={`w-full px-4 py-3 border rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${validationErrors.pumpStationName ? 'border-red-400 bg-red-50/30' : 'border-slate-200'}`}
-                            />
-                            {validationErrors.pumpStationName && <p className="text-red-500 text-xs mt-1 font-semibold">{validationErrors.pumpStationName}</p>}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Step 4: Create First Manager */}
-                  {currentStep === 4 && (
                     <div className="space-y-4">
                       <p className="text-xs text-slate-400">If you want to delegate operations, you can register your first Manager account right now. Leave these fields blank if you prefer to set this up later from your staff menu.</p>
                       
@@ -770,8 +686,8 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 5: Notifications */}
-                  {currentStep === 5 && (
+                  {/* Step 4: Notifications */}
+                  {currentStep === 4 && (
                     <div className="space-y-4">
                       <p className="text-xs text-slate-400">Configure your automated alert configurations. These trigger communication loops for your registered consumers.</p>
                       
@@ -827,8 +743,89 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 6: Review */}
+                  {/* Step 5: Review */}
+                  {currentStep === 5 && (
+                    <div className="space-y-5">
+                      <p className="text-xs text-slate-400">Verify your details before saving. All entries are stored securely in your JalSeJiwan profile.</p>
+                      
+                      <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                        {/* Org block */}
+                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3 text-xs">
+                          <div className="flex items-center space-x-2 text-slate-800 font-bold border-b border-slate-200 pb-1.5 uppercase">
+                            <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Organization & Office details</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                            <div>
+                              <p className="text-slate-400 font-medium">Name</p>
+                              <p className="text-slate-800 font-semibold text-sm">{ownerOrg.orgName}</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-400 font-medium">Contact Number</p>
+                              <p className="text-slate-800 font-semibold text-sm">+91 {ownerOrg.contactNumber}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="text-slate-400 font-medium">Office Location</p>
+                              <p className="text-slate-800 font-semibold text-sm">{ownerOrg.officeAddress}, {ownerOrg.district}, {ownerOrg.state}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Delegate manager block */}
+                        {ownerManager.managerName ? (
+                          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3 text-xs">
+                            <div className="flex items-center space-x-2 text-slate-800 font-bold border-b border-slate-200 pb-1.5 uppercase">
+                              <UserPlus className="w-3.5 h-3.5 text-blue-600" />
+                              <span>Delegate Manager Profile</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                              <div>
+                                <p className="text-slate-400 font-medium">Name</p>
+                                <p className="text-slate-800 font-semibold text-sm">{ownerManager.managerName}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400 font-medium">Email Address</p>
+                                <p className="text-slate-800 font-semibold text-sm">{ownerManager.managerEmail}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-2xl bg-slate-50 text-slate-400 border border-slate-100 text-xs italic text-center">
+                            No Manager credentials registered during onboarding (Can delegate later).
+                          </div>
+                        )}
+
+                        {/* Notifications block */}
+                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3 text-xs">
+                          <div className="flex items-center space-x-2 text-slate-800 font-bold border-b border-slate-200 pb-1.5 uppercase">
+                            <Bell className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Communication channels</span>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-slate-800 font-semibold">
+                              WhatsApp Client Notifications: {ownerNotify.whatsappEnabled ? "✅ Enabled" : "❌ Disabled"}
+                            </p>
+                            <p className="text-slate-800 font-semibold">
+                              Automated Billing Reminders: {ownerNotify.autoReminders ? `✅ Enabled (Dispatched on day ${ownerNotify.reminderDay})` : "❌ Disabled"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 6: Finish */}
                   {currentStep === 6 && (
+                    <div className="text-center py-8 space-y-5">
+                      <div className="inline-flex p-4 bg-green-50 text-green-600 rounded-full border border-green-100">
+                        <Check className="w-12 h-12" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-slate-800">You are ready to launch!</h3>
+                      <p className="text-slate-500 leading-relaxed max-w-md mx-auto text-sm">
+                        Everything is successfully configured! Clicking Finish will build your portal, launch your dashboard widgets, and authorize your server credentials.
+                      </p>
+                    </div>
+                  )}
                     <div className="space-y-5">
                       <p className="text-xs text-slate-400">Verify your details before saving. All entries are stored securely in your JalSeJiwan profile.</p>
                       
@@ -856,30 +853,7 @@ export default function OnboardingPage() {
                         </div>
 
                         {/* Water setup block */}
-                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3 text-xs">
-                          <div className="flex items-center space-x-2 text-slate-800 font-bold border-b border-slate-200 pb-1.5 uppercase">
-                            <Droplets className="w-3.5 h-3.5 text-blue-600" />
-                            <span>Water Scheme Configuration</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-y-2 gap-x-4">
-                            <div>
-                              <p className="text-slate-400 font-medium">Mission Project</p>
-                              <p className="text-slate-800 font-semibold text-sm">{ownerWater.projectName}</p>
-                            </div>
-                            <div>
-                              <p className="text-slate-400 font-medium">Water Scheme</p>
-                              <p className="text-slate-800 font-semibold text-sm">{ownerWater.waterScheme}</p>
-                            </div>
-                            <div>
-                              <p className="text-slate-400 font-medium">Storage Node</p>
-                              <p className="text-slate-800 font-semibold text-sm">{ownerWater.tankName}</p>
-                            </div>
-                            <div>
-                              <p className="text-slate-400 font-medium">Pumping Station</p>
-                              <p className="text-slate-800 font-semibold text-sm">{ownerWater.pumpStationName}</p>
-                            </div>
-                          </div>
-                        </div>
+                        {/* Removed */}
 
                         {/* Delegate manager block */}
                         {ownerManager.managerName ? (
