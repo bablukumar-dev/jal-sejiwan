@@ -14,7 +14,7 @@ import { sanitizeString, validateName, validateEmail } from '@/lib/validation';
 
 function AddStaff() {
   const router = useRouter();
-  const { staff, setStaff, routes, setRoutes, customers, setCustomers } = useAppContext();
+  const { staff, setStaff, routes, setRoutes, customers, setCustomers, currentUser } = useAppContext();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -28,6 +28,7 @@ function AddStaff() {
     canAccessInventory: false
   });
   const [currentUserRole, setCurrentUserRole] = useState<'owner' | 'manager'>(() => {
+    // Keep this or use currentUser.role
     const stored = safeGet('userRole');
     if (stored === 'owner' || stored === 'manager') return stored as 'owner' | 'manager';
     return 'owner';
@@ -68,8 +69,7 @@ function AddStaff() {
         const creatorId = 'owner';
         const sanitizedRoute = sanitizeString(route);
 
-        const currentOwnerId = safeGet('ownerId');
-        const currentBusinessId = safeGet('businessId');
+        const currentBusinessId = currentUser?.businessId;
         
         if (!currentBusinessId) {
              throw new Error("Action Blocked: businessId is missing from session.");
