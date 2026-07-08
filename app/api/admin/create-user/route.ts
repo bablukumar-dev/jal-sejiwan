@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
       role,
       businessId: business_id,
       createdBy: decodedToken.uid,
+      active: true,
       createdAt: new Date().toISOString(),
     });
 

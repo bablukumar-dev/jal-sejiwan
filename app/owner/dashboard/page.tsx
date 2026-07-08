@@ -3,7 +3,7 @@
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { motion } from 'framer-motion';
-import { Truck, Wallet, Droplet, Package, AlertTriangle, UserPlus, FileText, Users, Bell } from 'lucide-react';
+import { Truck, Wallet, Droplet, Package, AlertTriangle, UserPlus, FileText, Users, Bell, Droplets, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect, useMemo } from 'react';
@@ -13,6 +13,7 @@ import { safeGet } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { checkClientRateLimit } from '@/lib/rateLimit';
 import { checkMonthlyAutoReminder, runBulkReminder } from '@/lib/reminderService';
+import { logActivity } from '@/lib/activityLogger';
 
 import { useLossDetection, LossDetectionWidget } from '@/components/LossDetectionWidget';
 import { AnalyticsDashboardSection } from '@/components/AnalyticsSection';
@@ -100,8 +101,21 @@ function OwnerDashboard() {
       const result = await runBulkReminder(customers, businessInfo);
       if (result.success) {
         localStorage.setItem('lastSentDateRemindAll', todayStr);
+        logActivity({
+          module: 'Communication',
+          action: 'Bulk Reminders Sent',
+          description: `Sent payment reminders to ${result.count} customers`,
+          status: 'success',
+          metadata: { count: result.count }
+        });
         alert(`Successfully sent reminders to ${result.count} customers!`);
       } else {
+        logActivity({
+          module: 'Communication',
+          action: 'Bulk Reminders Failed',
+          description: `Failed to send bulk reminders`,
+          status: 'error'
+        });
         alert('Failed to send some reminders.');
       }
     } catch (e) {
@@ -136,6 +150,29 @@ function OwnerDashboard() {
         />
 
         <main className="w-full p-4 flex-1 flex flex-col gap-4">
+        {/* Infrastructure Status */}
+        {currentUser?.waterSystemSetup && (
+          <div id="onboarding-infrastructure">
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Infrastructure Status</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div id="onboarding-water-tanks" className="bg-emerald-600 rounded-2xl p-4 text-white shadow-sm flex flex-col justify-between h-24">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-100">Water Tank</span>
+                  <Droplets className="w-4 h-4" />
+                </div>
+                <div className="text-sm font-bold truncate">{currentUser.waterSystemSetup.tankName}</div>
+              </div>
+              <div id="onboarding-pump-stations" className="bg-slate-700 rounded-2xl p-4 text-white shadow-sm flex flex-col justify-between h-24">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Pump Station</span>
+                  <Activity className="w-4 h-4" />
+                </div>
+                <div className="text-sm font-bold truncate">{currentUser.waterSystemSetup.pumpStationName}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Inventory Status */}
         <div>
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Inventory Status</h3>
@@ -303,4 +340,4 @@ function OwnerDashboard() {
   );
 }
 
-export default wrapRoute(OwnerDashboard, { requiredRole: 'manager' });
+export default wrapRoute(OwnerDashboard, { requiredRole: 'owner', strict: true });

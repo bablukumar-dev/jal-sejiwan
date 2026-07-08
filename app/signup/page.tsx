@@ -14,6 +14,7 @@ import {
 import { getFirebase } from '@/src/lib/firebase';
 import { getFriendlyAuthErrorMessage } from '@/lib/authHelper';
 import { useAppContext } from '@/app/context/AppContext';
+import { logActivity } from '@/lib/activityLogger';
 import { Suspense } from 'react';
 
 function SignupContent() {
@@ -35,14 +36,17 @@ function SignupContent() {
 
   // Redirect logged-in users automatically
   useEffect(() => {
-    if (currentUser) {
-      if (currentUser.role === 'staff') {
+    if (currentUser && !isLoading) {
+      const role = currentUser.role?.toLowerCase();
+      if (role === 'staff') {
         router.replace('/staff/dashboard');
-      } else {
+      } else if (role === 'manager') {
+        router.replace('/manager/dashboard');
+      } else if (role === 'owner') {
         router.replace('/owner/dashboard');
       }
     }
-  }, [currentUser, router]);
+  }, [currentUser, router, isLoading]);
 
   const handleSignUp = async () => {
     if (role !== 'owner') {
@@ -74,6 +78,7 @@ function SignupContent() {
         email: user.email,
         role: 'owner',
         businessId: businessId,
+        active: true,
         createdAt: new Date().toISOString()
       });
 
@@ -85,6 +90,13 @@ function SignupContent() {
         uid: user.uid,
         role: 'owner',
         businessId: businessId
+      });
+
+      logActivity({
+        module: 'Authentication',
+        action: 'Account Created',
+        description: `New owner account created for ${email}`,
+        status: 'success'
       });
 
       console.log("Success: User Logged In");
@@ -120,6 +132,7 @@ function SignupContent() {
       if (!auth || !db) throw new Error("Firebase not initialized");
 
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
       const userCredential = await signInWithPopup(auth, provider);
       const user = userCredential.user;
 
@@ -134,6 +147,7 @@ function SignupContent() {
           email: user.email,
           role: 'owner',
           businessId: businessId,
+          active: true,
           createdAt: new Date().toISOString()
         });
       } else {
@@ -149,6 +163,13 @@ function SignupContent() {
         uid: user.uid,
         role: 'owner',
         businessId: businessId
+      });
+
+      logActivity({
+        module: 'Authentication',
+        action: 'Account Created',
+        description: `New owner account created for ${user.email} via Google`,
+        status: 'success'
       });
 
       console.log("Success: User Logged In");
@@ -175,26 +196,25 @@ function SignupContent() {
         <h1 className="text-3xl font-bold text-blue-700 mb-1 font-sans tracking-tight">JalSejiwan</h1>
         <p className="text-slate-500 mb-10 text-center text-sm font-medium">Smart Water Management System</p>
 
-        {/* Role Selector */}
+        {/* Role Selector - Only Owner allowed for self-signup */}
         <div className="w-full mb-6">
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Sign Up As</label>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1">
             {[
               { id: 'owner', label: 'OWNER', icon: Store },
-              { id: 'staff', label: 'STAFF', icon: Truck },
-              { id: 'manager', label: 'MANAGER', icon: Package },
             ].map((r) => (
-              <button 
+              <div 
                 key={r.id}
-                id={`signup-role-btn-${r.id}`}
-                onClick={() => setRole(r.id as any)}
-                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${role === r.id ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-100 text-slate-400 hover:border-slate-200 hover:bg-slate-50'}`}
+                className="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
               >
-                <r.icon className={`w-6 h-6 mb-2 ${role === r.id ? 'text-blue-600' : 'text-slate-300'}`} />
+                <r.icon className="w-6 h-6 mb-2 text-blue-600" />
                 <span className="text-[10px] font-bold uppercase">{r.label}</span>
-              </button>
+              </div>
             ))}
           </div>
+          <p className="text-[10px] text-slate-400 mt-3 text-center italic">
+            Staff and Manager accounts must be created by an Owner via the dashboard.
+          </p>
         </div>
 
         {/* Error Banner */}

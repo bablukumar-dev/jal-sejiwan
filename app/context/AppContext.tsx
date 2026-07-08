@@ -6,6 +6,7 @@ import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { getFirebase } from '@/src/lib/firebase';
 import { getUnsyncedDeliveries } from '@/lib/idb';
 import { setCookie, deleteCookie } from '@/lib/authHelper';
+import { logActivity } from '@/lib/activityLogger';
 
 export type Customer = {
   id: number;
@@ -127,6 +128,12 @@ export type CurrentUser = {
   businessId: string;
   onboardingCompleted?: boolean;
   dashboardTourCompleted?: boolean;
+  waterSystemSetup?: {
+    projectName: string;
+    waterScheme: string;
+    tankName: string;
+    pumpStationName: string;
+  };
 };
 
 type AppContextType = {
@@ -231,6 +238,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    // Log logout before clearing session
+    logActivity({
+      module: 'Authentication',
+      action: 'Logout',
+      description: 'User logged out',
+      status: 'success'
+    });
+
     setIsLoggingOut(true);
     try {
       // 1. Clear Firebase Auth session first and wait for it to fully resolve
@@ -312,6 +327,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               businessId: data.businessId,
               onboardingCompleted: onboardingCompleted,
               dashboardTourCompleted: dashboardTourCompleted,
+              waterSystemSetup: data.waterSystemSetup,
             });
             setOwnerId(data.businessId);
             localStorage.setItem('businessId', data.businessId);
@@ -319,14 +335,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setCookie('userRole', data.role, 3600);
             setCookie('businessId', data.businessId, 3600);
             setCookie('onboardingCompleted', onboardingCompleted ? 'true' : 'false', 3600);
+            
+            // Set auth loading to false only after data is received
+            setAuthLoading(false);
           } else {
             setCurrentUser(null);
             deleteCookie('firebaseIdToken');
             deleteCookie('userRole');
             deleteCookie('businessId');
             deleteCookie('onboardingCompleted');
+            setAuthLoading(false);
           }
-          setAuthLoading(false);
         }, (error: any) => {
           console.error("Error listening to user data:", error);
           if (error.code === 'permission-denied') {

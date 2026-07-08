@@ -43,6 +43,31 @@
           }
         }
       }
+    },
+    "activity_logs": {
+      "description": "Audit trail for system actions",
+      "documents": {
+        "{activityId}": {
+          "fields": {
+            "activityId": { "type": "string" },
+            "timestamp": { "type": "timestamp" },
+            "userId": { "type": "string" },
+            "userName": { "type": "string" },
+            "role": { "type": "string" },
+            "businessId": { "type": "string" },
+            "module": { "type": "string" },
+            "action": { "type": "string" },
+            "status": { "type": "string" },
+            "success": { "type": "boolean" }
+          },
+          "allow": {
+            "read": "request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner' || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == resource.data.businessId) || (request.auth.uid == resource.data.userId))",
+            "create": "request.auth != null",
+            "update": "false",
+            "delete": "false"
+          }
+        }
+      }
     }
   }
 }

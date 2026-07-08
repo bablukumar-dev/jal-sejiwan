@@ -31,17 +31,19 @@ export default function SkipDelivery() {
         );
         setDeliveries(updatedDeliveries);
         
-        logActivity(
-          'delivery_skipped',
-          `Skipped delivery for ${customer.name}. Reason: ${reason}${remarks ? ` (${remarks})` : ''}`,
-          {
-            delivery_id: deliveryId,
-            customer_id: customer.id,
-            customer_name: customer.name,
-            reason: reason,
-            remarks: remarks
+        logActivity({
+          module: 'Water Management',
+          action: 'Delivery Skipped',
+          description: `Skipped delivery for ${customer.name}. Reason: ${reason}${remarks ? ` (${remarks})` : ''}`,
+          status: 'warning',
+          resourceType: 'Delivery',
+          resourceId: String(deliveryId),
+          resourceName: customer.name,
+          newValue: {
+            reason,
+            remarks
           }
-        );
+        });
 
         alert("Delivery marked as skipped.");
         router.back();

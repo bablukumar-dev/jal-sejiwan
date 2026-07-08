@@ -115,17 +115,16 @@ export default function RecordPayment() {
       ));
 
       // Log direct payment collection activity silently in background
-      logActivity(
-        'payment_collected',
-        `Collected payment of ₹${numAmount} from ${selectedCustomer?.name || 'customer'} (${mode})`,
-        {
-          payment_id: newPayment.id,
-          customer_id: selectedCustomerId,
-          customer_name: selectedCustomer?.name || '',
-          amount: numAmount,
-          payment_mode: mode
-        }
-      );
+      logActivity({
+        module: 'Payments',
+        action: 'Payment Collected',
+        description: `Collected payment of ₹${numAmount} from ${selectedCustomer?.name || 'customer'} (${mode})`,
+        status: 'success',
+        resourceType: 'Payment',
+        resourceId: String(newPayment.id),
+        resourceName: selectedCustomer?.name,
+        newValue: newPayment
+      });
 
       alert('Payment Recorded Successfully');
       router.back();

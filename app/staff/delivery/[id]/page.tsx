@@ -211,20 +211,22 @@ export default function DeliveryEntry() {
         setCustomers(updatedCustomers);
         
         // Log delivery complete activity silently in background
-        logActivity(
-          'delivery_completed',
-          `Completed delivery to ${customer.name}: ${delivered} Cans, ${empties} Empties returned, payment ₹${parsedAmount} (${paymentType})`,
-          {
-            delivery_id: deliveryId,
-            customer_id: customer.id,
-            customer_name: customer.name,
-            delivered_qty: delivered,
-            returned_empty_qty: empties,
-            damaged_qty: damagedQty,
-            payment_amount: parsedAmount,
-            payment_mode: paymentType,
+        logActivity({
+          module: 'Water Management',
+          action: 'Delivery Completed',
+          description: `Completed delivery to ${customer.name}: ${delivered} Cans, ${empties} Empties returned, payment ₹${parsedAmount} (${paymentType})`,
+          status: 'success',
+          resourceType: 'Delivery',
+          resourceId: String(deliveryId),
+          resourceName: customer.name,
+          newValue: {
+            delivered,
+            empties,
+            damagedQty,
+            parsedAmount,
+            paymentType
           }
-        );
+        });
 
         alert("Delivery Recorded Successfully!");
         router.back();

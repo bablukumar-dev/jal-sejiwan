@@ -105,6 +105,8 @@ export function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       if (role === 'staff') {
         url.pathname = '/staff/dashboard';
+      } else if (role === 'manager') {
+        url.pathname = '/manager/dashboard';
       } else {
         url.pathname = '/owner/dashboard';
       }
@@ -112,16 +114,27 @@ export function middleware(request: NextRequest) {
     }
 
     // Protect role-specific routes
-    if (pathname.startsWith('/owner') || pathname.startsWith('/inventory')) {
+    // Owner & Admin access
+    if (pathname.startsWith('/owner') || pathname.startsWith('/admin') || pathname.startsWith('/inventory')) {
       if (role !== 'owner') {
         const url = request.nextUrl.clone();
         url.pathname = '/unauthorized';
         return NextResponse.redirect(url);
       }
     }
-    
+
+    // Manager specific access
+    if (pathname.startsWith('/manager')) {
+      if (role !== 'manager') {
+        const url = request.nextUrl.clone();
+        url.pathname = '/unauthorized';
+        return NextResponse.redirect(url);
+      }
+    }
+
+    // Staff specific access
     if (pathname.startsWith('/staff')) {
-      if (role !== 'staff' && role !== 'owner') {
+      if (role !== 'staff') {
         const url = request.nextUrl.clone();
         url.pathname = '/unauthorized';
         return NextResponse.redirect(url);

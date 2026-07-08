@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import { useRouter } from 'next/navigation';
+import { logActivity } from '@/lib/activityLogger';
 import { wrapRoute } from '@/lib/permissionGuard';
 
 function DeliveriesList() {
@@ -99,6 +100,13 @@ function DeliveriesList() {
     
     if (newDeliveries.length > 0) {
       setDeliveries([...deliveries, ...newDeliveries]);
+      logActivity({
+        module: 'Water Management',
+        action: 'Deliveries Generated',
+        description: `Generated ${newDeliveries.length} pending deliveries for route ${routeFilter} on ${date}`,
+        status: 'success',
+        metadata: { count: newDeliveries.length, route: routeFilter, date }
+      });
       alert(`Generated ${newDeliveries.length} pending deliveries for ${routeFilter}`);
     } else {
       alert(`All active customers in ${routeFilter} already have deliveries scheduled for ${date}.`);

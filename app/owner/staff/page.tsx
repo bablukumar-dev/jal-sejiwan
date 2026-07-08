@@ -8,6 +8,7 @@ import { Users, UserPlus, Search, Phone, Mail, Route, Filter, TrendingUp, CheckC
 import { useAppContext } from '@/app/context/AppContext';
 import { useState } from 'react';
 import { hashPin, getFriendlyAuthErrorMessage } from '@/lib/authHelper';
+import { logActivity } from '@/lib/activityLogger';
 import { wrapRoute } from '@/lib/permissionGuard';
 import { getFirebase } from '@/src/lib/firebase';
 
@@ -207,6 +208,16 @@ function StaffManagement() {
 
                             const result = await response.json();
                             if (!response.ok) throw new Error(result.error || 'Failed to update password');
+
+                            logActivity({
+                              module: 'Staff Management',
+                              action: 'Staff Password Reset',
+                              description: `Manually reset password for staff member ${s.name}`,
+                              status: 'success',
+                              resourceType: 'Staff',
+                              resourceId: String(s.id),
+                              resourceName: s.name
+                            });
 
                             alert(`Password updated successfully for ${s.name}!`);
                           } catch (err: any) {

@@ -12,6 +12,7 @@ import { getFriendlyAuthErrorMessage, setCookie, deleteCookie } from '@/lib/auth
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getFirebase } from '@/src/lib/firebase';
+import { logActivity } from '@/lib/activityLogger';
 
 
 function LoginContent() {
@@ -36,14 +37,17 @@ function LoginContent() {
 
   // Redirect logged-in users automatically
   useEffect(() => {
-    if (currentUser) {
-      if (currentUser.role === 'staff') {
+    if (currentUser && !isLoading) {
+      const role = currentUser.role?.toLowerCase();
+      if (role === 'staff') {
         router.replace('/staff/dashboard');
-      } else {
+      } else if (role === 'manager') {
+        router.replace('/manager/dashboard');
+      } else if (role === 'owner') {
         router.replace('/owner/dashboard');
       }
     }
-  }, [currentUser, router]);
+  }, [currentUser, router, isLoading]);
 
   const handleEmailAuth = async () => {
     setError('');
@@ -58,6 +62,13 @@ function LoginContent() {
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
       if (userDoc.exists()) {
           const data = userDoc.data();
+          if (data.active === false) {
+              console.log("Error: Account is inactive.");
+              await signOut(auth);
+              setError("Your account is inactive. Please contact the administrator.");
+              setIsLoading(false);
+              return;
+          }
           if (data.role.toLowerCase() !== role) {
               console.log("Error: Unauthorized role access.");
               await signOut(auth);
@@ -88,19 +99,27 @@ function LoginContent() {
             businessId: data.businessId || '',
             onboardingCompleted: onboardingCompleted,
           });
+
+          logActivity({
+            module: 'Authentication',
+            action: 'Login Success',
+            description: `User ${email} logged in successfully as ${role}`,
+            status: 'success'
+          });
+
+          if (!onboardingCompleted && role === 'owner') {
+            router.replace('/onboarding');
+          } else {
+            if (role === 'staff') router.replace('/staff/dashboard');
+            else if (role === 'manager') router.replace('/manager/dashboard');
+            else router.replace('/owner/dashboard');
+          }
       } else {
           console.log("Error: User not found in database.");
           await signOut(auth);
           setError("User not found in database.");
           setIsLoading(false);
           return;
-      }
-      
-      const onboardingCompleted = data.onboardingCompleted !== undefined ? data.onboardingCompleted : false;
-      if (!onboardingCompleted) {
-        router.replace('/onboarding');
-      } else {
-        router.replace(role === 'staff' ? '/staff/dashboard' : '/owner/dashboard');
       }
     } catch (err: any) {
       console.log(`Error: ${err.message || 'Login failed.'}`);
@@ -113,6 +132,13 @@ function LoginContent() {
       } else {
         setError("Login failed. Please check your credentials and try again.");
       }
+      logActivity({
+        module: 'Authentication',
+        action: 'Login Failure',
+        description: `Failed login attempt for ${email} as ${role}`,
+        status: 'error',
+        failureReason: err.message
+      });
       setIsLoading(false);
     }
   };
@@ -130,6 +156,7 @@ function LoginContent() {
       if (!auth || !db) throw new Error("Firebase not initialized");
       
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
       const userCredential = await signInWithPopup(auth, provider);
       const user = userCredential.user;
 
@@ -151,10 +178,17 @@ function LoginContent() {
 
       if (userDoc.exists()) {
           const data = userDoc.data();
+          if (data.active === false) {
+              console.log("Error: Account is inactive.");
+              await signOut(auth);
+              setError("Your account is inactive. Please contact the administrator.");
+              setIsLoading(false);
+              return;
+          }
           if (data.role.toLowerCase() !== 'owner') {
               console.log("Error: Unauthorized role access.");
               await signOut(auth);
-              setError("Unauthorized role access. Only owners can use Google Login.");
+              setError("Google Sign-In is available only for Owner accounts.");
               setIsLoading(false);
               return;
           }
@@ -178,19 +212,25 @@ function LoginContent() {
             businessId: data.businessId || '',
             onboardingCompleted: onboardingCompleted,
           });
+
+          logActivity({
+            module: 'Authentication',
+            action: 'Login Success',
+            description: `User ${user.email} logged in successfully via Google as owner`,
+            status: 'success'
+          });
+
+          if (!onboardingCompleted) {
+            router.replace('/onboarding');
+          } else {
+            router.replace('/owner/dashboard');
+          }
       } else {
           console.log("Error: User not found in database.");
           await signOut(auth);
           setError("User not found in database.");
           setIsLoading(false);
           return;
-      }
-      
-      const onboardingCompleted = data.onboardingCompleted !== undefined ? data.onboardingCompleted : false;
-      if (!onboardingCompleted) {
-        router.replace('/onboarding');
-      } else {
-        router.replace('/owner/dashboard');
       }
     } catch (err: any) {
        console.log(`Error: ${err.message || 'Google login failed.'}`);

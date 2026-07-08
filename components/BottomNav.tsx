@@ -28,11 +28,12 @@ export default function BottomNav({ role: propRole, activeTab }: BottomNavProps)
   let links: Array<{ id: string, label: string, icon: any, href: string }> = [];
 
   if (role === 'owner' || role === 'manager') {
+    const prefix = role === 'owner' ? '/owner' : '/manager';
     links = [
-      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/owner/dashboard' },
-      { id: 'customers', label: 'Customers', icon: Users, href: '/owner/customers' },
-      { id: 'deliveries', label: 'Deliveries', icon: Truck, href: '/owner/deliveries' },
-      { id: 'activity_logs', label: 'Live Log', icon: Activity, href: '/owner/activity' },
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: `${prefix}/dashboard` },
+      { id: 'customers', label: 'Customers', icon: Users, href: `${prefix}/customers` },
+      { id: 'deliveries', label: 'Deliveries', icon: Truck, href: `${prefix}/deliveries` },
+      { id: 'activity_logs', label: 'Live Log', icon: Activity, href: `${prefix}/activity` },
     ];
   } else if (role === 'staff') {
     links = [
@@ -51,6 +52,7 @@ export default function BottomNav({ role: propRole, activeTab }: BottomNavProps)
           return (
             <button 
               key={link.id} 
+              id={`nav-${link.id}`}
               onClick={() => router.push(link.href)}
               className={`flex flex-col items-center justify-center px-3 py-2 rounded-xl transition-colors w-full ${
                 isActive 

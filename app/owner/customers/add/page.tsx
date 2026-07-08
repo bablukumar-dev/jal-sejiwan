@@ -169,21 +169,16 @@ export default function AddCustomer() {
 
         setCustomers([...customersArray, newCustomer]);
         
-        logActivity(
-          'customer_added',
-          `Added new customer: ${nameVal.value} (${type}) with default quantity ${defaultQtyVal.value} and rate ₹${rateVal.value}`,
-          {
-            customer_id: newId,
-            name: nameVal.value,
-            phone: phoneVal.value,
-            route: sanitizedRoute,
-            area: sanitizedArea,
-            type,
-            rate: rateVal.value,
-            defaultQty: defaultQtyVal.value,
-            imageURL: uploadedImageURL
-          }
-        );
+        logActivity({
+          module: 'Customers',
+          action: 'Customer Created',
+          description: `Added new customer: ${nameVal.value} (${type})`,
+          status: 'success',
+          resourceType: 'Customer',
+          resourceId: String(newId),
+          resourceName: nameVal.value,
+          newValue: newCustomer
+        });
 
         setToast({ message: 'Customer Successfully Added', type: 'success', onClose: () => setToast(null) });
         const role = localStorage.getItem('userRole');

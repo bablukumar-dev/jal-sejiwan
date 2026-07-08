@@ -20,42 +20,64 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
   const steps = [
     {
       step: 1,
-      title: "Welcome to Your Water Delivery Management System",
-      description: "JalSejiwan helps you manage customer records, track daily water delivery drops, monitor cylinder inventory, and record payments efficiently.",
+      title: "Welcome to JalSejiwan",
+      description: "JalSejiwan is your smart water management partner. Let's take a quick tour of your dashboard to help you get started with managing your water infrastructure.",
       targetId: null,
       tooltip: null
     },
     {
       step: 2,
-      title: "Add your first customer",
-      description: "Start by adding your first customer.",
-      targetId: "onboarding-add-customer",
-      tooltip: "Start by adding your first customer."
+      title: "Your Profile & Settings",
+      description: "Click here to manage your profile, account settings, and security preferences.",
+      targetId: "onboarding-profile",
+      tooltip: "Access your profile and application settings here."
     },
     {
       step: 3,
-      title: "Record your first delivery",
-      description: "Record your daily deliveries here.",
-      targetId: "onboarding-deliveries",
-      tooltip: "Record your daily deliveries here."
+      title: "Main Dashboard",
+      description: "Quickly return to this overview page anytime to see your system's overall health and status.",
+      targetId: "nav-dashboard",
+      tooltip: "Your command center for all water operations."
     },
     {
       step: 4,
-      title: "Track payments",
-      description: "Track dues and collect payments easily.",
-      targetId: "onboarding-payments",
-      tooltip: "Track dues and collect payments easily."
+      title: "Water Storage Tanks",
+      description: "Monitor your primary storage levels and tank health in real-time.",
+      targetId: "onboarding-water-tanks",
+      tooltip: "View and manage your connected water storage tanks."
     },
     {
       step: 5,
-      title: "You're ready!",
-      description: "Explore the dashboards, setup delivery routes, manage your staff, and drive efficiency in your water delivery business.",
+      title: "Pump Stations",
+      description: "Keep track of pump operation status, pressure levels, and maintenance schedules.",
+      targetId: "onboarding-pump-stations",
+      tooltip: "Monitor the pulse of your water distribution network."
+    },
+    {
+      step: 6,
+      title: "Activity & Reports",
+      description: "Access detailed logs and performance reports to optimize your water management.",
+      targetId: "nav-activity_logs",
+      tooltip: "Deep dive into your system's data and logs."
+    },
+    {
+      step: 7,
+      title: "Smart Notifications",
+      description: "Get real-time alerts for leaks, low levels, or pump failures directly in your app.",
+      targetId: "onboarding-notifications",
+      tooltip: "Stay informed with critical system updates."
+    },
+    {
+      step: 8,
+      title: "Ready to Go!",
+      description: "You're all set to manage your water system with JalSejiwan. Drive efficiency and ensure water security for everyone.",
       targetId: null,
       tooltip: null
     }
   ];
 
   const currentStepData = steps[step - 1];
+  const totalSteps = steps.length;
 
   // Update highlight bounding box when active step changes
   useEffect(() => {
@@ -87,7 +109,7 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
   }, [step, currentStepData.targetId]);
 
   const handleNext = () => {
-    if (step < 5) {
+    if (step < totalSteps) {
       setStep(step + 1);
     } else {
       handleComplete();
@@ -212,7 +234,7 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
             </motion.div>
           )}
 
-          {(step === 2 || step === 3 || step === 4) && (
+          {step > 1 && step < totalSteps && (
             <motion.div
               key={`step-${step}`}
               id={`onboarding-step-${step}-modal`}
@@ -228,10 +250,10 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
             >
               <div className="flex justify-between items-center mb-3">
                 <span className="text-[10px] uppercase font-bold text-blue-600 tracking-wider bg-blue-50 px-2.5 py-1 rounded-full">
-                  Step {step - 1} of 4
+                  Step {step - 1} of {totalSteps - 2}
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
-                  {step - 1}/4
+                  {step - 1}/{totalSteps - 2}
                 </span>
               </div>
 
@@ -248,7 +270,7 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
               <div className="w-full bg-slate-100 h-1.5 rounded-full mb-6 overflow-hidden">
                 <div 
                   className="bg-blue-600 h-full rounded-full transition-all duration-300"
-                  style={{ width: `${((step - 1) / 4) * 100}%` }}
+                  style={{ width: `${((step - 1) / (totalSteps - 2)) * 100}%` }}
                 />
               </div>
 
@@ -284,9 +306,9 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
             </motion.div>
           )}
 
-          {step === 5 && (
+          {step === totalSteps && (
             <motion.div
-              key="step-5"
+              key={`step-${totalSteps}`}
               id="onboarding-finish-modal"
               initial={{ opacity: 0, scale: 0.92, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}

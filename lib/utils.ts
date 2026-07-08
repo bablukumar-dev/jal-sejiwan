@@ -13,3 +13,24 @@ export const safeGet = (key: string): string | null => {
     return null;
   }
 };
+
+export const PUBLIC_PATHS = [
+  '/login', 
+  '/signup', 
+  '/', 
+  '/about', 
+  '/contact', 
+  '/privacy', 
+  '/privacy-policy',
+  '/terms', 
+  '/terms-and-conditions',
+  '/unauthorized'
+];
+
+export function isPublicPath(pathname: string | null): boolean {
+  if (!pathname) return true;
+  return PUBLIC_PATHS.includes(pathname) || 
+         pathname.startsWith('/login') || 
+         pathname.startsWith('/signup') ||
+         pathname === '/unauthorized';
+}

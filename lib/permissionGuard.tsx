@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAppContext } from '@/app/context/AppContext';
 
 export type UserRole = 'owner' | 'manager' | 'staff';
 
@@ -114,25 +115,33 @@ export function getCurrentUserId(): string {
  * High-Order wrapper for React components to enforce authentication and/or role permissions.
  * Does not rename or alter existing route files.
  */
+
 export function wrapRoute<P extends object>(
   Component: React.ComponentType<P>,
-  options: { requiredRole?: UserRole; requiredPermission?: Permission } = {}
+  options: { requiredRole?: UserRole; requiredPermission?: Permission; strict?: boolean } = {}
 ) {
   return function GuardedComponent(props: P) {
     const router = useRouter();
+    const { currentUser, authLoading } = useAppContext();
     const [authorized, setAuthorized] = useState(false);
-    const [verifiedRole, setVerifiedRole] = useState<UserRole | null>(null);
 
     useEffect(() => {
-      if (typeof window === 'undefined') return;
+      if (authLoading) return;
 
-      const role = getCurrentUserRole();
-      setVerifiedRole(role);
+      if (!currentUser) {
+        router.replace('/login');
+        return;
+      }
 
+      const role = currentUser.role.toLowerCase() as UserRole;
       let isAllowed = true;
 
-      if (options.requiredRole && !meetsRoleRequirement(role, options.requiredRole)) {
-        isAllowed = false;
+      if (options.requiredRole) {
+        if (options.strict) {
+          if (role !== options.requiredRole) isAllowed = false;
+        } else {
+          if (!meetsRoleRequirement(role, options.requiredRole)) isAllowed = false;
+        }
       }
 
       if (options.requiredPermission && !hasPermission(role, options.requiredPermission)) {
@@ -140,29 +149,22 @@ export function wrapRoute<P extends object>(
       }
 
       if (!isAllowed) {
-        // Role-based redirection logic to ensure users end up in the correct dashboard
-        const savedRole = localStorage.getItem('userRole')?.toLowerCase();
-        
-        if (savedRole) {
-          // If the user is on the wrong dashboard, redirect them to their specific one
-          if (savedRole === 'owner') {
-            router.replace('/owner/dashboard');
-          } else if (savedRole === 'manager') {
-            router.replace('/owner/dashboard'); // Assuming owner dashboard is shared with managers
-          } else if (savedRole === 'staff') {
-            router.replace('/staff/dashboard');
-          } else {
-            router.replace('/unauthorized');
-          }
+        // Strict role-based redirection
+        if (role === 'owner') {
+          router.replace('/owner/dashboard');
+        } else if (role === 'manager') {
+          router.replace('/manager/dashboard');
+        } else if (role === 'staff') {
+          router.replace('/staff/dashboard');
         } else {
-          router.replace('/login');
+          router.replace('/unauthorized');
         }
       } else {
         setAuthorized(true);
       }
-    }, [router]);
+    }, [currentUser, authLoading, router]);
 
-    if (!authorized) {
+    if (authLoading || !authorized) {
       return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
           <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">

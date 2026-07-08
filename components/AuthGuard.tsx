@@ -4,18 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 // Auth system removed
 
-const publicPaths = [
-  '/login',
-  '/signup',
-  '/',
-  '/about',
-  '/contact',
-  '/privacy',
-  '/privacy-policy',
-  '/terms',
-  '/terms-and-conditions',
-  '/unauthorized'
-];
+import { isPublicPath } from '@/lib/utils';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -30,28 +19,25 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isLoggingOut) return;
-    if (mounted && !authLoading) {
-      const isPublic = pathname ? (
-        publicPaths.includes(pathname) || 
-        pathname.startsWith('/login') ||
-        pathname.startsWith('/signup')
-      ) : true;
-      
-      if (!currentUser) {
-        if (!isPublic && pathname !== '/onboarding') {
-          router.push("/login");
+    if (isLoggingOut || !mounted || authLoading) return;
+
+    const isPublic = isPublicPath(pathname);
+    
+    if (!currentUser) {
+      if (!isPublic && pathname !== '/onboarding') {
+        router.push("/login");
+      }
+    } else {
+      // User is logged in
+      if (currentUser.onboardingCompleted === false) {
+        if (pathname !== '/onboarding' && !isPublic) {
+          router.push("/onboarding");
         }
-      } else {
-        // User is logged in
-        if (currentUser.onboardingCompleted === false) {
-          if (pathname !== '/onboarding' && !isPublic) {
-            router.push("/onboarding");
-          }
-        } else if (currentUser.onboardingCompleted === true) {
-          if (pathname === '/onboarding') {
-            router.push(currentUser.role === 'staff' ? '/staff/dashboard' : '/owner/dashboard');
-          }
+      } else if (currentUser.onboardingCompleted === true) {
+        if (pathname === '/onboarding') {
+          if (currentUser.role === 'owner') router.push('/owner/dashboard');
+          else if (currentUser.role === 'manager') router.push('/manager/dashboard');
+          else router.push('/staff/dashboard');
         }
       }
     }
@@ -63,11 +49,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     
     if (!pathname) return;
 
-    const isPublic = publicPaths.includes(pathname) || 
-                    pathname.startsWith('/login') ||
-                    pathname.startsWith('/signup');
-
-    if (isPublic) {
+    if (isPublicPath(pathname)) {
       return;
     }
 
@@ -127,18 +109,16 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!mounted || authLoading) {
-    if (!publicPaths.includes(pathname || '') && pathname !== '/unauthorized') {
-      return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-            <span className="animate-pulse block w-8 h-8 rounded-full bg-blue-600/20" />
-          </div>
-          <h2 className="text-lg font-bold text-slate-800">Verifying authorization...</h2>
-          <p className="text-xs text-slate-400 mt-1">Please wait while we secure your session credentials.</p>
+    if (isPublicPath(pathname)) return <>{children}</>;
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+          <span className="animate-pulse block w-8 h-8 rounded-full bg-blue-600/20" />
         </div>
-      );
-    }
-    return <>{children}</>;
+        <h2 className="text-lg font-bold text-slate-800">Verifying authorization...</h2>
+        <p className="text-xs text-slate-400 mt-1">Please wait while we secure your session credentials.</p>
+      </div>
+    );
   }
 
   return <>{children}</>;

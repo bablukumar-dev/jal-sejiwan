@@ -53,7 +53,25 @@ service cloud.firestore {
       }
     }
 
-    // 5. Allow reading public diagnostic documents
+    // 5. Rules for activity logs
+    match /activity_logs/{logId} {
+      // Create is allowed for any authenticated user
+      allow create: if isAuthenticated() 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.timestamp == request.time;
+      
+      // Read rules based on role and business
+      allow read: if isAuthenticated() && (
+        getUserData().role == 'owner' ||
+        (getUserData().role == 'manager' && getUserData().businessId == resource.data.businessId) ||
+        (resource.data.userId == request.auth.uid)
+      );
+
+      // Logs are immutable
+      allow update, delete: if false;
+    }
+
+    // 6. Allow reading public diagnostic documents
     match /_diagnostics/{docId} {
       allow read: if true;
     }

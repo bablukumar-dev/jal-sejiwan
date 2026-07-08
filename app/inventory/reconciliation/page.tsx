@@ -33,19 +33,21 @@ function ReturnReconciliation() {
       cansInDelivery: prev.cansInDelivery - totalDispatched // Assuming all dispatched are accounted for
     }));
 
-    logActivity(
-      'inventory_updated',
-      `Reconciled stock for ${selectedStaff?.name || 'Staff'}: Empty returned ${emptyReturned}, unsold ${fullReturned}, damaged ${damaged}`,
-      {
-        action: 'reconciliation',
-        staff_id: selectedStaff?.id || '',
-        staff_name: selectedStaff?.name || '',
+    logActivity({
+      module: 'Inventory',
+      action: 'Inventory Reconciled',
+      description: `Reconciled stock for ${selectedStaff?.name || 'Staff'}: Empty returned ${emptyReturned}, unsold ${fullReturned}, damaged ${damaged}`,
+      status: missing === 0 ? 'success' : 'warning',
+      resourceType: 'Inventory',
+      resourceId: selectedStaff?.id ? `STAFF-${selectedStaff.id}` : 'GENERAL',
+      resourceName: selectedStaff?.name || 'Staff',
+      newValue: {
         empty_returned: emptyReturned,
         full_returned: fullReturned,
         damaged: damaged,
         missing: missing
       }
-    );
+    });
 
     router.push('/inventory/dashboard');
   };

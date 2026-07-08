@@ -7,6 +7,7 @@ import { Search, Calendar, Download, Plus, Wallet, QrCode, SlidersHorizontal, X 
 import Link from 'next/link';
 import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
+import { logActivity } from '@/lib/activityLogger';
 import { wrapRoute } from '@/lib/permissionGuard';
 
 function PaymentsList() {
@@ -156,6 +157,14 @@ function PaymentsList() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    logActivity({
+      module: 'Payments',
+      action: 'Payments Exported',
+      description: `Exported ${sortedPayments.length} collection records to CSV`,
+      status: 'success',
+      metadata: { count: sortedPayments.length }
+    });
   };
 
   return (
@@ -479,6 +488,15 @@ function PaymentsList() {
                              const { doc, receiptNo } = await generatePaymentReceiptPDF(payment, businessInfo);
                              if (doc) {
                                doc.save(`Receipt_${customer.name}_${payment.date}.pdf`);
+                               logActivity({
+                                 module: 'Payments',
+                                 action: 'Receipt Downloaded',
+                                 description: `Downloaded payment receipt for ${customer.name}`,
+                                 status: 'success',
+                                 resourceType: 'Payment',
+                                 resourceId: String(payment.id),
+                                 resourceName: customer.name
+                               });
                              } else {
                                throw new Error('Could not instantiate PDF document.');
                              }
@@ -500,6 +518,15 @@ function PaymentsList() {
                              if (doc) {
                                const pdfBlob = doc.output('blob');
                                await sendPaymentReceiptWhatsApp(payment, customer, businessInfo, receiptNo, pdfBlob);
+                               logActivity({
+                                 module: 'Payments',
+                                 action: 'Receipt Shared',
+                                 description: `Shared payment receipt for ${customer.name} via WhatsApp`,
+                                 status: 'success',
+                                 resourceType: 'Payment',
+                                 resourceId: String(payment.id),
+                                 resourceName: customer.name
+                               });
                              } else {
                                throw new Error('Could not instantiate PDF document.');
                              }

@@ -111,21 +111,16 @@ export default function EditCustomer() {
 
         setCustomers(customers.map(c => c.id === customerId ? updatedCustomer : c));
 
-        logActivity(
-          'customer_edited',
-          `Edited customer ${nameVal.value} (${type}): Rate updated to ₹${rateVal.value}, default qty ${defaultQtyVal.value}`,
-          {
-            customer_id: customerId,
-            name: nameVal.value,
-            phone: phoneVal.value,
-            route: sanitizedRoute,
-            area: sanitizedArea,
-            type,
-            rate: rateVal.value,
-            defaultQty: defaultQtyVal.value,
-            imageURL: uploadedImageURL
-          }
-        );
+        logActivity({
+          module: 'Customers',
+          action: 'Customer Edited',
+          description: `Edited customer ${nameVal.value} (${type}): Rate updated to ₹${rateVal.value}, default qty ${defaultQtyVal.value}`,
+          status: 'success',
+          resourceType: 'Customer',
+          resourceId: String(customerId),
+          resourceName: nameVal.value,
+          newValue: updatedCustomer
+        });
 
         alert('Customer Successfully Updated');
         router.push(`/owner/customers/${customerId}`);

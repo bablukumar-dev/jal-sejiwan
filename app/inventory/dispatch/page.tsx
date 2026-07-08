@@ -39,17 +39,19 @@ function DispatchScreen() {
         cansInDelivery: prev.cansInDelivery + dispatched
       }));
 
-      logActivity(
-        'inventory_updated',
-        `Dispatched ${dispatched} full cans to ${selectedStaff.name}`,
-        {
-          action: 'dispatch',
-          staff_id: selectedStaff.id,
-          staff_name: selectedStaff.name,
+      logActivity({
+        module: 'Inventory',
+        action: 'Stock Dispatched',
+        description: `Dispatched ${dispatched} full cans to ${selectedStaff.name}`,
+        status: 'success',
+        resourceType: 'Inventory',
+        resourceId: `STAFF-${selectedStaff.id}`,
+        resourceName: selectedStaff.name,
+        newValue: {
           dispatched_qty: dispatched,
           empty_received: emptyReceived
         }
-      );
+      });
 
       // In a real app, we would log this dispatch to history
       router.push('/inventory/dashboard');

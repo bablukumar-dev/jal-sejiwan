@@ -12,7 +12,8 @@ export default function Home() {
   useEffect(() => {
     if (currentUser) {
         const role = currentUser.role.toLowerCase();
-        if (role === 'owner' || role === 'manager') router.push('/owner/dashboard');
+        if (role === 'owner') router.push('/owner/dashboard');
+        else if (role === 'manager') router.push('/manager/dashboard');
         else if (role === 'staff') router.push('/staff/dashboard');
     }
   }, [currentUser, router]);

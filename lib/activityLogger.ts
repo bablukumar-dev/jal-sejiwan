@@ -1,12 +1,116 @@
+import { getFirebase } from '@/src/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
+export interface ActivityLog {
+  log_id?: string; // Keeping for backward compatibility with UI
+  activityId?: string;
+  timestamp: any;
+  userId: string;
+  userName: string;
+  email: string;
+  role: string;
+  businessId: string; // Mapping organizationId to businessId
+  module: string;
+  action: string;
+  resourceType?: string;
+  resourceId?: string;
+  resourceName?: string;
+  previousValue?: any;
+  newValue?: any;
+  status: 'success' | 'warning' | 'error' | 'info';
+  success: boolean;
+  failureReason?: string;
+  device?: string;
+  browser?: string;
+  ipAddress?: string;
+  sessionId?: string;
+  requestId?: string;
+  description: string; // Required for the current UI
+  action_type?: string; // Required for current UI filtering
+}
+
 /**
  * Silently logs an action in the background.
  * It will not throw errors or disrupt the main app execution.
+ * Supports both new object-based signature and old positional signature for backward compatibility.
  */
 export async function logActivity(
-  actionType: string,
-  description: string,
-  metadata: any = null
+  paramsOrAction: string | {
+    module: string;
+    action: string;
+    description: string;
+    status?: 'success' | 'warning' | 'error' | 'info';
+    resourceType?: string;
+    resourceId?: string;
+    resourceName?: string;
+    previousValue?: any;
+    newValue?: any;
+    failureReason?: string;
+    metadata?: any;
+  },
+  legacyDescription?: string,
+  legacyMetadata?: any
 ): Promise<void> {
-  // Auth system removed - logging disabled
-  console.log("Auth System Removed: Activity logging disabled.");
+  try {
+    const { auth, db } = getFirebase();
+    if (!auth || !db || !auth.currentUser) {
+      console.warn("Activity Logger: No auth or db available, or user not logged in.");
+      return;
+    }
+
+    let finalParams: any = {};
+    if (typeof paramsOrAction === 'string') {
+      // Legacy signature handling
+      finalParams = {
+        module: 'General',
+        action: paramsOrAction,
+        description: legacyDescription || paramsOrAction,
+        metadata: legacyMetadata,
+        status: 'success'
+      };
+    } else {
+      finalParams = paramsOrAction;
+    }
+
+    const user = auth.currentUser;
+    const role = localStorage.getItem('userRole') || 'unknown';
+    const businessId = localStorage.getItem('businessId') || '';
+    const userName = user.displayName || localStorage.getItem('userName') || 'User';
+
+    const activityId = crypto.randomUUID();
+    
+    const logData: Omit<ActivityLog, 'log_id'> = {
+      activityId,
+      timestamp: serverTimestamp(),
+      userId: user.uid,
+      userName: userName,
+      email: user.email || '',
+      role: role,
+      businessId: businessId,
+      module: finalParams.module,
+      action: finalParams.action,
+      resourceType: finalParams.resourceType,
+      resourceId: finalParams.resourceId,
+      resourceName: finalParams.resourceName,
+      previousValue: finalParams.previousValue,
+      newValue: finalParams.newValue || finalParams.metadata,
+      status: finalParams.status || 'success',
+      success: finalParams.status !== 'error',
+      failureReason: finalParams.failureReason,
+      description: finalParams.description,
+      action_type: finalParams.action.toLowerCase().replace(/\s+/g, '_'),
+      device: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      browser: typeof navigator !== 'undefined' ? navigator.appName : 'unknown',
+      sessionId: localStorage.getItem('sessionId') || 'unknown',
+    };
+
+    // Asynchronous non-blocking write
+    addDoc(collection(db, 'activity_logs'), logData).catch(err => {
+      console.error("Failed to write activity log:", err);
+    });
+
+  } catch (error) {
+    console.error("Activity Logger Error:", error);
+  }
 }
+

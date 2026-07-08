@@ -120,11 +120,16 @@ function AddStaff() {
         setStaff([...staff, newStaff]);
         
         // Log activity silently in background
-        logActivity(
-          'staff_created',
-          `Added new staff member: ${nameVal.value} (${role})`,
-          { staff_id: newStaff.id, name: nameVal.value, role, route: sanitizedRoute }
-        );
+        logActivity({
+          module: 'Organization',
+          action: 'Staff Created',
+          description: `Added new staff member: ${nameVal.value} (${role})`,
+          status: 'success',
+          resourceType: 'Staff',
+          resourceId: String(newStaff.id),
+          resourceName: nameVal.value,
+          newValue: newStaff
+        });
 
         alert("Staff Added Successfully!");
         router.push('/owner/staff');
