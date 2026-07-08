@@ -162,7 +162,7 @@ export default function OnboardingPage() {
   }
 
   // Calculate total steps based on role
-  const totalSteps = role === 'owner' ? 5 : 5;
+  const totalSteps = role === 'owner' ? 4 : role === 'manager' ? 4 : 2;
 
   const handleNext = async () => {
     setValidationErrors({});
@@ -170,7 +170,7 @@ export default function OnboardingPage() {
 
     // Validate the current step
     if (role === 'owner') {
-      if (currentStep === 2) {
+      if (currentStep === 1) {
         const result = ownerOrgSchema.safeParse(ownerOrg);
         if (!result.success) {
           const errors: Record<string, string> = {};
@@ -182,7 +182,7 @@ export default function OnboardingPage() {
         }
       }
     } else if (role === 'manager') {
-      if (currentStep === 2) {
+      if (currentStep === 1) {
         const result = managerProfileSchema.safeParse(managerProfile);
         if (!result.success) {
           const errors: Record<string, string> = {};
@@ -192,7 +192,7 @@ export default function OnboardingPage() {
           setValidationErrors(errors);
           return;
         }
-      } else if (currentStep === 3) {
+      } else if (currentStep === 2) {
         const result = managerAreaSchema.safeParse(managerArea);
         if (!result.success) {
           const errors: Record<string, string> = {};
@@ -204,18 +204,8 @@ export default function OnboardingPage() {
         }
       }
     } else if (role === 'staff') {
-      if (currentStep === 2) {
+      if (currentStep === 1) {
         const result = staffProfileSchema.safeParse(staffProfile);
-        if (!result.success) {
-          const errors: Record<string, string> = {};
-          result.error.issues.forEach(issue => {
-            errors[issue.path[0]] = issue.message;
-          });
-          setValidationErrors(errors);
-          return;
-        }
-      } else if (currentStep === 4) {
-        const result = staffTermsSchema.safeParse(staffTerms);
         if (!result.success) {
           const errors: Record<string, string> = {};
           result.error.issues.forEach(issue => {
@@ -301,8 +291,6 @@ export default function OnboardingPage() {
           staffProfile: {
             name: staffProfile.name,
             phone: staffProfile.phone,
-            languagePreference: staffLang,
-            acceptedTermsAt: new Date().toISOString()
           }
         });
       }
@@ -322,29 +310,24 @@ export default function OnboardingPage() {
   const getStepIcon = (step: number) => {
     if (role === 'owner') {
       switch (step) {
-        case 1: return <Globe className="w-5 h-5" />;
-        case 2: return <Building2 className="w-5 h-5" />;
-        case 3: return <Bell className="w-5 h-5" />;
-        case 4: return <FileText className="w-5 h-5" />;
-        case 5: return <CheckCircle2 className="w-5 h-5" />;
+        case 1: return <Building2 className="w-5 h-5" />;
+        case 2: return <Bell className="w-5 h-5" />;
+        case 3: return <FileText className="w-5 h-5" />;
+        case 4: return <CheckCircle2 className="w-5 h-5" />;
         default: return <ChevronRight className="w-5 h-5" />;
       }
     } else if (role === 'manager') {
       switch (step) {
-        case 1: return <Globe className="w-5 h-5" />;
-        case 2: return <User className="w-5 h-5" />;
-        case 3: return <MapPin className="w-5 h-5" />;
-        case 4: return <Bell className="w-5 h-5" />;
-        case 5: return <CheckCircle2 className="w-5 h-5" />;
+        case 1: return <User className="w-5 h-5" />;
+        case 2: return <MapPin className="w-5 h-5" />;
+        case 3: return <Bell className="w-5 h-5" />;
+        case 4: return <CheckCircle2 className="w-5 h-5" />;
         default: return <ChevronRight className="w-5 h-5" />;
       }
     } else {
       switch (step) {
-        case 1: return <Globe className="w-5 h-5" />;
-        case 2: return <User className="w-5 h-5" />;
-        case 3: return <Globe className="w-5 h-5" />;
-        case 4: return <ShieldCheck className="w-5 h-5" />;
-        case 5: return <CheckCircle2 className="w-5 h-5" />;
+        case 1: return <User className="w-5 h-5" />;
+        case 2: return <CheckCircle2 className="w-5 h-5" />;
         default: return <ChevronRight className="w-5 h-5" />;
       }
     }
@@ -353,29 +336,24 @@ export default function OnboardingPage() {
   const getStepTitle = (step: number) => {
     if (role === 'owner') {
       switch (step) {
-        case 1: return "Welcome to JalSeJiwan";
-        case 2: return "Organization Info";
-        case 3: return "Notification Setup";
-        case 4: return "Review & Confirm";
-        case 5: return "All Done!";
+        case 1: return "Organization Info";
+        case 2: return "Notification Setup";
+        case 3: return "Review & Confirm";
+        case 4: return "All Done!";
         default: return "";
       }
     } else if (role === 'manager') {
       switch (step) {
-        case 1: return "Welcome Manager";
-        case 2: return "Complete Profile";
-        case 3: return "Verify Area";
-        case 4: return "Alert Preferences";
-        case 5: return "Ready to Launch!";
+        case 1: return "Complete Profile";
+        case 2: return "Verify Area";
+        case 3: return "Alert Preferences";
+        case 4: return "Ready to Launch!";
         default: return "";
       }
     } else {
       switch (step) {
-        case 1: return "Welcome Delivery Partner";
-        case 2: return "Partner Profile";
-        case 3: return "Language Choice";
-        case 4: return "Terms & Security";
-        case 5: return "Ready to Deliver!";
+        case 1: return "Partner Profile";
+        case 2: return "Ready to Deliver!";
         default: return "";
       }
     }
@@ -449,30 +427,8 @@ export default function OnboardingPage() {
               {/* --- ROLE: OWNER FLOWS --- */}
               {role === 'owner' && (
                 <>
-                  {/* Step 1: Welcome */}
+                  {/* Step 1: Org Info */}
                   {currentStep === 1 && (
-                    <div className="space-y-4">
-                      <p className="text-slate-600 leading-relaxed">
-                        Namaste! Welcome as the <span className="font-semibold text-blue-600">Water System Owner</span>. 
-                        JalSeJiwan lets you monitor tank storage, dispatch delivery partners, invoice households, and automate customer payment reminders on WhatsApp.
-                      </p>
-                      <div className="bg-blue-50/50 rounded-2xl p-5 border border-blue-50 space-y-3">
-                        <h4 className="font-semibold text-slate-800 text-sm">What we will set up in this quick onboarding:</h4>
-                        <ul className="text-xs text-slate-600 space-y-2.5 list-disc pl-5">
-                          <li>Your official organization & business registration profile</li>
-                          <li>Your initial source node setup (Water project name, water scheme, storage tanks & pump stations)</li>
-                          <li>Your first Manager delegate credential (optional)</li>
-                          <li>Your preferred communication & WhatsApp auto-alert timings</li>
-                        </ul>
-                      </div>
-                      <p className="text-xs text-slate-400 font-sans">
-                        Click the &quot;Next&quot; button below to configure your water management portal.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Step 2: Org Info */}
-                  {currentStep === 2 && (
                     <div className="space-y-4">
                       <p className="text-xs text-slate-400">Please provide the details of your official water distribution organization.</p>
                       
@@ -549,8 +505,8 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 3: Notification Setup */}
-                  {currentStep === 3 && (
+                  {/* Step 2: Notification Setup */}
+                  {currentStep === 2 && (
                     <div className="space-y-4">
                       <p className="text-xs text-slate-400">Configure your automated alert configurations. These trigger communication loops for your registered consumers.</p>
                       
@@ -606,8 +562,8 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 4: Review */}
-                  {currentStep === 4 && (
+                  {/* Step 3: Review */}
+                  {currentStep === 3 && (
                     <div className="space-y-5">
                       <p className="text-xs text-slate-400">Verify your details before saving. All entries are stored securely in your JalSeJiwan profile.</p>
                       
@@ -653,8 +609,8 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 5: Finish */}
-                  {currentStep === 5 && (
+                  {/* Step 4: Finish */}
+                  {currentStep === 4 && (
                     <div className="text-center py-8 space-y-5">
                       <div className="inline-flex p-4 bg-green-50 text-green-600 rounded-full border border-green-100">
                         <Check className="w-12 h-12" />
@@ -673,26 +629,8 @@ export default function OnboardingPage() {
               {/* --- ROLE: MANAGER FLOWS --- */}
               {role === 'manager' && (
                 <>
-                  {/* Step 1: Welcome */}
+                  {/* Step 1: Complete Profile */}
                   {currentStep === 1 && (
-                    <div className="space-y-4">
-                      <p className="text-slate-600 leading-relaxed">
-                        Welcome, Operational Manager! You have been registered under a JalSeJiwan water scheme license. 
-                        As a manager, you supervise daily cylinder allocations, authorize delivery routes, and log system metrics.
-                      </p>
-                      <div className="bg-blue-50/50 rounded-2xl p-5 border border-blue-50 space-y-3">
-                        <h4 className="font-semibold text-slate-800 text-sm">We will quickly confirm:</h4>
-                        <ul className="text-xs text-slate-600 space-y-2.5 list-disc pl-5">
-                          <li>Your official contact profile details</li>
-                          <li>Your supervisor dashboard area scope</li>
-                          <li>Your push alert configuration preferences</li>
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Step 2: Complete Profile */}
-                  {currentStep === 2 && (
                     <div className="space-y-4">
                       <p className="text-xs text-slate-400">Provide your official professional profile details.</p>
                       <div className="space-y-4">
@@ -739,8 +677,8 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 3: Verify Area */}
-                  {currentStep === 3 && (
+                  {/* Step 2: Verify Area */}
+                  {currentStep === 2 && (
                     <div className="space-y-4">
                       <p className="text-xs text-slate-400">Verify your primary operational zone. If this is incorrect, contact your administrator.</p>
                       
@@ -775,8 +713,8 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 4: Notification Preferences */}
-                  {currentStep === 4 && (
+                  {/* Step 3: Notification Preferences */}
+                  {currentStep === 3 && (
                     <div className="space-y-4">
                       <p className="text-xs text-slate-400">Configure your daily supervisor notifications.</p>
                       
@@ -812,8 +750,8 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 5: Finish */}
-                  {currentStep === 5 && (
+                  {/* Step 4: Finish */}
+                  {currentStep === 4 && (
                     <div className="text-center py-8 space-y-5">
                       <div className="inline-flex p-4 bg-green-50 text-green-600 rounded-full border border-green-100">
                         <Check className="w-12 h-12" />
@@ -830,26 +768,8 @@ export default function OnboardingPage() {
               {/* --- ROLE: STAFF/DELIVERY PARTNER FLOWS --- */}
               {role === 'staff' && (
                 <>
-                  {/* Step 1: Welcome */}
+                  {/* Step 1: Complete Profile */}
                   {currentStep === 1 && (
-                    <div className="space-y-4">
-                      <p className="text-slate-600 leading-relaxed">
-                        Namaste and Welcome! You are registered as a <span className="font-semibold text-blue-600">JalSeJiwan Delivery Partner</span>. 
-                        Your mobile terminal lets you record route dropoffs, receive empty return cylinders, collect invoice payments, and navigate scheduled sectors.
-                      </p>
-                      <div className="bg-blue-50/50 rounded-2xl p-5 border border-blue-50 space-y-3">
-                        <h4 className="font-semibold text-slate-800 text-sm">What we will confirm in 2 minutes:</h4>
-                        <ul className="text-xs text-slate-600 space-y-2.5 list-disc pl-5">
-                          <li>Confirm your mobile profile name</li>
-                          <li>Select your preferred terminal language (English / Hindi)</li>
-                          <li>Accept delivery partner security conditions</li>
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Step 2: Complete Profile */}
-                  {currentStep === 2 && (
                     <div className="space-y-4">
                       <p className="text-xs text-slate-400">Please provide your mobile details so households can reach you for delivery.</p>
                       <div className="space-y-4">
@@ -884,72 +804,8 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 3: Language Choice */}
-                  {currentStep === 3 && (
-                    <div className="space-y-4">
-                      <p className="text-xs text-slate-400">Choose your preferred mobile terminal application language.</p>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div 
-                          onClick={() => setStaffLang('English')}
-                          className={`p-5 rounded-2xl border-2 text-center cursor-pointer select-none transition-all duration-200 ${
-                            staffLang === 'English' 
-                              ? 'border-blue-600 bg-blue-50/40 text-blue-800 font-bold scale-[1.02] shadow-md' 
-                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                          }`}
-                        >
-                          <p className="text-base">English</p>
-                          <p className="text-xs text-slate-400 mt-1">Default language</p>
-                        </div>
-
-                        <div 
-                          onClick={() => setStaffLang('Hindi')}
-                          className={`p-5 rounded-2xl border-2 text-center cursor-pointer select-none transition-all duration-200 ${
-                            staffLang === 'Hindi' 
-                              ? 'border-blue-600 bg-blue-50/40 text-blue-800 font-bold scale-[1.02] shadow-md' 
-                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                          }`}
-                        >
-                          <p className="text-base">हिन्दी / Hindi</p>
-                          <p className="text-xs text-slate-400 mt-1">हिंदी में काम करें</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Step 4: Terms & Security */}
-                  {currentStep === 4 && (
-                    <div className="space-y-4">
-                      <p className="text-xs text-slate-400">Read and accept delivery protocols and safety regulations.</p>
-                      
-                      <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 text-xs text-slate-500 h-40 overflow-y-auto space-y-2 font-mono scrollbar-thin">
-                        <p className="font-semibold text-slate-700">1. CYLINDER SAFETY CODE</p>
-                        <p>I agree to handle water cylinders carefully, ensuring caps are sealed securely to prevent leakage or contamination during transport.</p>
-                        <p className="font-semibold text-slate-700">2. PAYMENT SETTLEMENT</p>
-                        <p>I agree to immediately log any cash or digital payment collected at the doorstep. All collected invoice cash must be settled daily with the organization supervisor.</p>
-                        <p className="font-semibold text-slate-700">3. SECURE ACCOUNT PROTOCOL</p>
-                        <p>I agree to keep my mobile login PIN secure and verify that deliveries are conducted personally and logged with accurate geographic coordinates.</p>
-                      </div>
-
-                      <div className="flex items-start space-x-3.5 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                        <input 
-                          type="checkbox"
-                          id="acceptTerms"
-                          checked={staffTerms.acceptedTerms}
-                          onChange={e => setStaffTerms({...staffTerms, acceptedTerms: e.target.checked})}
-                          className="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 outline-none border-slate-300"
-                        />
-                        <label htmlFor="acceptTerms" className="select-none">
-                          <p className="text-sm font-semibold text-slate-800">Accept delivery conditions</p>
-                          <p className="text-xs text-slate-500 mt-0.5">I agree to the JalSeJiwan partner guidelines, safety requirements, and financial settlement terms.</p>
-                        </label>
-                      </div>
-                      {validationErrors.acceptedTerms && <p className="text-red-500 text-xs font-semibold">{validationErrors.acceptedTerms}</p>}
-                    </div>
-                  )}
-
-                  {/* Step 5: Finish */}
-                  {currentStep === 5 && (
+                  {/* Step 2: Finish */}
+                  {currentStep === 2 && (
                     <div className="text-center py-8 space-y-5">
                       <div className="inline-flex p-4 bg-green-50 text-green-600 rounded-full border border-green-100">
                         <Check className="w-12 h-12" />
