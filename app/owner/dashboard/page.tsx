@@ -15,8 +15,20 @@ import { checkClientRateLimit } from '@/lib/rateLimit';
 import { checkMonthlyAutoReminder, runBulkReminder } from '@/lib/reminderService';
 import { logActivity } from '@/lib/activityLogger';
 
-import { useLossDetection, LossDetectionWidget } from '@/components/LossDetectionWidget';
-import { AnalyticsDashboardSection } from '@/components/AnalyticsSection';
+import dynamic from 'next/dynamic';
+
+// Lazy load heavy components
+const LossDetectionWidget = dynamic(() => import('@/components/LossDetectionWidget').then(mod => mod.LossDetectionWidget), {
+  ssr: false,
+  loading: () => <div className="p-4 bg-slate-50 rounded-2xl animate-pulse h-32" />
+});
+const AnalyticsDashboardSection = dynamic(() => import('@/components/AnalyticsSection').then(mod => mod.AnalyticsDashboardSection), {
+  ssr: false,
+  loading: () => <div className="p-4 bg-slate-50 rounded-2xl animate-pulse h-64" />
+});
+
+// Import hook separately
+import { useLossDetection } from '@/components/LossDetectionWidget';
 
 function OwnerDashboard() {
   const router = useRouter();

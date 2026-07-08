@@ -534,7 +534,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       
       setIsInitialized(true);
     };
-    loadCache();
+    
+    // Defer heavy initial load to let the UI paint first
+    if (typeof requestIdleCallback !== 'undefined') {
+      requestIdleCallback(loadCache);
+    } else {
+      setTimeout(loadCache, 100);
+    }
   }, []);
 
   // Supabase real-time listener removed
