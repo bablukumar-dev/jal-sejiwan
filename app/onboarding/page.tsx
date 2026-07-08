@@ -38,22 +38,6 @@ const ownerOrgSchema = z.object({
   contactNumber: z.string().regex(/^[6-9]\d{9}$/, { message: "Please enter a valid 10-digit Indian phone number" }),
 });
 
-const ownerManagerSchema = z.object({
-  managerName: z.string().optional(),
-  managerEmail: z.string().email({ message: "Please enter a valid email" }).or(z.literal('')),
-  managerPin: z.string().regex(/^\d{6}$/, { message: "PIN must be exactly 6 digits" }).or(z.literal('')),
-}).refine(data => {
-  // If one field is filled, all must be filled
-  if (data.managerName || data.managerEmail || data.managerPin) {
-    return !!(data.managerName && data.managerEmail && data.managerPin);
-  }
-  return true;
-}, {
-  message: "If you want to create a manager, please fill in all fields (Name, Email, and 6-digit PIN)",
-  path: ["managerName"] // highlight managerName field for the error
-});
-
-// Manager validation schemas
 const managerProfileSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   phone: z.string().regex(/^[6-9]\d{9}$/, { message: "Please enter a valid 10-digit Indian phone number" }),
@@ -107,12 +91,6 @@ export default function OnboardingPage() {
     district: '',
     officeAddress: '',
     contactNumber: ''
-  });
-
-  const [ownerManager, setOwnerManager] = useState({
-    managerName: '',
-    managerEmail: '',
-    managerPin: ''
   });
 
   const [ownerNotify, setOwnerNotify] = useState({
@@ -184,7 +162,7 @@ export default function OnboardingPage() {
   }
 
   // Calculate total steps based on role
-  const totalSteps = role === 'owner' ? 6 : 5;
+  const totalSteps = role === 'owner' ? 5 : 5;
 
   const handleNext = async () => {
     setValidationErrors({});
@@ -194,17 +172,6 @@ export default function OnboardingPage() {
     if (role === 'owner') {
       if (currentStep === 2) {
         const result = ownerOrgSchema.safeParse(ownerOrg);
-        if (!result.success) {
-          const errors: Record<string, string> = {};
-          result.error.issues.forEach(issue => {
-            errors[issue.path[0]] = issue.message;
-          });
-          setValidationErrors(errors);
-          return;
-        }
-      } else if (currentStep === 3) {
-        // Step 3: Manager (optional but must validate if anything is typed)
-        const result = ownerManagerSchema.safeParse(ownerManager);
         if (!result.success) {
           const errors: Record<string, string> = {};
           result.error.issues.forEach(issue => {
@@ -284,48 +251,6 @@ export default function OnboardingPage() {
       const userDocRef = doc(db, 'users', currentUser.uid);
 
       if (role === 'owner') {
-        // 1. Create Manager if fields are filled out
-        if (ownerManager.managerName && ownerManager.managerEmail && ownerManager.managerPin) {
-          try {
-            const idToken = await auth.currentUser.getIdToken();
-            const response = await fetch('/api/admin/create-user', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${idToken}`
-              },
-              body: JSON.stringify({
-                email: ownerManager.managerEmail,
-                password: ownerManager.managerPin,
-                name: ownerManager.managerName,
-                role: 'manager',
-                business_id: currentUser.businessId
-              })
-            });
-
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-              console.error("Non-JSON response received:", await response.text());
-              throw new Error("Server returned an invalid response (not JSON).");
-            }
-
-            if (!response.ok) {
-              const contentType = response.headers.get("content-type");
-              if (contentType && contentType.includes("application/json")) {
-                const apiResult = await response.json();
-                throw new Error(apiResult.error || 'Failed to create manager account');
-              } else {
-                const text = await response.text();
-                console.error("API error (not JSON):", text);
-                throw new Error('Failed to create manager account (server error)');
-              }
-            }
-          } catch (mErr: any) {
-            console.error("Failed to create manager during onboarding:", mErr);
-            throw new Error(`Manager account creation failed: ${mErr.message}. You can fix this or remove manager details to skip.`);
-          }
-        }
-
         // 2. Prepare Business Info payload
         const updatedBusinessInfo = {
           name: ownerOrg.orgName,
@@ -399,10 +324,9 @@ export default function OnboardingPage() {
       switch (step) {
         case 1: return <Globe className="w-5 h-5" />;
         case 2: return <Building2 className="w-5 h-5" />;
-        case 3: return <UserPlus className="w-5 h-5" />;
-        case 4: return <Bell className="w-5 h-5" />;
-        case 5: return <FileText className="w-5 h-5" />;
-        case 6: return <CheckCircle2 className="w-5 h-5" />;
+        case 3: return <Bell className="w-5 h-5" />;
+        case 4: return <FileText className="w-5 h-5" />;
+        case 5: return <CheckCircle2 className="w-5 h-5" />;
         default: return <ChevronRight className="w-5 h-5" />;
       }
     } else if (role === 'manager') {
@@ -431,10 +355,9 @@ export default function OnboardingPage() {
       switch (step) {
         case 1: return "Welcome to JalSeJiwan";
         case 2: return "Organization Info";
-        case 3: return "First Manager (Optional)";
-        case 4: return "Notification Setup";
-        case 5: return "Review & Confirm";
-        case 6: return "All Done!";
+        case 3: return "Notification Setup";
+        case 4: return "Review & Confirm";
+        case 5: return "All Done!";
         default: return "";
       }
     } else if (role === 'manager') {
@@ -626,68 +549,8 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 3: Create First Manager */}
+                  {/* Step 3: Notification Setup */}
                   {currentStep === 3 && (
-                    <div className="space-y-4">
-                      <p className="text-xs text-slate-400">If you want to delegate operations, you can register your first Manager account right now. Leave these fields blank if you prefer to set this up later from your staff menu.</p>
-                      
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">Manager Full Name</label>
-                          <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                              <User className="w-4 h-4" />
-                            </span>
-                            <input 
-                              type="text"
-                              placeholder="e.g. Rajesh Kumar"
-                              value={ownerManager.managerName}
-                              onChange={e => setOwnerManager({...ownerManager, managerName: e.target.value})}
-                              className={`w-full pl-11 pr-4 py-3 border rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${validationErrors.managerName ? 'border-red-400 bg-red-50/30' : 'border-slate-200'}`}
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">Manager Email Address</label>
-                          <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                              <Globe className="w-4 h-4" />
-                            </span>
-                            <input 
-                              type="email"
-                              placeholder="e.g. rajesh@swajal.com"
-                              value={ownerManager.managerEmail}
-                              onChange={e => setOwnerManager({...ownerManager, managerEmail: e.target.value})}
-                              className={`w-full pl-11 pr-4 py-3 border rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${validationErrors.managerEmail ? 'border-red-400 bg-red-50/30' : 'border-slate-200'}`}
-                            />
-                          </div>
-                          {validationErrors.managerEmail && <p className="text-red-500 text-xs mt-1 font-semibold">{validationErrors.managerEmail}</p>}
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">Manager 6-digit Login PIN / Password</label>
-                          <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                              <Lock className="w-4 h-4" />
-                            </span>
-                            <input 
-                              type="text"
-                              maxLength={6}
-                              placeholder="123456"
-                              value={ownerManager.managerPin}
-                              onChange={e => setOwnerManager({...ownerManager, managerPin: e.target.value.replace(/\D/g, '')})}
-                              className={`w-full pl-11 pr-4 py-3 border rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${validationErrors.managerPin ? 'border-red-400 bg-red-50/30' : 'border-slate-200'}`}
-                            />
-                          </div>
-                          {validationErrors.managerPin && <p className="text-red-500 text-xs mt-1 font-semibold">{validationErrors.managerPin}</p>}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Step 4: Notifications */}
-                  {currentStep === 4 && (
                     <div className="space-y-4">
                       <p className="text-xs text-slate-400">Configure your automated alert configurations. These trigger communication loops for your registered consumers.</p>
                       
@@ -743,8 +606,8 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 5: Review */}
-                  {currentStep === 5 && (
+                  {/* Step 4: Review */}
+                  {currentStep === 4 && (
                     <div className="space-y-5">
                       <p className="text-xs text-slate-400">Verify your details before saving. All entries are stored securely in your JalSeJiwan profile.</p>
                       
@@ -771,30 +634,6 @@ export default function OnboardingPage() {
                           </div>
                         </div>
 
-                        {/* Delegate manager block */}
-                        {ownerManager.managerName ? (
-                          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3 text-xs">
-                            <div className="flex items-center space-x-2 text-slate-800 font-bold border-b border-slate-200 pb-1.5 uppercase">
-                              <UserPlus className="w-3.5 h-3.5 text-blue-600" />
-                              <span>Delegate Manager Profile</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-y-2 gap-x-4">
-                              <div>
-                                <p className="text-slate-400 font-medium">Name</p>
-                                <p className="text-slate-800 font-semibold text-sm">{ownerManager.managerName}</p>
-                              </div>
-                              <div>
-                                <p className="text-slate-400 font-medium">Email Address</p>
-                                <p className="text-slate-800 font-semibold text-sm">{ownerManager.managerEmail}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="p-4 rounded-2xl bg-slate-50 text-slate-400 border border-slate-100 text-xs italic text-center">
-                            No Manager credentials registered during onboarding (Can delegate later).
-                          </div>
-                        )}
-
                         {/* Notifications block */}
                         <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3 text-xs">
                           <div className="flex items-center space-x-2 text-slate-800 font-bold border-b border-slate-200 pb-1.5 uppercase">
@@ -814,8 +653,8 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
-                  {/* Step 6: Finish */}
-                  {currentStep === 6 && (
+                  {/* Step 5: Finish */}
+                  {currentStep === 5 && (
                     <div className="text-center py-8 space-y-5">
                       <div className="inline-flex p-4 bg-green-50 text-green-600 rounded-full border border-green-100">
                         <Check className="w-12 h-12" />
