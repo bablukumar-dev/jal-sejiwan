@@ -327,6 +327,12 @@ export default function OnboardingPage() {
               })
             });
 
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+              console.error("Non-JSON response received:", await response.text());
+              throw new Error("Server returned an invalid response (not JSON).");
+            }
+
             if (!response.ok) {
               const apiResult = await response.json();
               throw new Error(apiResult.error || 'Failed to create manager account');
