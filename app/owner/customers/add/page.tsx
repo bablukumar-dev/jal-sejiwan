@@ -9,6 +9,8 @@ import { useAppContext } from '@/app/context/AppContext';
 import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
 import { logActivity } from '@/lib/activityLogger';
 import { addCustomer } from '@/lib/firestore-service';
+import { getFirebase } from '@/src/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import ImageCropperModal from '@/components/ImageCropperModal';
 import Toast, { ToastProps } from '@/components/Toast';
 
@@ -170,6 +172,34 @@ export default function AddCustomer() {
         };
 
         const docRef = await addCustomer(customerData, currentUser);
+        
+        // ================= EVIDENCE DEBUGGING: STEP 1 & 2 =================
+        const bId = currentUser.businessId;
+        const firestorePath = `businesses/${bId}/customers/${docRef.id}`;
+        console.log("================= EVIDENCE DEBUGGING: STEP 1 =================");
+        console.log(`Customer Document ID: ${docRef.id}`);
+        console.log(`Business ID: ${bId}`);
+        console.log(`Firestore Path: ${firestorePath}`);
+
+        console.log("================= EVIDENCE DEBUGGING: STEP 2 =================");
+        try {
+          const { db } = getFirebase();
+          if (db) {
+            const readDocRef = doc(db, 'businesses', bId, 'customers', docRef.id);
+            const docSnap = await getDoc(readDocRef);
+            console.log(`Document Exists: ${docSnap.exists()}`);
+            if (docSnap.exists()) {
+              console.log("Document Data:", JSON.stringify(docSnap.data()));
+            } else {
+              console.error("CRITICAL ERROR: Saved document was NOT found immediately after saving!");
+            }
+          } else {
+            console.error("Firestore DB was undefined during validation check.");
+          }
+        } catch (readError) {
+          console.error("Error during Step 2 verification:", readError);
+        }
+        console.log("=============================================================");
         
         logActivity({
           module: 'Customers',

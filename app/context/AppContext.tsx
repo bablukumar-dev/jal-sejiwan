@@ -305,6 +305,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteCookie('userRole');
       deleteCookie('businessId');
       deleteCookie('onboardingCompleted');
+      deleteCookie('sessionActive');
       
       if (typeof window !== 'undefined') {
         localStorage.removeItem('businessId');
@@ -330,12 +331,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         unsubDoc = null;
       }
 
-      if (user) {
+      if (user && user.uid) {
+        console.log(`[AppContext] Valid authenticated user detected: ${user.uid}. Checking profile document...`);
+        
+        // Use cached fallbacks during loading to avoid premature empty state or logout triggers
+        const cachedBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || '' : '';
+        const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') || 'owner' : 'owner';
+        const cachedOnboarding = typeof window !== 'undefined' ? localStorage.getItem('onboardingCompleted') === 'true' : false;
+
+        // Set initial user state with cached details while snapshot is loading
+        setCurrentUser(prev => prev || {
+          uid: user.uid,
+          role: cachedRole as any,
+          businessId: cachedBusinessId,
+          onboardingCompleted: cachedOnboarding,
+          dashboardTourCompleted: false,
+        });
+
         try {
           const idToken = await user.getIdToken();
-          setCookie('firebaseIdToken', idToken, 3600);
+          // Store token for 30 days to facilitate robust persistent login
+          setCookie('firebaseIdToken', idToken, 3600 * 24 * 30);
+          setCookie('sessionActive', 'true', 3600 * 24 * 30);
         } catch (e) {
-          console.error("Error getting ID token in onAuthStateChanged:", e);
+          console.error("[AppContext] Error getting ID token in onAuthStateChanged:", e);
         }
 
         const userDocRef = doc(db, 'users', user.uid);
@@ -348,7 +367,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             // If onboardingCompleted is missing in Firestore, safely initialize it to false
             if (data.onboardingCompleted === undefined) {
               updateDoc(userDocRef, { onboardingCompleted: false }).catch((err) => {
-                console.error("Safely tried to set initial onboardingCompleted: false, error:", err);
+                console.error("[AppContext] Safely tried to set initial onboardingCompleted: false, error:", err);
               });
             }
 
@@ -361,13 +380,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               waterSystemSetup: data.waterSystemSetup,
             });
             setOwnerId(data.businessId);
-            localStorage.setItem('businessId', data.businessId);
-            localStorage.setItem('userRole', data.role);
-            setCookie('userRole', data.role, 3600);
-            setCookie('businessId', data.businessId, 3600);
-            setCookie('onboardingCompleted', onboardingCompleted ? 'true' : 'false', 3600);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('businessId', data.businessId);
+              localStorage.setItem('userRole', data.role);
+              localStorage.setItem('onboardingCompleted', onboardingCompleted ? 'true' : 'false');
+            }
+            setCookie('userRole', data.role, 3600 * 24 * 30);
+            setCookie('businessId', data.businessId, 3600 * 24 * 30);
+            setCookie('onboardingCompleted', onboardingCompleted ? 'true' : 'false', 3600 * 24 * 30);
+            setCookie('sessionActive', 'true', 3600 * 24 * 30);
             
             // Set auth loading to false only after data is received
+            setAuthLoading(false);
+          } else {
+            console.log(`[AppContext] User document for UID ${user.uid} does not exist yet. Using cached fallbacks.`);
+            // User document is not found (perhaps being created right now). Keep cached state to avoid premature logout.
+            if (cachedBusinessId) {
+              setCurrentUser({
+                uid: user.uid,
+                role: cachedRole as any,
+                businessId: cachedBusinessId,
+                onboardingCompleted: cachedOnboarding,
+                dashboardTourCompleted: false,
+              });
+              setOwnerId(cachedBusinessId);
+              setAuthLoading(false);
+            } else {
+              // Minimal fallback profile so signup/onboarding can run smoothly without breaking routing
+              setCurrentUser({
+                uid: user.uid,
+                role: 'owner',
+                businessId: '',
+                onboardingCompleted: false,
+                dashboardTourCompleted: false,
+              });
+              setAuthLoading(false);
+            }
+          }
+        }, (error: any) => {
+          console.error("[AppContext] Permission Denied or error in user doc subscription:", error);
+          if (error.code === 'permission-denied') {
+            console.error("[AppContext] FIRESTORE PERMISSION DENIED: Please ensure your security rules allow reading from the 'users' collection.");
+          }
+          // If we have local cached state, keep it to prevent abrupt mid-session logouts
+          if (cachedBusinessId) {
             setAuthLoading(false);
           } else {
             setCurrentUser(null);
@@ -375,28 +431,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             deleteCookie('userRole');
             deleteCookie('businessId');
             deleteCookie('onboardingCompleted');
+            deleteCookie('sessionActive');
             setAuthLoading(false);
           }
-        }, (error: any) => {
-          console.error("Permission Denied:", error);
-          if (error.code === 'permission-denied') {
-            console.error("FIRESTORE PERMISSION DENIED: Please ensure your security rules allow reading from the 'users' collection.");
-          }
-          setCurrentUser(null);
-          deleteCookie('firebaseIdToken');
-          deleteCookie('userRole');
-          deleteCookie('businessId');
-          setAuthLoading(false);
         });
       } else {
+        // No user is authenticated with Firebase
         if (!isLoggingOutRef.current) {
+          console.log("[AppContext] No authenticated user. Clearing auth states.");
           setCurrentUser(null);
           setOwnerId(null);
-          localStorage.removeItem('businessId');
-          localStorage.removeItem('userRole');
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('businessId');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('onboardingCompleted');
+          }
           deleteCookie('firebaseIdToken');
           deleteCookie('userRole');
           deleteCookie('businessId');
+          deleteCookie('onboardingCompleted');
+          deleteCookie('sessionActive');
           setAuthLoading(false);
         }
       }
@@ -577,20 +631,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Real-time synchronization for all modules
   useEffect(() => {
     const { auth, db } = getFirebase();
-    if (!auth || !db || !currentUser?.businessId) return;
+    console.log("[AppContext] Listener useEffect running. auth:", !!auth, "db:", !!db, "businessId:", currentUser?.businessId, "isInitialized:", isInitialized);
+    if (!auth || !db || !currentUser?.businessId || !isInitialized) return;
+
+    console.log("================= EVIDENCE DEBUGGING: STEP 3 =================");
+    console.log(`Current UID: ${currentUser?.uid}`);
+    console.log(`Current Role: ${currentUser?.role}`);
+    console.log(`Current Business ID: ${currentUser?.businessId}`);
+    console.log("=============================================================");
 
     const bId = currentUser.businessId;
     const oId = currentUser.role === 'owner' ? currentUser.uid : (currentUser as any).ownerId || bId; // Fallback if ownerId not directly on user
 
-    console.log(`[AppContext] Starting real-time sync for user: ${currentUser.uid}`);
+    console.log(`[AppContext] Starting real-time sync for user: ${currentUser.uid}, role: ${currentUser.role}, businessId: ${bId}`);
 
     const uId = currentUser.uid;
 
     // Sync Customers
-    const qCustomers = query(collection(db, 'customers'), where('businessId', '==', bId));
+    const qCustomers = collection(db, 'businesses', bId, 'customers');
+    console.log("================= EVIDENCE DEBUGGING: STEP 4 =================");
+    console.log(`Exact Firestore query for Customers:`);
+    console.log(`- Collection Path: businesses/${bId}/customers`);
+    console.log(`- Where clauses: NONE`);
+    console.log(`- OrderBy: NONE`);
+    console.log(`- Limit: NONE`);
+    console.log("=============================================================");
+    console.log(`[AppContext] Subscribed to customer collection path: businesses/${bId}/customers`);
     const unsubCustomers = onSnapshot(qCustomers, (snapshot) => {
-      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Customer));
+      console.log("================= EVIDENCE DEBUGGING: STEP 5 =================");
+      console.log(`Snapshot Fired: true`);
+      console.log(`Document Count: ${snapshot.docs.length}`);
+      snapshot.docs.forEach((d, idx) => {
+        const item = d.data();
+        console.log(`- Doc [${idx}] ID: ${d.id}`);
+        console.log(`  Name: ${item.name}`);
+        console.log(`  Business ID: ${item.businessId}`);
+      });
+      console.log("=============================================================");
+      console.log(`[AppContext] Customer collection updated. Snapshot contains ${snapshot.docs.length} documents.`);
+      const docs = snapshot.docs.map(d => {
+        const item = d.data();
+        console.log(`[AppContext]   - Customer doc ID: ${d.id}, Name: ${item.name}, businessId: ${item.businessId}`);
+        return { id: d.id, ...item } as Customer;
+      });
       setCustomers(docs);
+      console.log("================= EVIDENCE DEBUGGING: STEP 6 =================");
+      console.log(`customers.length immediately after setCustomers: ${docs.length}`);
+      console.log("=============================================================");
       
       // Update routes and areas from customers
       const rts = Array.from(new Set(docs.map(c => c.route).filter(Boolean)));
@@ -602,29 +689,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Sync Deliveries
-    const qDeliveries = query(collection(db, 'deliveries'), where('businessId', '==', bId), orderBy('date', 'desc'));
+    const qDeliveries = query(collection(db, 'businesses', bId, 'deliveries'), orderBy('date', 'desc'));
     const unsubDeliveries = onSnapshot(qDeliveries, (snapshot) => {
       setDeliveries(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Delivery)));
+    }, (error) => {
+      console.error("Profile Sync Error (Deliveries):", error);
     });
 
     // Sync Payments
-    const qPayments = query(collection(db, 'payments'), where('businessId', '==', bId), orderBy('date', 'desc'));
+    const qPayments = query(collection(db, 'businesses', bId, 'payments'), orderBy('date', 'desc'));
     const unsubPayments = onSnapshot(qPayments, (snapshot) => {
       setPayments(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Payment)));
+    }, (error) => {
+      console.error("Profile Sync Error (Payments):", error);
     });
 
     // Sync Staff
-    const qStaff = query(collection(db, 'staff'), where('businessId', '==', bId));
+    const qStaff = collection(db, 'businesses', bId, 'staff');
     const unsubStaff = onSnapshot(qStaff, (snapshot) => {
       setStaff(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Staff)));
+    }, (error) => {
+      console.error("Profile Sync Error (Staff):", error);
     });
 
     // Sync Inventory
-    // Note: Inventory uses businessId as doc ID. 
-    const unsubInventory = onSnapshot(doc(db, 'inventory', bId), (snapshot) => {
+    const unsubInventory = onSnapshot(doc(db, 'businesses', bId, 'settings', 'inventory'), (snapshot) => {
       if (snapshot.exists()) {
         setInventory(snapshot.data() as Inventory);
       }
+    }, (error) => {
+      console.error("Profile Sync Error (Inventory):", error);
     });
 
     // Sync Business Info
@@ -632,6 +726,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (snapshot.exists()) {
         setBusinessInfo(snapshot.data() as BusinessInfo);
       }
+    }, (error) => {
+      console.error("Profile Sync Error (BusinessInfo):", error);
     });
 
     return () => {
@@ -642,7 +738,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       unsubInventory();
       unsubBusiness();
     };
-  }, [currentUser]);
+  }, [currentUser, isInitialized]);
 
   // Define a centralized manual triggerSync function
   const triggerSync = useCallback(async () => {

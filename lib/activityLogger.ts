@@ -27,6 +27,14 @@ export interface ActivityLog {
   requestId?: string;
   description: string; // Required for the current UI
   action_type?: string; // Required for current UI filtering
+
+  // Specific schema properties requested by the user
+  performedByUID?: string;
+  performedByName?: string;
+  performedByRole?: string;
+  entity?: string;
+  entityId?: string;
+  ip?: string;
 }
 
 /**
@@ -102,10 +110,23 @@ export async function logActivity(
       device: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
       browser: typeof navigator !== 'undefined' ? navigator.appName : 'unknown',
       sessionId: localStorage.getItem('sessionId') || 'unknown',
+
+      // Specific schema fields requested by the user
+      performedByUID: user.uid,
+      performedByName: userName,
+      performedByRole: role,
+      entity: finalParams.resourceType || finalParams.module,
+      entityId: finalParams.resourceId || '',
+      ip: '127.0.0.1'
     };
 
-    // Asynchronous non-blocking write
-    addDoc(collection(db, 'activity_logs'), logData).catch(err => {
+    if (!businessId) {
+      console.warn("Activity Logger: businessId not found in localStorage, cannot log to subcollection.");
+      return;
+    }
+
+    // Write to /businesses/{businessId}/activityLogs subcollection
+    addDoc(collection(db, 'businesses', businessId, 'activityLogs'), logData).catch(err => {
       console.error("Failed to write activity log:", err);
     });
 
@@ -113,4 +134,3 @@ export async function logActivity(
     console.error("Activity Logger Error:", error);
   }
 }
-

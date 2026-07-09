@@ -265,8 +265,8 @@ export default function OnboardingPage() {
         };
         await setDoc(businessDocRef, businessData);
 
-        // 2. Initialize Inventory for this business
-        const inventoryDocRef = doc(db, 'inventory', oId);
+        // 2. Initialize Inventory for this business inside the settings subcollection
+        const inventoryDocRef = doc(db, 'businesses', bId, 'settings', 'inventory');
         await setDoc(inventoryDocRef, {
           fullCans: 0,
           emptyCans: 0,
@@ -292,8 +292,10 @@ export default function OnboardingPage() {
         localStorage.setItem('businessInfo', JSON.stringify(businessData));
 
       } else if (role === 'manager') {
-        // Update Firestore Document for Manager
-        await updateDoc(userDocRef, {
+        const bId = currentUser?.businessId;
+        if (!bId) throw new Error("Missing businessId in user context");
+
+        const managerData = {
           onboardingCompleted: true,
           profileCompleted: true,
           updatedAt: new Date().toISOString(),
@@ -305,10 +307,26 @@ export default function OnboardingPage() {
             notifyDailyReports: managerNotify.dailyReports,
             notifyCriticalAlerts: managerNotify.criticalAlerts
           }
-        });
+        };
+
+        // Update Firestore Document for Manager (User)
+        await updateDoc(userDocRef, managerData);
+
+        // Also update staff subcollection document
+        const staffDocRef = doc(db, 'businesses', bId, 'staff', currentUser.uid);
+        await updateDoc(staffDocRef, {
+          name: managerProfile.name,
+          phone: managerProfile.phone,
+          onboardingCompleted: true,
+          profileCompleted: true,
+          updatedAt: new Date().toISOString()
+        }).catch(err => console.warn("Staff document update skipped or failed:", err));
+
       } else if (role === 'staff') {
-        // Update Firestore Document for Staff
-        await updateDoc(userDocRef, {
+        const bId = currentUser?.businessId;
+        if (!bId) throw new Error("Missing businessId in user context");
+
+        const staffData = {
           onboardingCompleted: true,
           profileCompleted: true,
           updatedAt: new Date().toISOString(),
@@ -316,7 +334,20 @@ export default function OnboardingPage() {
             name: staffProfile.name,
             phone: staffProfile.phone,
           }
-        });
+        };
+
+        // Update Firestore Document for Staff (User)
+        await updateDoc(userDocRef, staffData);
+
+        // Also update staff subcollection document
+        const staffDocRef = doc(db, 'businesses', bId, 'staff', currentUser.uid);
+        await updateDoc(staffDocRef, {
+          name: staffProfile.name,
+          phone: staffProfile.phone,
+          onboardingCompleted: true,
+          profileCompleted: true,
+          updatedAt: new Date().toISOString()
+        }).catch(err => console.warn("Staff document update skipped or failed:", err));
       }
 
       // Synchronize Cookie immediately so middleware lets them in

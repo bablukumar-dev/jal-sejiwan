@@ -10,9 +10,9 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  serverExternalPackages: ['firebase-admin'],
   experimental: {
     optimizePackageImports: ['lucide-react'],
-    serverExternalPackages: ['firebase-admin'],
   },
   // Allow access to remote image placeholder.
   images: {

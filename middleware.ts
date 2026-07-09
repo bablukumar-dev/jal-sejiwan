@@ -53,20 +53,22 @@ export function middleware(request: NextRequest) {
     const tokenCookie = request.cookies.get('firebaseIdToken');
     const roleCookie = request.cookies.get('userRole');
     const onboardingCookie = request.cookies.get('onboardingCompleted');
+    const sessionActiveCookie = request.cookies.get('sessionActive');
     
     const token = tokenCookie?.value;
     const role = roleCookie?.value;
     const onboardingCompleted = onboardingCookie?.value;
+    const isSessionActive = sessionActiveCookie?.value === 'true';
     
-    if (!token) {
+    if (!token && !isSessionActive) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('redirect', pathname);
       return NextResponse.redirect(url);
     }
     
-    const payload = parseJwt(token);
-    if (!payload) {
+    const payload = token ? parseJwt(token) : null;
+    if (!payload && token && !isSessionActive) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('redirect', pathname);
@@ -76,12 +78,13 @@ export function middleware(request: NextRequest) {
       response.cookies.delete('userRole');
       response.cookies.delete('businessId');
       response.cookies.delete('onboardingCompleted');
+      response.cookies.delete('sessionActive');
       return response;
     }
     
-    // Check expiration
-    const isExpired = payload.exp ? (Date.now() / 1000 >= payload.exp) : true;
-    if (isExpired) {
+    // Check expiration if we have a token
+    const isExpired = payload?.exp ? (Date.now() / 1000 >= payload.exp) : true;
+    if (isExpired && token && !isSessionActive) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('expired', 'true');
@@ -90,6 +93,7 @@ export function middleware(request: NextRequest) {
       response.cookies.delete('userRole');
       response.cookies.delete('businessId');
       response.cookies.delete('onboardingCompleted');
+      response.cookies.delete('sessionActive');
       return response;
     }
     
@@ -113,10 +117,10 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // Protect role-specific routes
+    // Protect role-specific routes (only if role cookie is present to prevent blocking during client-side token refresh)
     // Owner & Admin access
     if (pathname.startsWith('/owner') || pathname.startsWith('/admin') || pathname.startsWith('/inventory')) {
-      if (role !== 'owner') {
+      if (role && role !== 'owner') {
         const url = request.nextUrl.clone();
         url.pathname = '/unauthorized';
         return NextResponse.redirect(url);
@@ -125,7 +129,7 @@ export function middleware(request: NextRequest) {
 
     // Manager specific access
     if (pathname.startsWith('/manager')) {
-      if (role !== 'manager') {
+      if (role && role !== 'manager') {
         const url = request.nextUrl.clone();
         url.pathname = '/unauthorized';
         return NextResponse.redirect(url);
@@ -134,7 +138,7 @@ export function middleware(request: NextRequest) {
 
     // Staff specific access
     if (pathname.startsWith('/staff')) {
-      if (role !== 'staff') {
+      if (role && role !== 'staff') {
         const url = request.nextUrl.clone();
         url.pathname = '/unauthorized';
         return NextResponse.redirect(url);
@@ -146,23 +150,22 @@ export function middleware(request: NextRequest) {
   if (isPublic && (pathname === '/login' || pathname === '/signup')) {
     const tokenCookie = request.cookies.get('firebaseIdToken');
     const roleCookie = request.cookies.get('userRole');
+    const sessionActiveCookie = request.cookies.get('sessionActive');
     
     const token = tokenCookie?.value;
     const role = roleCookie?.value;
+    const isSessionActive = sessionActiveCookie?.value === 'true';
     
-    if (token) {
-      const payload = parseJwt(token);
-      const isExpired = payload?.exp ? (Date.now() / 1000 >= payload.exp) : true;
-      
-      if (payload && !isExpired) {
-        const url = request.nextUrl.clone();
-        if (role === 'staff') {
-          url.pathname = '/staff/dashboard';
-        } else {
-          url.pathname = '/owner/dashboard';
-        }
-        return NextResponse.redirect(url);
+    if (isSessionActive || token) {
+      const url = request.nextUrl.clone();
+      if (role === 'staff') {
+        url.pathname = '/staff/dashboard';
+      } else if (role === 'manager') {
+        url.pathname = '/manager/dashboard';
+      } else {
+        url.pathname = '/owner/dashboard';
       }
+      return NextResponse.redirect(url);
     }
   }
 

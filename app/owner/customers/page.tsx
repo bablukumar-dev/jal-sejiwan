@@ -12,19 +12,22 @@ import { wrapRoute } from '@/lib/permissionGuard';
 import { sendWhatsAppSummary } from '@/lib/reminderService';
 
 function CustomersList() {
-  try {
-    const { customers: rawCustomers, deliveries = [], businessInfo, currentUser } = useAppContext();
+  const { customers: rawCustomers, deliveries = [], businessInfo, currentUser } = useAppContext();
 
-    const customers = useMemo(() => {
-      try {
-        return Array.from(
-          new Map((rawCustomers || []).map(item => [item.id, item])).values()
-        );
-      } catch (e) {
-        console.error("Customers mapping error", e);
-        return [];
-      }
-    }, [rawCustomers]);
+  console.log("[CustomersList] Render triggered. rawCustomers from context:", rawCustomers);
+
+  const customers = useMemo(() => {
+    try {
+      const mapped = Array.from(
+        new Map((rawCustomers || []).map(item => [item.id, item])).values()
+      );
+      console.log("[CustomersList] Unique customers after mapping and deduplication:", mapped);
+      return mapped;
+    } catch (e) {
+      console.error("Customers mapping error", e);
+      return [];
+    }
+  }, [rawCustomers]);
     const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
@@ -135,7 +138,7 @@ function CustomersList() {
 
   const filteredCustomers = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    return customers.filter(c => {
+    const res = customers.filter(c => {
       const latestDelivery = deliveries.find(d => d.customerId === c.id && d.date === today);
       const isDelivered = latestDelivery?.status?.toLowerCase() === 'delivered';
 
@@ -156,6 +159,14 @@ function CustomersList() {
       
       return true;
     });
+    console.log("================= EVIDENCE DEBUGGING: STEP 8 =================");
+    console.log(`customers.length: ${customers.length}`);
+    console.log(`filteredCustomers.length: ${res.length}`);
+    console.log(`searchText: "${debouncedSearchQuery}"`);
+    console.log(`selectedFilter: "${filter}"`);
+    console.log("=============================================================");
+    console.log(`[CustomersList] filteredCustomers (Filter: "${filter}", Query: "${debouncedSearchQuery}") count: ${res.length}, data:`, res);
+    return res;
   }, [customers, deliveries, filter, debouncedSearchQuery]);
 
   return (
@@ -422,24 +433,6 @@ function CustomersList() {
       <BottomNav role={userRole} activeTab="customers" />
     </div>
   );
-  } catch (err: any) {
-    console.error("CATASTROPHIC ERROR IN CUSTOMERS PAGE:", err);
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
-          <X className="w-8 h-8 text-red-600" />
-        </div>
-        <h2 className="text-lg font-bold text-slate-800">Something went wrong!</h2>
-        <p className="text-sm text-slate-500 mt-2">We encountered an error while loading your customers.</p>
-        <button 
-          onClick={() => window.location.reload()}
-          className="mt-6 bg-blue-600 text-white px-6 py-2 rounded-xl font-bold"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
 }
 
 export default wrapRoute(CustomersList, { requiredRole: 'manager' });

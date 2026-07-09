@@ -89,9 +89,10 @@ function LoginContent() {
           const idToken = await userCredential.user.getIdToken();
           const onboardingCompleted = data.onboardingCompleted !== undefined ? data.onboardingCompleted : false;
           setCookie('firebaseIdToken', idToken, 3600);
-          setCookie('userRole', data.role, 3600);
-          setCookie('businessId', data.businessId || '', 3600);
-          setCookie('onboardingCompleted', onboardingCompleted ? 'true' : 'false', 3600);
+          setCookie('userRole', data.role, 3600 * 24 * 30);
+          setCookie('businessId', data.businessId || '', 3600 * 24 * 30);
+          setCookie('onboardingCompleted', onboardingCompleted ? 'true' : 'false', 3600 * 24 * 30);
+          setCookie('sessionActive', 'true', 3600 * 24 * 30);
           
           setCurrentUser({
             uid: userCredential.user.uid,
@@ -202,9 +203,10 @@ function LoginContent() {
           const idToken = await user.getIdToken();
           const onboardingCompleted = data.onboardingCompleted !== undefined ? data.onboardingCompleted : false;
           setCookie('firebaseIdToken', idToken, 3600);
-          setCookie('userRole', data.role, 3600);
-          setCookie('businessId', data.businessId || '', 3600);
-          setCookie('onboardingCompleted', onboardingCompleted ? 'true' : 'false', 3600);
+          setCookie('userRole', data.role, 3600 * 24 * 30);
+          setCookie('businessId', data.businessId || '', 3600 * 24 * 30);
+          setCookie('onboardingCompleted', onboardingCompleted ? 'true' : 'false', 3600 * 24 * 30);
+          setCookie('sessionActive', 'true', 3600 * 24 * 30);
           
           setCurrentUser({
             uid: user.uid,

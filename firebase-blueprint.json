@@ -159,31 +159,31 @@
     },
     "businesses/{businessId}": {
       "schema": "Business",
-      "description": "Business profiles"
+      "description": "Business profile representing a tenant"
     },
-    "customers/{customerId}": {
+    "businesses/{businessId}/customers/{customerId}": {
       "schema": "Customer",
-      "description": "Customers across all businesses"
+      "description": "Customers belonging to a business"
     },
-    "staff/{staffId}": {
+    "businesses/{businessId}/staff/{staffId}": {
       "schema": "Staff",
-      "description": "Staff across all businesses"
+      "description": "Staff belonging to a business"
     },
-    "deliveries/{deliveryId}": {
+    "businesses/{businessId}/deliveries/{deliveryId}": {
       "schema": "Delivery",
-      "description": "Deliveries across all businesses"
+      "description": "Deliveries belonging to a business"
     },
-    "payments/{paymentId}": {
+    "businesses/{businessId}/payments/{paymentId}": {
       "schema": "Payment",
-      "description": "Payments across all businesses"
+      "description": "Payments belonging to a business"
     },
-    "inventory/{businessId}": {
+    "businesses/{businessId}/settings/inventory": {
       "schema": "Inventory",
-      "description": "Inventory level for a business"
+      "description": "Inventory level for a business stored inside its settings subcollection"
     },
-    "activity_logs/{logId}": {
+    "businesses/{businessId}/activityLogs/{logId}": {
       "schema": "ActivityLog",
-      "description": "Audit logs across all businesses"
+      "description": "Audit trail logs belonging to a business"
     }
   }
 }

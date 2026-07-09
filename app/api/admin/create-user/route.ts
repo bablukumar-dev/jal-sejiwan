@@ -172,14 +172,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Auth account creation failed', details: err.message, trace }, { status: 500 });
     }
 
-    // 8. Firestore User Creation
+    // 8. Firestore User and Staff Creation
     try {
       // Get ownerId (which is the uid of the owner of this business)
       const businessDoc = await adminDb.collection('businesses').doc(business_id).get();
       const bData = businessDoc.data();
       const ownerId = bData?.ownerId || decodedToken.uid;
 
-      logStep(16, 'Creating Firestore document', 'PASS', userRecord.uid);
+      logStep(16, 'Creating Firestore user document', 'PASS', userRecord.uid);
       await adminDb.collection('users').doc(userRecord.uid).set({
         email,
         name,
@@ -191,20 +191,36 @@ export async function POST(req: NextRequest) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
-      logStep(17, 'Firestore document created', 'PASS');
+      logStep(17, 'Firestore user document created', 'PASS');
+
+      logStep(18, 'Creating Firestore staff subcollection document', 'PASS');
+      await adminDb.collection('businesses').doc(business_id).collection('staff').doc(userRecord.uid).set({
+        name,
+        phone: '', // Placeholder phone
+        role,
+        route: '', // Placeholder route
+        pin: '1234', // Default pin
+        active: true,
+        businessId: business_id,
+        ownerId: ownerId,
+        createdBy: decodedToken.uid,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      logStep(19, 'Firestore staff subcollection document created', 'PASS');
     } catch (err: any) {
       logStep(16, 'Creating Firestore document', 'FAIL', err.message);
       // Rollback Auth user
       try {
         await adminAuth.deleteUser(userRecord.uid);
-        logStep(18, 'Rollback Auth user', 'PASS');
+        logStep(20, 'Rollback Auth user', 'PASS');
       } catch (rollbackErr: any) {
-        logStep(18, 'Rollback Auth user', 'FAIL', rollbackErr.message);
+        logStep(20, 'Rollback Auth user', 'FAIL', rollbackErr.message);
       }
       return NextResponse.json({ success: false, error: 'Database record creation failed', details: err.message, trace }, { status: 500 });
     }
 
-    logStep(19, 'Process completed successfully', 'PASS');
+    logStep(21, 'Process completed successfully', 'PASS');
     return NextResponse.json({ 
       success: true,
       message: 'User created successfully', 

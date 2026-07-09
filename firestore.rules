@@ -12,110 +12,99 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    function incoming() {
-      return request.resource.data;
-    }
-
-    function existing() {
-      return resource.data;
-    }
-
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    function isMemberOfBusiness(businessId) {
-      return isSignedIn() && getUserData().businessId == businessId;
+    // A user belongs to a business if their registered businessId matches the document's parent businessId.
+    function isMemberOfBusiness(bId) {
+      return isSignedIn() && getUserData().businessId == bId;
     }
 
-    function belongsToBusiness() {
-      return isSignedIn() && (
-        resource.data.businessId == getUserData().businessId || 
-        resource.id == request.auth.uid || 
-        resource.id == getUserData().businessId
-      );
+    function getUserRole() {
+      return getUserData().role;
     }
 
-    function willBelongToBusiness() {
-      return isSignedIn() && (
-        request.resource.data.businessId == getUserData().businessId || 
-        request.resource.id == request.auth.uid ||
-        request.resource.id == getUserData().businessId
-      );
-    }
-
-    // --- ENTITY RULES ---
-
-    // Users: Private profile
+    // --- USERS ROOT COLLECTION ---
     match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isMemberOfBusiness(resource.data.businessId));
-      allow update: if isSignedIn() && request.auth.uid == userId && incoming().role == existing().role;
-      allow create: if false;
+      // Users can read and update their own profiles.
+      // Owners and Managers can read profiles of members of the same business.
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId || 
+        (getUserData().businessId == resource.data.businessId && (getUserRole() == 'owner' || getUserRole() == 'manager'))
+      );
+      // Let any authenticated user write or merge their user doc during signup/onboarding
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && request.auth.uid == userId;
     }
 
-    // Businesses: Tenant profiles (Isolated by businessId)
+    // --- BUSINESSES ROOT & SUBCOLLECTIONS ---
     match /businesses/{businessId} {
-      allow read: if isSignedIn() && (businessId == getUserData().businessId || isMemberOfBusiness(businessId));
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && businessId == getUserData().businessId;
-    }
+      // Owner has full access to their business doc. Managers/Staff of the same business can read.
+      allow read: if isSignedIn() && isMemberOfBusiness(businessId);
+      allow create: if isSignedIn(); // Allow owners to create their business during onboarding
+      allow update: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() == 'owner';
+      allow delete: if false; // Completely prevent delete on businesses as requested
 
-    // Customers: Isolated by businessId
-    match /customers/{customerId} {
-      allow list: if isSignedIn() && isMemberOfBusiness(resource.data.businessId);
-      allow get: if belongsToBusiness();
-      allow create: if willBelongToBusiness();
-      allow update: if belongsToBusiness() && willBelongToBusiness();
-      allow delete: if belongsToBusiness();
-    }
+      // --- Customers subcollection ---
+      match /customers/{customerId} {
+        allow read: if isSignedIn() && isMemberOfBusiness(businessId);
+        // Owner, Manager, and Staff can create/update.
+        allow create, update: if isSignedIn() && isMemberOfBusiness(businessId);
+        allow delete: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() == 'owner';
+      }
 
-    // Staff: Isolated by businessId
-    match /staff/{staffId} {
-      allow list: if isSignedIn() && isMemberOfBusiness(resource.data.businessId);
-      allow get: if belongsToBusiness();
-      allow create: if willBelongToBusiness();
-      allow update: if belongsToBusiness() && willBelongToBusiness();
-      allow delete: if belongsToBusiness();
-    }
+      // --- Payments subcollection ---
+      match /payments/{paymentId} {
+        allow read: if isSignedIn() && isMemberOfBusiness(businessId);
+        allow create, update: if isSignedIn() && isMemberOfBusiness(businessId);
+        allow delete: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() == 'owner';
+      }
 
-    // Deliveries: Isolated by businessId
-    match /deliveries/{deliveryId} {
-      allow list: if isSignedIn() && isMemberOfBusiness(resource.data.businessId);
-      allow get: if belongsToBusiness();
-      allow create: if willBelongToBusiness();
-      allow update: if belongsToBusiness() && willBelongToBusiness();
-      allow delete: if belongsToBusiness();
-    }
+      // --- Deliveries subcollection ---
+      match /deliveries/{deliveryId} {
+        allow read: if isSignedIn() && isMemberOfBusiness(businessId);
+        allow create, update: if isSignedIn() && isMemberOfBusiness(businessId);
+        allow delete: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() == 'owner';
+      }
 
-    // Payments: Isolated by businessId
-    match /payments/{paymentId} {
-      allow list: if isSignedIn() && isMemberOfBusiness(resource.data.businessId);
-      allow get: if belongsToBusiness();
-      allow create: if willBelongToBusiness();
-      allow update: if belongsToBusiness() && willBelongToBusiness();
-      allow delete: if belongsToBusiness();
-    }
+      // --- Routes subcollection ---
+      match /routes/{routeId} {
+        allow read: if isSignedIn() && isMemberOfBusiness(businessId);
+        allow create, update: if isSignedIn() && isMemberOfBusiness(businessId) && (getUserRole() == 'owner' || getUserRole() == 'manager');
+        allow delete: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() == 'owner';
+      }
 
-    // Inventory: Business-specific document (Isolated by businessId)
-    match /inventory/{businessId} {
-      allow read: if isSignedIn() && (businessId == getUserData().businessId || isMemberOfBusiness(businessId));
-      allow write: if isSignedIn() && businessId == getUserData().businessId;
-    }
+      // --- Staff subcollection ---
+      match /staff/{staffId} {
+        allow read: if isSignedIn() && isMemberOfBusiness(businessId);
+        // Owner and Manager can manage staff. Staff can NOT manage staff ("No Staff Management" for Staff)
+        allow create, update: if isSignedIn() && isMemberOfBusiness(businessId) && (getUserRole() == 'owner' || getUserRole() == 'manager');
+        allow delete: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() == 'owner';
+      }
 
-    // Activity Logs: Isolated by businessId
-    match /activity_logs/{logId} {
-      allow create: if isSignedIn() && incoming().businessId == getUserData().businessId;
-      allow read: if isSignedIn() && resource.data.businessId == getUserData().businessId;
-      allow update, delete: if false;
-    }
+      // --- Activity Logs subcollection ---
+      match /activityLogs/{logId} {
+        allow read: if isSignedIn() && isMemberOfBusiness(businessId);
+        allow create: if isSignedIn() && isMemberOfBusiness(businessId);
+        allow update, delete: if false; // immutable logs
+      }
 
-    // Diagnostics
-    match /_diagnostics/{docId} {
-      allow read: if true;
+      // --- Notifications subcollection ---
+      match /notifications/{notificationId} {
+        allow read: if isSignedIn() && isMemberOfBusiness(businessId);
+        allow create: if isSignedIn() && isMemberOfBusiness(businessId);
+        allow update: if isSignedIn() && isMemberOfBusiness(businessId);
+        allow delete: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() == 'owner';
+      }
+
+      // --- Settings subcollection (including inventory) ---
+      match /settings/{settingId} {
+        // Staff has "No Settings"
+        allow read: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() != 'staff';
+        allow create, update: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() != 'staff';
+        allow delete: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() == 'owner';
+      }
     }
   }
 }

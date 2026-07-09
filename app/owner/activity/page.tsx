@@ -83,19 +83,14 @@ export default function ActivityLogDashboard() {
     setIsLoading(true);
 
     let logsQuery = query(
-      collection(db, 'activity_logs'),
+      collection(db, 'businesses', workspaceId, 'activityLogs'),
       orderBy('timestamp', 'desc'),
       limit(50)
     );
 
     // Apply RBAC filters at query level for security and performance
-    if (userRole === 'manager') {
-      logsQuery = query(logsQuery, where('businessId', '==', workspaceId));
-    } else if (userRole === 'staff') {
+    if (userRole === 'staff') {
       logsQuery = query(logsQuery, where('userId', '==', currentUserId));
-    } else if (userRole === 'owner') {
-      // Owner can see all, but usually we filter by businessId anyway in this app
-      // if (workspaceId) logsQuery = query(logsQuery, where('businessId', '==', workspaceId));
     }
 
     const unsubscribe = onSnapshot(logsQuery, (snapshot) => {
@@ -124,15 +119,13 @@ export default function ActivityLogDashboard() {
     if (!db) return;
 
     let logsQuery = query(
-      collection(db, 'activity_logs'),
+      collection(db, 'businesses', workspaceId, 'activityLogs'),
       orderBy('timestamp', 'desc'),
       startAfter(lastDoc),
       limit(50)
     );
 
-    if (userRole === 'manager') {
-      logsQuery = query(logsQuery, where('businessId', '==', workspaceId));
-    } else if (userRole === 'staff') {
+    if (userRole === 'staff') {
       logsQuery = query(logsQuery, where('userId', '==', currentUserId));
     }
 
