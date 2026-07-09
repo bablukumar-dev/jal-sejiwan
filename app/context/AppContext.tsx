@@ -162,6 +162,19 @@ export type CurrentUser = {
     tankName: string;
     pumpStationName: string;
   };
+  // Profile fields (Single Source of Truth)
+  ownerName?: string;
+  businessName?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  gstNumber?: string;
+  profilePhoto?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type AppContextType = {
@@ -379,7 +392,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               onboardingCompleted: onboardingCompleted,
               dashboardTourCompleted: dashboardTourCompleted,
               waterSystemSetup: data.waterSystemSetup,
+              ownerName: data.ownerName,
+              businessName: data.businessName,
+              phone: data.phone,
+              email: data.email,
+              address: data.address,
+              city: data.city,
+              state: data.state,
+              pincode: data.pincode,
+              gstNumber: data.gstNumber,
+              profilePhoto: data.profilePhoto,
+              createdAt: data.createdAt,
+              updatedAt: data.updatedAt,
             });
+            console.log("Realtime Profile Synced. Firestore Path: users/" + user.uid);
             setOwnerId(data.businessId);
             if (typeof window !== 'undefined') {
               localStorage.setItem('businessId', data.businessId);

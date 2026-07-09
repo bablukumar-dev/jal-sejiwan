@@ -170,17 +170,13 @@ export default function SettingsPage() {
       }
       
       const cleanName = nameVal.value;
-      if (currentUser?.role === 'owner') {
-        await updateBusiness(currentUser.businessId, { ownerName: cleanName }, currentUser);
-      } else {
-        const { db } = getFirebase();
-        if (db) {
-          await updateDoc(doc(db, 'users', currentUser.uid), {
-            name: cleanName,
-            updatedAt: new Date().toISOString()
-          });
-        }
-        setUserName(cleanName);
+      const { db } = getFirebase();
+      if (db) {
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          ownerName: cleanName,
+          updatedAt: new Date().toISOString()
+        });
+        console.log("Profile Updated. Firestore Path: users/" + currentUser.uid);
       }
       setIsEditingProfile(false);
     } catch (e) {
@@ -240,10 +236,10 @@ export default function SettingsPage() {
           </div>
           <div className="mt-4 flex items-center gap-2">
             <h1 className="text-2xl font-bold text-slate-900 leading-none tracking-tight">
-              {userRole === 'owner' ? businessInfo.ownerName : userName}
+              {currentUser.ownerName || 'User'}
             </h1>
             <button 
-              onClick={() => { setNewName(userRole === 'owner' ? businessInfo.ownerName : userName); setIsEditingProfile(true); }}
+              onClick={() => { setNewName(currentUser.ownerName || ''); setIsEditingProfile(true); }}
               className="p-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
             >
               <Edit2 className="w-3.5 h-3.5" />

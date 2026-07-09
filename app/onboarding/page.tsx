@@ -280,16 +280,25 @@ export default function OnboardingPage() {
           updatedAt: new Date().toISOString(),
         });
 
-        // 3. Update User Document
+        // 3. Update User Document (Single Source of Truth)
         await updateDoc(userDocRef, {
           onboardingCompleted: true,
           profileCompleted: true,
           updatedAt: new Date().toISOString(),
+          businessName: ownerOrg.orgName,
+          address: ownerOrg.officeAddress,
+          phone: ownerOrg.contactNumber,
+          state: ownerOrg.state,
+          city: ownerOrg.district,
+          ownerName: '', // Need to add ownerName input in onboarding? Or is it already there?
         });
+        console.log("Onboarding Save Success. Firestore Path: users/" + currentUser.uid);
 
         // Update local context/state
         setBusinessInfo(businessData as any);
         localStorage.setItem('businessInfo', JSON.stringify(businessData));
+        
+        // Reload from Firestore is handled by onSnapshot in AppContext
 
       } else if (role === 'manager') {
         const bId = currentUser?.businessId;
@@ -299,18 +308,17 @@ export default function OnboardingPage() {
           onboardingCompleted: true,
           profileCompleted: true,
           updatedAt: new Date().toISOString(),
-          managerProfile: {
-            name: managerProfile.name,
-            phone: managerProfile.phone,
-            address: managerProfile.address,
-            assignedArea: managerArea.assignedArea,
-            notifyDailyReports: managerNotify.dailyReports,
-            notifyCriticalAlerts: managerNotify.criticalAlerts
-          }
+          ownerName: managerProfile.name,
+          phone: managerProfile.phone,
+          address: managerProfile.address,
+          assignedArea: managerArea.assignedArea,
+          notifyDailyReports: managerNotify.dailyReports,
+          notifyCriticalAlerts: managerNotify.criticalAlerts
         };
 
         // Update Firestore Document for Manager (User)
         await updateDoc(userDocRef, managerData);
+        console.log("Onboarding Save Success. Firestore Path: users/" + currentUser.uid);
 
         // Also update staff subcollection document
         const staffDocRef = doc(db, 'businesses', bId, 'staff', currentUser.uid);
@@ -330,14 +338,13 @@ export default function OnboardingPage() {
           onboardingCompleted: true,
           profileCompleted: true,
           updatedAt: new Date().toISOString(),
-          staffProfile: {
-            name: staffProfile.name,
-            phone: staffProfile.phone,
-          }
+          ownerName: staffProfile.name,
+          phone: staffProfile.phone,
         };
 
         // Update Firestore Document for Staff (User)
         await updateDoc(userDocRef, staffData);
+        console.log("Onboarding Save Success. Firestore Path: users/" + currentUser.uid);
 
         // Also update staff subcollection document
         const staffDocRef = doc(db, 'businesses', bId, 'staff', currentUser.uid);
