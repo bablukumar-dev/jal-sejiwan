@@ -138,7 +138,7 @@ export function middleware(request: NextRequest) {
 
     // Staff specific access
     if (pathname.startsWith('/staff')) {
-      if (role && role !== 'staff') {
+      if (role && role !== 'staff' && role !== 'owner' && role !== 'manager') {
         const url = request.nextUrl.clone();
         url.pathname = '/unauthorized';
         return NextResponse.redirect(url);

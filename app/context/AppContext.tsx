@@ -631,8 +631,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Real-time synchronization for all modules
   useEffect(() => {
     const { auth, db } = getFirebase();
-    console.log("[AppContext] Listener useEffect running. auth:", !!auth, "db:", !!db, "businessId:", currentUser?.businessId, "isInitialized:", isInitialized);
-    if (!auth || !db || !currentUser?.businessId || !isInitialized) return;
+    console.log("[AppContext] Listener useEffect running. auth:", !!auth, "db:", !!db, "businessId:", currentUser?.businessId, "isInitialized:", isInitialized, "uid:", currentUser?.uid);
+    if (!auth || !db || !currentUser?.businessId || !isInitialized) {
+      console.log("[AppContext] Listener skipped. Conditions:", {
+        hasAuth: !!auth,
+        hasDb: !!db,
+        hasBusinessId: !!currentUser?.businessId,
+        isInitialized: isInitialized
+      });
+      return;
+    }
 
     console.log("================= EVIDENCE DEBUGGING: STEP 3 =================");
     console.log(`Current UID: ${currentUser?.uid}`);
