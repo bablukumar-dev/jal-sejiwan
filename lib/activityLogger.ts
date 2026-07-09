@@ -82,8 +82,11 @@ export async function logActivity(
 
     const user = auth.currentUser;
     const role = localStorage.getItem('userRole') || 'unknown';
-    const businessId = localStorage.getItem('businessId') || '';
+    // Use businessId from finalParams if provided, else fallback to localStorage
+    const businessId = finalParams.businessId || localStorage.getItem('businessId') || '';
     const userName = user.displayName || localStorage.getItem('userName') || 'User';
+
+    console.log("[ActivityLogger] Logging activity. businessId:", businessId, "user:", user.uid);
 
     const activityId = crypto.randomUUID();
     

@@ -51,6 +51,8 @@ export default function ActivityLogDashboard() {
   const currentUserId = currentUser?.uid || 'unknown';
   const workspaceId = currentUser?.businessId || null;
 
+  console.log("[ActivityLogDashboard] workspaceId:", workspaceId);
+
   const [refreshKey, setRefreshKey] = useState(0);
 
   // DB States
@@ -77,8 +79,11 @@ export default function ActivityLogDashboard() {
 
   // Load real activity logs with real-time updates
   useEffect(() => {
-    const { db } = getFirebase();
-    if (!db || !workspaceId) return;
+    console.log("[ActivityLogDashboard] useEffect setup. workspaceId:", workspaceId, "db:", !!db);
+    if (!db || !workspaceId) {
+        console.log("[ActivityLogDashboard] Listener skipped. Missing db or workspaceId.");
+        return;
+    }
 
     setIsLoading(true);
 
@@ -87,6 +92,7 @@ export default function ActivityLogDashboard() {
       orderBy('timestamp', 'desc'),
       limit(50)
     );
+    console.log("[ActivityLogDashboard] Firestore query created:", logsQuery);
 
     // Apply RBAC filters at query level for security and performance
     if (userRole === 'staff') {

@@ -274,7 +274,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       module: 'Authentication',
       action: 'Logout',
       description: 'User logged out',
-      status: 'success'
+      status: 'success',
+      businessId: currentUser?.businessId || ''
     });
 
     setIsLoggingOut(true);
