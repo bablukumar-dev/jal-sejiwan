@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Droplet, Sparkles, ChevronRight, ChevronLeft, CheckCircle2, X, AlertCircle } from 'lucide-react';
 import { useAppContext } from '@/app/context/AppContext';
@@ -79,53 +79,6 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
   const currentStepData = steps[step - 1];
   const totalSteps = steps.length;
 
-  // Update highlight bounding box when active step changes
-  useEffect(() => {
-    const activeTargetId = currentStepData.targetId;
-
-    const updatePosition = () => {
-      const el = activeTargetId ? document.getElementById(activeTargetId) : null;
-      if (el) {
-        // Scroll into view if needed
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Set exact box coordinates
-        setRect(el.getBoundingClientRect());
-      } else {
-        setRect(null);
-      }
-    };
-
-    // Delay slightly to allow any scrolling/rendering to finalize
-    const timer = setTimeout(updatePosition, 100);
-
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
-    };
-  }, [step, currentStepData.targetId]);
-
-  const handleNext = () => {
-    if (step < totalSteps) {
-      setStep(step + 1);
-    } else {
-      handleComplete();
-    }
-  };
-
-  const handleBack = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    }
-  };
-
-  const handleSkip = async () => {
-    await handleComplete();
-  };
-
   const handleComplete = async () => {
     if (typeof window === 'undefined') return;
 
@@ -151,6 +104,62 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
     // Close overlay state
     onClose();
   };
+
+  const handleSkip = useCallback(async () => {
+    await handleComplete();
+  }, [currentUser, onClose]);
+
+  const handleNext = () => {
+    if (step < totalSteps) {
+      setStep(step + 1);
+    } else {
+      handleComplete();
+    }
+  };
+
+  const handleBack = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+
+  // Update highlight bounding box when active step changes
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        console.log("[DEBUG] OnboardingOverlay: Escape key pressed, closing...");
+        handleSkip();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+
+    const activeTargetId = currentStepData.targetId;
+
+    const updatePosition = () => {
+      const el = activeTargetId ? document.getElementById(activeTargetId) : null;
+      if (el) {
+        // Scroll into view if needed
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Set exact box coordinates
+        setRect(el.getBoundingClientRect());
+      } else {
+        setRect(null);
+      }
+    };
+
+    // Delay slightly to allow any scrolling/rendering to finalize
+    const timer = setTimeout(updatePosition, 100);
+
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleEsc);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [step, currentStepData.targetId, handleSkip]);
 
   return (
     <div className="fixed inset-0 z-[9999] overflow-hidden select-none" id="onboarding-overlay-root">
@@ -178,6 +187,15 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
 
       {/* Main Container */}
       <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+        {/* Global Exit Button - ensures users never get stuck */}
+        <button 
+          onClick={handleSkip}
+          className="fixed top-6 right-6 z-[10000] p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all active:scale-95 border border-white/20 shadow-lg"
+          title="Exit Tour"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div

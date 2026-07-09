@@ -50,10 +50,10 @@ export default function BottomNav({ role: propRole, activeTab }: BottomNavProps)
           const Icon = link.icon;
           const isActive = activeTab === link.id;
           return (
-            <button 
+            <Link 
               key={link.id} 
               id={`nav-${link.id}`}
-              onClick={() => router.push(link.href)}
+              href={link.href}
               className={`flex flex-col items-center justify-center px-3 py-2 rounded-xl transition-colors w-full ${
                 isActive 
                   ? 'text-blue-700 bg-blue-50' 
@@ -64,7 +64,7 @@ export default function BottomNav({ role: propRole, activeTab }: BottomNavProps)
               <span className={`text-[10px] font-bold uppercase mt-1 tracking-wide ${isActive ? 'text-blue-800' : ''}`}>
                 {link.label}
               </span>
-            </button>
+            </Link>
           );
         })}
       </div>

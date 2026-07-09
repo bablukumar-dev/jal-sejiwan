@@ -22,16 +22,17 @@ const safeGet = (key: string): string | null => {
 };
 
 function StaffManagement() {
-  const { staff, setStaff, deliveries } = useAppContext();
+  const { staff, setStaff, deliveries, currentUser } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedStaffId, setExpandedStaffId] = useState<number | null>(null);
+  const [expandedStaffId, setExpandedStaffId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'All' | 'Active' | 'Inactive'>('All');
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
   const filteredStaff = staff.filter(s => {
     const query = searchQuery.toLowerCase();
-    const matchSearch = s.name?.toLowerCase().includes(query) ||
-                        s.phone?.includes(searchQuery) ||
-                        s.route?.toLowerCase().includes(query);
+    const matchSearch = (s.name || '').toLowerCase().includes(query) ||
+                        (s.phone || '').includes(searchQuery) ||
+                        (s.route || '').toLowerCase().includes(query);
     if (!matchSearch) return false;
 
     if (filter === 'Active' && !s.active) return false;
@@ -45,7 +46,7 @@ function StaffManagement() {
     return dDate.getMonth() === today.getMonth() && dDate.getFullYear() === today.getFullYear();
   }).length;
 
-  const getPerformance = (staffId: number) => {
+  const getPerformance = (staffId: string) => {
     const today = new Date();
     const lastMonth = new Date(today);
     lastMonth.setMonth(today.getMonth() - 1);
@@ -67,6 +68,67 @@ function StaffManagement() {
     }
     
     return { total, completionRate, feedbackSummary };
+  };
+
+  const handleResetPassword = async (s: Staff) => {
+    const newPassword = prompt(`Enter new Login Password for ${s.name}:`);
+    if (newPassword !== null) {
+      const trimmed = newPassword.trim();
+      if (trimmed === '') {
+        alert('Password cannot be empty!');
+        return;
+      }
+      
+      setIsUpdating(s.id);
+      try {
+        const { auth } = getFirebase();
+        if (!auth || !auth.currentUser) {
+          throw new Error("No authenticated user found. Please login again.");
+        }
+        const idToken = await auth.currentUser.getIdToken();
+
+        console.log(`[DEBUG] StaffManagement: Resetting password for staff ${s.id}`);
+        const response = await fetch('/api/admin/update-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({
+            userId: s.id,
+            password: trimmed
+          })
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to update password');
+
+        logActivity({
+          module: 'Staff Management',
+          action: 'Staff Password Reset',
+          description: `Manually reset password for staff member ${s.name}`,
+          status: 'success',
+          resourceType: 'Staff',
+          resourceId: String(s.id),
+          resourceName: s.name
+        });
+
+        alert(`Password updated successfully for ${s.name}!`);
+      } catch (err: any) {
+        console.error("[DEBUG] StaffManagement: handleResetPassword error", err);
+        let msg = "Failed to update password. Please try again.";
+        if (err.message) {
+          if (err.message.includes("at least 6 characters") || err.message.toLowerCase().includes("weak")) {
+            msg = "Password must be at least 6 characters.";
+          } else {
+            msg = err.message;
+          }
+        }
+        alert(msg);
+      } finally {
+        setIsUpdating(null);
+      }
+    }
   };
 
   const currentRole = currentUser?.role || 'owner';
@@ -180,64 +242,12 @@ function StaffManagement() {
                   </a>
                    <button 
                     type="button"
-                    onClick={async () => {
-                      const newPassword = prompt(`Enter new Login Password for ${s.name}:`);
-                      if (newPassword !== null) {
-                        const trimmed = newPassword.trim();
-                        if (trimmed === '') {
-                          alert('Password cannot be empty!');
-                        } else {
-                          try {
-                            const { auth } = getFirebase();
-                            if (!auth || !auth.currentUser) {
-                              throw new Error("No authenticated user found. Please login again.");
-                            }
-                            const idToken = await auth.currentUser.getIdToken();
-
-                            const response = await fetch('/api/admin/update-user', {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${idToken}`
-                              },
-                              body: JSON.stringify({
-                                userId: s.id, // This should be the user ID
-                                password: trimmed
-                              })
-                            });
-
-                            const result = await response.json();
-                            if (!response.ok) throw new Error(result.error || 'Failed to update password');
-
-                            logActivity({
-                              module: 'Staff Management',
-                              action: 'Staff Password Reset',
-                              description: `Manually reset password for staff member ${s.name}`,
-                              status: 'success',
-                              resourceType: 'Staff',
-                              resourceId: String(s.id),
-                              resourceName: s.name
-                            });
-
-                            alert(`Password updated successfully for ${s.name}!`);
-                          } catch (err: any) {
-                            console.error("Failed to update password", err);
-                            let msg = "Failed to update password. Please try again.";
-                            if (err.message) {
-                              if (err.message.includes("at least 6 characters") || err.message.toLowerCase().includes("weak")) {
-                                msg = "Password must be at least 6 characters.";
-                              } else {
-                                msg = err.message;
-                              }
-                            }
-                            alert(msg);
-                          }
-                        }
-                      }
-                    }}
-                    className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 active:scale-95 transition-transform border border-blue-100"
+                    disabled={isUpdating === s.id}
+                    onClick={() => handleResetPassword(s)}
+                    className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-2 active:scale-95 transition-transform border border-blue-100 disabled:opacity-50"
                   >
-                    <Key className="w-3.5 h-3.5 text-blue-600" /> Reset Password
+                    <Key className="w-3.5 h-3.5 text-blue-600" />
+                    {isUpdating === s.id ? 'Updating...' : 'Reset Password'}
                   </button>
                 </div>
 

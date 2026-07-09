@@ -69,24 +69,32 @@ function OwnerDashboard() {
   }, [businessInfo, pendingCustomers]);
 
   const handleRemindAll = async () => {
+    console.log('[DEBUG] OwnerDashboard: handleRemindAll triggered');
     // Implement Max 1 time per day constraint tracking lastSentDate
     const todayStr = new Date().toISOString().split('T')[0];
     const lastSentDate = localStorage.getItem('lastSentDateRemindAll');
+    
     if (lastSentDate === todayStr) {
+      console.warn('[DEBUG] OwnerDashboard: Reminders already sent today');
       alert('🔔 WhatsApp reminders have already been sent today! Limit is max 1 time per day.');
       return;
     }
 
     const limitStatus = checkClientRateLimit('bulk_reminders', 2, 600); // 2 times per 10 minutes
     if (limitStatus.limited) {
+      console.warn('[DEBUG] OwnerDashboard: Rate limited', limitStatus.msg);
       alert(limitStatus.msg || 'Too many bulk reminder attempts. Please try again later.');
       return;
     }
 
-    if (!confirm(`Are you sure you want to send reminders to ${pendingCustomers} customers?`)) return;
+    if (!confirm(`Are you sure you want to send reminders to ${pendingCustomers} customers?`)) {
+      console.log('[DEBUG] OwnerDashboard: User cancelled confirmation');
+      return;
+    }
     
     setIsReminding(true);
     try {
+      console.log('[DEBUG] OwnerDashboard: Calling runBulkReminder');
       const result = await runBulkReminder(customers, businessInfo);
       if (result.success) {
         localStorage.setItem('lastSentDateRemindAll', todayStr);
@@ -97,8 +105,10 @@ function OwnerDashboard() {
           status: 'success',
           metadata: { count: result.count }
         });
+        console.log(`[DEBUG] OwnerDashboard: Successfully sent reminders to ${result.count} customers`);
         alert(`Successfully sent reminders to ${result.count} customers!`);
       } else {
+        console.error('[DEBUG] OwnerDashboard: runBulkReminder returned failure');
         logActivity({
           module: 'Communication',
           action: 'Bulk Reminders Failed',
@@ -108,7 +118,7 @@ function OwnerDashboard() {
         alert('Failed to send some reminders.');
       }
     } catch (e) {
-      console.error(e);
+      console.error('[DEBUG] OwnerDashboard: handleRemindAll exception', e);
       alert('Failed to send some reminders.');
     } finally {
       setIsReminding(false);
@@ -284,36 +294,54 @@ function OwnerDashboard() {
         <div>
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 mt-6">Quick Operations</h3>
           <div className="grid grid-cols-2 gap-3">
-            {(userRole === 'owner' || userRole === 'manager' || userRole === 'staff') && (
-              <button id="onboarding-add-customer" onClick={() => router.push(userRole === 'staff' ? '/staff/customers/add' : '/owner/customers/add')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
-                <UserPlus className="w-6 h-6 text-blue-600" />
-                <span className="text-sm font-medium text-slate-700">Add Customer</span>
-              </button>
-            )}
-            {(userRole === 'owner' || userRole === 'manager') && (
-              <button id="onboarding-deliveries" onClick={() => router.push('/owner/deliveries')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
-                <Truck className="w-6 h-6 text-blue-600" />
-                <span className="text-sm font-medium text-slate-700">Deliveries</span>
-              </button>
-            )}
-            {(userRole === 'owner' || userRole === 'manager') && (
-              <button id="onboarding-payments" onClick={() => router.push('/owner/payments')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
-                <span className="text-xl font-bold text-blue-600">₹</span>
-                <span className="text-sm font-medium text-slate-700">Payments</span>
-              </button>
-            )}
-            {(userRole === 'owner' || userRole === 'manager') && (
-              <button onClick={() => router.push('/owner/reports')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
-                <FileText className="w-6 h-6 text-blue-600" />
-                <span className="text-sm font-medium text-slate-700">Reports</span>
-              </button>
-            )}
-            {userRole === 'owner' && (
-              <button onClick={() => router.push('/owner/staff')} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full">
-                <Users className="w-6 h-6 text-blue-600" />
-                <span className="text-sm font-medium text-slate-700">Staff</span>
-              </button>
-            )}
+          {(userRole === 'owner' || userRole === 'manager' || userRole === 'staff') && (
+            <Link 
+              id="onboarding-add-customer" 
+              href={userRole === 'staff' ? '/staff/customers/add' : '/owner/customers/add'} 
+              className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full"
+            >
+              <UserPlus className="w-6 h-6 text-blue-600" />
+              <span className="text-sm font-medium text-slate-700">Add Customer</span>
+            </Link>
+          )}
+          {(userRole === 'owner' || userRole === 'manager') && (
+            <Link 
+              id="onboarding-deliveries" 
+              href="/owner/deliveries" 
+              className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full"
+            >
+              <Truck className="w-6 h-6 text-blue-600" />
+              <span className="text-sm font-medium text-slate-700">Deliveries</span>
+            </Link>
+          )}
+          {(userRole === 'owner' || userRole === 'manager') && (
+            <Link 
+              id="onboarding-payments" 
+              href="/owner/payments" 
+              className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full"
+            >
+              <span className="text-xl font-bold text-blue-600">₹</span>
+              <span className="text-sm font-medium text-slate-700">Payments</span>
+            </Link>
+          )}
+          {(userRole === 'owner' || userRole === 'manager') && (
+            <Link 
+              href="/owner/reports" 
+              className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full"
+            >
+              <FileText className="w-6 h-6 text-blue-600" />
+              <span className="text-sm font-medium text-slate-700">Reports</span>
+            </Link>
+          )}
+          {userRole === 'owner' && (
+            <Link 
+              href="/owner/staff" 
+              className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full"
+            >
+              <Users className="w-6 h-6 text-blue-600" />
+              <span className="text-sm font-medium text-slate-700">Staff</span>
+            </Link>
+          )}
           </div>
         </div>
 

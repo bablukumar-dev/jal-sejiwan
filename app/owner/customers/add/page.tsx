@@ -638,11 +638,12 @@ export default function AddCustomer() {
           <button
             type="button"
             onClick={handleSave}
-            className="w-full bg-blue-600 text-white rounded-xl py-4 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            disabled={isUploading}
+            className="w-full bg-blue-600 text-white rounded-xl py-4 flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100"
           >
             <Save className="w-5 h-5" />
             <div className="flex flex-col items-center">
-              <span className="font-bold text-lg leading-none">SAVE CUSTOMER</span>
+              <span className="font-bold text-lg leading-none">{isUploading ? 'SAVING...' : 'SAVE CUSTOMER'}</span>
               <span className="text-[10px] text-blue-200 uppercase tracking-wider mt-1">(Grahak Save Karein)</span>
             </div>
           </button>

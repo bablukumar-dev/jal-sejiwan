@@ -27,6 +27,9 @@ function AddStaff() {
     canViewReports: true,
     canAccessInventory: false
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<'owner' | 'manager'>(() => {
     // Keep this or use currentUser.role
     const stored = safeGet('userRole');
@@ -36,36 +39,45 @@ function AddStaff() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setIsSubmitting(true);
+    
     try {
-        console.log("Starting account creation process...");
+        console.log("[DEBUG] AddStaff: Starting account creation process...");
         
         if (currentUser?.role !== 'owner') {
-           console.error("Permission Denied: Only owners can create staff/manager accounts.");
-           alert("Permission Denied: Only owners can create staff/manager accounts.");
+           console.error("[DEBUG] AddStaff: Permission Denied");
+           setErrorMessage("Permission Denied: Only owners can create staff/manager accounts.");
+           setIsSubmitting(false);
            return;
         }
 
         const nameVal = validateName(name);
         if (!nameVal.valid) {
-          alert(`Name Error: ${nameVal.error}`);
+          setErrorMessage(`Name Error: ${nameVal.error}`);
+          setIsSubmitting(false);
           return;
         }
 
         const emailVal = validateEmail(email);
         if (!emailVal.valid) {
-          alert(`Email Error: ${emailVal.error}`);
+          setErrorMessage(`Email Error: ${emailVal.error}`);
+          setIsSubmitting(false);
           return;
         }
 
         const cleanPin = sanitizeString(pin);
         if (!cleanPin) {
-          alert("PIN is required");
+          setErrorMessage("PIN is required");
+          setIsSubmitting(false);
           return;
         }
 
         const pinRegex = /^\d{4,6}$/;
         if (!pinRegex.test(cleanPin)) {
-          alert('PIN must be 4 to 6 numeric digits');
+          setErrorMessage('PIN must be 4 to 6 numeric digits');
+          setIsSubmitting(false);
           return;
         }
 
@@ -87,6 +99,7 @@ function AddStaff() {
         const idToken = await auth.currentUser.getIdToken();
 
         // 2. Call the admin API to create the user
+        console.log("[DEBUG] AddStaff: Calling /api/admin/create-user");
         const response = await fetch('/api/admin/create-user', {
           method: 'POST',
           headers: {
@@ -107,7 +120,7 @@ function AddStaff() {
         try {
             apiResult = JSON.parse(text);
         } catch (e) {
-            console.error("Failed to parse JSON response:", text);
+            console.error("[DEBUG] AddStaff: Failed to parse JSON response:", text);
             throw new Error("Server returned an invalid response.");
         }
         
@@ -115,7 +128,7 @@ function AddStaff() {
           throw new Error(apiResult.error || 'Failed to create staff account');
         }
 
-        const newStaff = {
+        const newStaffMember = {
           id: apiResult.userId,
           name: nameVal.value,
           phone: emailVal.value,
@@ -128,7 +141,7 @@ function AddStaff() {
           permissions: role === 'Manager' ? permissions : undefined
         };
 
-        setStaff([...staff, newStaff]);
+        setStaff([...staff, newStaffMember]);
         
         // Log activity silently in background
         logActivity({
@@ -137,16 +150,22 @@ function AddStaff() {
           description: `Added new staff member: ${nameVal.value} (${role})`,
           status: 'success',
           resourceType: 'Staff',
-          resourceId: String(newStaff.id),
+          resourceId: String(newStaffMember.id),
           resourceName: nameVal.value,
-          newValue: newStaff
+          newValue: newStaffMember
         });
 
-        alert("Staff Added Successfully!");
-        router.push('/owner/staff');
+        console.log("[DEBUG] AddStaff: Staff added successfully");
+        setSuccessMessage("Staff Added Successfully!");
+        
+        // Redirect after a short delay
+        setTimeout(() => {
+          router.push('/owner/staff');
+        }, 2000);
+
     } catch (err: any) {
-        console.error("Failed to add staff", err);
-        let msg = "Failed to add staff. Please try again.";
+        console.error("[DEBUG] AddStaff: handleSave error", err);
+        let msg = err.message || "Failed to add staff. Please try again.";
         if (err.message) {
           if (err.message.includes("email-already-in-use") || err.message.toLowerCase().includes("already in use") || err.message.toLowerCase().includes("already exists")) {
             msg = "This email is already registered. Please use another email.";
@@ -156,7 +175,9 @@ function AddStaff() {
             msg = "Please enter a valid email address.";
           }
         }
-        alert(msg);
+        setErrorMessage(msg);
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
