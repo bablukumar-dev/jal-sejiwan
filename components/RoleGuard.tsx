@@ -30,11 +30,11 @@ export function RoleGuard({ children }: { children: React.ReactNode }) {
     }
     // Manager specific access
     else if (pathname.startsWith('/manager')) {
-      if (role !== 'manager') isAllowed = false;
+      if (role !== 'manager' && role !== 'owner') isAllowed = false;
     }
     // Staff specific access
     else if (pathname.startsWith('/staff')) {
-      if (role !== 'staff') isAllowed = false;
+      if (role !== 'staff' && role !== 'owner' && role !== 'manager') isAllowed = false;
     }
 
     if (!isAllowed) {
