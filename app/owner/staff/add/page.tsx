@@ -37,8 +37,11 @@ function AddStaff() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-        if (currentUserRole !== 'owner') {
-           alert("Only the Owner is authorized to create accounts.");
+        console.log("Starting account creation process...");
+        
+        if (currentUser?.role !== 'owner') {
+           console.error("Permission Denied: Only owners can create staff/manager accounts.");
+           alert("Permission Denied: Only owners can create staff/manager accounts.");
            return;
         }
 
@@ -318,4 +321,4 @@ function AddStaff() {
   );
 }
 
-export default wrapRoute(AddStaff, { requiredRole: 'owner' });
+export default wrapRoute(AddStaff, { requiredPermission: 'create_user' });

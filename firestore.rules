@@ -6,9 +6,22 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // 2. Common Helpers
-    function isAuthenticated() {
+    // --- PRIMITIVES & HELPERS ---
+    
+    function isSignedIn() {
       return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
     }
 
     function getUserData() {
@@ -16,62 +29,123 @@ service cloud.firestore {
     }
 
     function belongsToBusiness(businessId) {
-      return isAuthenticated() && getUserData().businessId == businessId;
+      return isSignedIn() && getUserData().businessId == businessId;
     }
 
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    function isOwner() {
+      return isSignedIn() && getUserData().role == 'owner';
     }
 
-    // 3. Rules for the users collection
+    function isManager() {
+      return isSignedIn() && getUserData().role == 'manager';
+    }
+
+    function isStaff() {
+      return isSignedIn() && getUserData().role == 'staff';
+    }
+
+    // --- VALIDATION BLUEPRINTS ---
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp || (ts is string && ts.size() <= 64);
+    }
+
+    function hasAuditFields(data) {
+      return data.businessId is string 
+        && data.ownerId is string 
+        && data.createdBy is string
+        && data.createdAt != null
+        && data.updatedAt != null;
+    }
+
+    // --- ENTITY RULES ---
+
+    // Users: Private profile and Role
     match /users/{userId} {
-      // Allow user to read their own document directly
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isSignedIn() && (request.auth.uid == userId || (getUserData().businessId == existing().businessId && (isOwner() || isManager())));
       
-      // Allow self-registration as 'owner' during signup
-      allow create: if isAuthenticated() && request.auth.uid == userId 
-        && request.resource.data.role == 'owner'
-        && request.resource.data.email is string
-        && request.resource.data.businessId is string;
+      // Update: Users can update their own non-role fields, Owners can update roles in their business
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && incoming().role == existing().role && incoming().businessId == existing().businessId) ||
+        (isOwner() && getUserData().businessId == existing().businessId && incoming().businessId == existing().businessId)
+      );
       
-      // Allow user to update their own profile, but enforce role and businessId immutability
-      allow update: if isAuthenticated() && request.auth.uid == userId 
-        && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role)
-        && (!('businessId' in request.resource.data) || request.resource.data.businessId == resource.data.businessId);
-        
-      allow delete: if false;
+      // Create: Handled by Admin API, but for onboarding we allow updates to completion status
+      allow create: if false; // Only via Admin API or initial Auth trigger
     }
 
-    // 4. Rules for business-scoped data
+    // Businesses: Tenant profiles
     match /businesses/{businessId} {
       allow read: if belongsToBusiness(businessId);
-      allow write: if belongsToBusiness(businessId) && getUserData().role == 'owner';
-
-      match /{allSubcollections=**} {
-        allow read: if belongsToBusiness(businessId);
-        allow write: if belongsToBusiness(businessId);
-      }
+      allow create: if isSignedIn() && isOwner() && incoming().ownerId == request.auth.uid;
+      allow update: if belongsToBusiness(businessId) && isOwner() && incoming().ownerId == existing().ownerId;
     }
 
-    // 5. Rules for activity logs
-    match /activity_logs/{logId} {
-      // Create is allowed for any authenticated user
-      allow create: if isAuthenticated() 
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.timestamp == request.time;
-      
-      // Read rules based on role and business
-      allow read: if isAuthenticated() && (
-        getUserData().role == 'owner' ||
-        (getUserData().role == 'manager' && getUserData().businessId == resource.data.businessId) ||
-        (resource.data.userId == request.auth.uid)
-      );
+    // Customers: Multi-tenant collection
+    match /customers/{customerId} {
+      function isValidCustomer(data) {
+        return data.name is string && data.name.size() > 0 && data.name.size() < 100
+          && hasAuditFields(data);
+      }
 
-      // Logs are immutable
+      allow list: if isSignedIn() && resource.data.businessId == getUserData().businessId;
+      allow get: if belongsToBusiness(existing().businessId);
+      
+      allow create: if isSignedIn() 
+        && belongsToBusiness(incoming().businessId)
+        && isValidCustomer(incoming())
+        && incoming().createdBy == request.auth.uid;
+        
+      allow update: if isSignedIn()
+        && belongsToBusiness(existing().businessId)
+        && incoming().businessId == existing().businessId
+        && isValidCustomer(incoming());
+        
+      allow delete: if belongsToBusiness(existing().businessId) && isOwner();
+    }
+
+    // Staff: Multi-tenant collection
+    match /staff/{staffId} {
+      allow list: if isSignedIn() && resource.data.businessId == getUserData().businessId;
+      allow get: if belongsToBusiness(existing().businessId);
+      
+      allow create: if isOwner() && belongsToBusiness(incoming().businessId);
+      allow update: if belongsToBusiness(existing().businessId) && (isOwner() || isManager());
+      allow delete: if isOwner() && belongsToBusiness(existing().businessId);
+    }
+
+    // Deliveries: Multi-tenant collection
+    match /deliveries/{deliveryId} {
+      allow list: if isSignedIn() && resource.data.businessId == getUserData().businessId;
+      allow get: if belongsToBusiness(existing().businessId);
+      
+      allow create: if isSignedIn() && belongsToBusiness(incoming().businessId);
+      allow update: if belongsToBusiness(existing().businessId);
+    }
+
+    // Payments: Multi-tenant collection
+    match /payments/{paymentId} {
+      allow list: if isSignedIn() && resource.data.businessId == getUserData().businessId;
+      allow get: if belongsToBusiness(existing().businessId);
+      
+      allow create: if isSignedIn() && belongsToBusiness(incoming().businessId);
+      allow update: if belongsToBusiness(existing().businessId) && (isOwner() || isManager());
+    }
+
+    // Inventory: Business-specific document
+    match /inventory/{businessId} {
+      allow read: if belongsToBusiness(businessId);
+      allow write: if belongsToBusiness(businessId);
+    }
+
+    // Activity Logs: Multi-tenant audit trail
+    match /activity_logs/{logId} {
+      allow create: if isSignedIn() && incoming().businessId == getUserData().businessId;
+      allow read: if isSignedIn() && resource.data.businessId == getUserData().businessId && (isOwner() || isManager() || resource.data.userId == request.auth.uid);
       allow update, delete: if false;
     }
 
-    // 6. Allow reading public diagnostic documents
+    // Diagnostics
     match /_diagnostics/{docId} {
       allow read: if true;
     }

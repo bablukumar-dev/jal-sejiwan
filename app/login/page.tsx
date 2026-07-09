@@ -172,7 +172,7 @@ function LoginContent() {
             role: 'owner',
             businessId: businessId,
             createdAt: new Date().toISOString()
-          });
+          }, { merge: true });
           userDoc = await getDoc(userDocRef);
       }
 

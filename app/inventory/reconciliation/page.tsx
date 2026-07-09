@@ -6,15 +6,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { logActivity } from '@/lib/activityLogger';
+import { updateInventory } from '@/lib/firestore-service';
+import { increment } from 'firebase/firestore';
 import { wrapRoute } from '@/lib/permissionGuard';
 
 function ReturnReconciliation() {
   const router = useRouter();
-  const { staff, setInventory } = useAppContext();
+  const { staff, setInventory, currentUser } = useAppContext();
   const [emptyReturned, setEmptyReturned] = useState(105);
   const [fullReturned, setFullReturned] = useState(12);
   const [damaged, setDamaged] = useState(0);
-  const [localSelectedStaffId, setLocalSelectedStaffId] = useState<number | null>(null);
+  const [localSelectedStaffId, setLocalSelectedStaffId] = useState<string | null>(null);
 
   const selectedStaffId = localSelectedStaffId ?? (staff.find(s => s.active)?.id || staff[0]?.id || null);
   const setSelectedStaffId = setLocalSelectedStaffId;
@@ -24,32 +26,37 @@ function ReturnReconciliation() {
   const totalDispatched = 120; // Mock value for now
   const missing = totalDispatched - (emptyReturned + fullReturned + damaged);
 
-  const handleVerifyAndSave = () => {
-    setInventory(prev => ({
-      ...prev,
-      fullCans: prev.fullCans + fullReturned,
-      emptyCans: prev.emptyCans + emptyReturned,
-      damagedCans: prev.damagedCans + damaged,
-      cansInDelivery: prev.cansInDelivery - totalDispatched // Assuming all dispatched are accounted for
-    }));
+  const handleVerifyAndSave = async () => {
+    if (!currentUser) return;
+    try {
+      await updateInventory(currentUser.businessId, {
+        fullCans: increment(fullReturned),
+        emptyCans: increment(emptyReturned),
+        damagedCans: increment(damaged),
+        cansInDelivery: increment(-totalDispatched)
+      } as any);
 
-    logActivity({
-      module: 'Inventory',
-      action: 'Inventory Reconciled',
-      description: `Reconciled stock for ${selectedStaff?.name || 'Staff'}: Empty returned ${emptyReturned}, unsold ${fullReturned}, damaged ${damaged}`,
-      status: missing === 0 ? 'success' : 'warning',
-      resourceType: 'Inventory',
-      resourceId: selectedStaff?.id ? `STAFF-${selectedStaff.id}` : 'GENERAL',
-      resourceName: selectedStaff?.name || 'Staff',
-      newValue: {
-        empty_returned: emptyReturned,
-        full_returned: fullReturned,
-        damaged: damaged,
-        missing: missing
-      }
-    });
+      logActivity({
+        module: 'Inventory',
+        action: 'Inventory Reconciled',
+        description: `Reconciled stock for ${selectedStaff?.name || 'Staff'}: Empty returned ${emptyReturned}, unsold ${fullReturned}, damaged ${damaged}`,
+        status: missing === 0 ? 'success' : 'warning',
+        resourceType: 'Inventory',
+        resourceId: selectedStaff?.id ? `STAFF-${selectedStaff.id}` : 'GENERAL',
+        resourceName: selectedStaff?.name || 'Staff',
+        newValue: {
+          empty_returned: emptyReturned,
+          full_returned: fullReturned,
+          damaged: damaged,
+          missing: missing
+        }
+      });
 
-    router.push('/inventory/dashboard');
+      router.push('/inventory/dashboard');
+    } catch (e) {
+      console.error("Failed to reconcile inventory", e);
+      alert("Failed to reconcile inventory. Please try again.");
+    }
   };
 
   return (
@@ -68,7 +75,7 @@ function ReturnReconciliation() {
           <select 
             className="w-full bg-white border border-slate-200 rounded-xl p-4 outline-none text-slate-900 font-bold"
             value={selectedStaffId || ''}
-            onChange={(e) => setSelectedStaffId(Number(e.target.value))}
+            onChange={(e) => setSelectedStaffId(e.target.value)}
           >
             <option value="" disabled>Select Staff</option>
             {staff.map(s => (

@@ -1,16 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminAuth, getAdminDb } from '@/src/lib/firebase-admin';
-import { countAndCheckLimit } from '@/lib/rateLimit';
+import { getAdminAuth, getAdminDb } from '../../../../src/lib/firebase-admin';
+import { countAndCheckLimit } from '../../../../lib/rateLimit';
 
+// Use a simple health check to verify route is reachable
 export async function GET() {
-  return NextResponse.json({ 
-    message: "Create User API is active. Use POST to create users.",
-    environment: {
-      projectId: process.env.FIREBASE_PROJECT_ID ? 'SET' : 'MISSING',
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL ? 'SET' : 'MISSING',
-      privateKey: process.env.FIREBASE_PRIVATE_KEY ? `SET (length: ${process.env.FIREBASE_PRIVATE_KEY.length})` : 'MISSING',
-    }
-  });
+  try {
+    const { checkAdminStatus } = await import('../../../../src/lib/firebase-admin');
+    const adminStatus = checkAdminStatus();
+    
+    return NextResponse.json({ 
+      status: 'online', 
+      api: 'create-user',
+      adminStatus,
+      timestamp: new Date().toISOString(),
+      env_check: {
+        projectId: process.env.FIREBASE_PROJECT_ID ? 'SET' : 'MISSING',
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL ? 'SET' : 'MISSING',
+        privateKey: process.env.FIREBASE_PRIVATE_KEY ? `SET (length: ${process.env.FIREBASE_PRIVATE_KEY.length})` : 'MISSING',
+      }
+    });
+  } catch (e: any) {
+    return NextResponse.json({ 
+      status: 'error', 
+      api: 'create-user',
+      error: e.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -24,144 +40,167 @@ export async function POST(req: NextRequest) {
   try {
     logStep(1, 'Route execution started', 'PASS');
 
+    // 1. Dynamic import of Firebase Admin to catch load-time errors
+    let getAdminAuth, getAdminDb;
+    try {
+      const fbAdmin = await import('../../../../src/lib/firebase-admin');
+      getAdminAuth = fbAdmin.getAdminAuth;
+      getAdminDb = fbAdmin.getAdminDb;
+      logStep(2, 'Firebase Admin Module loaded', 'PASS');
+    } catch (e: any) {
+      logStep(2, 'Firebase Admin Module loaded', 'FAIL', e.message);
+      return NextResponse.json({ success: false, error: 'Module Load Failed', details: e.message, trace }, { status: 500 });
+    }
+
     let adminAuth, adminDb;
     try {
-      logStep(2, 'Initializing Firebase Admin Auth', 'PASS');
       adminAuth = getAdminAuth();
-      logStep(3, 'Firebase Admin Auth obtained', 'PASS');
+      logStep(3, 'Firebase Admin Auth initialized', 'PASS');
     } catch (e: any) {
-      logStep(2, 'Initializing Firebase Admin Auth', 'FAIL', e.message);
-      return NextResponse.json({ success: false, error: 'Auth Init Failed', trace }, { status: 500 });
+      logStep(3, 'Firebase Admin Auth initialized', 'FAIL', e.message);
+      return NextResponse.json({ success: false, error: 'Auth Init Failed', details: e.message, trace }, { status: 500 });
     }
 
     try {
-      logStep(4, 'Initializing Firebase Admin Firestore', 'PASS');
       adminDb = getAdminDb();
-      logStep(5, 'Firebase Admin Firestore obtained', 'PASS');
+      logStep(4, 'Firebase Admin Firestore initialized', 'PASS');
     } catch (e: any) {
-      logStep(4, 'Initializing Firebase Admin Firestore', 'FAIL', e.message);
-      return NextResponse.json({ success: false, error: 'Firestore Init Failed', trace }, { status: 500 });
+      logStep(4, 'Firebase Admin Firestore initialized', 'FAIL', e.message);
+      return NextResponse.json({ success: false, error: 'Firestore Init Failed', details: e.message, trace }, { status: 500 });
     }
 
-    // Check if services are actually objects
-    if (!adminAuth || typeof adminAuth.createUser !== 'function') {
-      logStep(6, 'Admin Auth validity check', 'FAIL', 'adminAuth is invalid');
-    } else {
-      logStep(6, 'Admin Auth validity check', 'PASS');
-    }
-
-    if (!adminDb || typeof adminDb.collection !== 'function') {
-      logStep(7, 'Admin Db validity check', 'FAIL', 'adminDb is invalid');
-    } else {
-      logStep(7, 'Admin Db validity check', 'PASS');
-    }
+    // 2. Identify IP and check rate limit
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+    logStep(5, 'IP Address identified', 'PASS', ip);
     
-    // Get IP address for rate limit tracking
-    const ip = req.headers.get('x-forwarded-for') || (req as any).ip || '127.0.0.1';
-    logStep(8, 'IP Address identified', 'PASS', ip);
-    
-    // Rate limit: 20 user creations per 15 minutes per IP
     try {
-      const limitStatus = countAndCheckLimit(`api_admin_create_user_${ip}`, 20, 15 * 60 * 1000);
+      const limitStatus = countAndCheckLimit(`api_admin_create_user_${ip}`, 50, 15 * 60 * 1000); // Increased limit for debugging
       if (limitStatus.limited) {
-        logStep(9, 'Rate limit check', 'FAIL', 'Limited');
-        return NextResponse.json({ success: false, error: 'Too many requests', trace }, { status: 429 });
+        logStep(6, 'Rate limit check', 'FAIL', 'Limited');
+        return NextResponse.json({ success: false, error: 'Rate limit exceeded', trace }, { status: 429 });
       }
-      logStep(9, 'Rate limit check', 'PASS');
+      logStep(6, 'Rate limit check', 'PASS');
     } catch (e: any) {
-      logStep(9, 'Rate limit check', 'FAIL', e.message);
+      logStep(6, 'Rate limit check', 'FAIL', e.message);
     }
 
+    // 3. Auth Header Verification
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      logStep(10, 'Auth header check', 'FAIL', 'Missing or invalid');
-      return NextResponse.json({ success: false, error: 'Unauthorized: Missing header', trace }, { status: 401 });
+      logStep(7, 'Auth header check', 'FAIL', 'Missing or invalid');
+      return NextResponse.json({ success: false, error: 'Unauthorized: Missing token', trace }, { status: 401 });
     }
-    logStep(10, 'Auth header check', 'PASS');
+    logStep(7, 'Auth header check', 'PASS');
 
     const idToken = authHeader.split('Bearer ')[1];
     let decodedToken;
     try {
       decodedToken = await adminAuth.verifyIdToken(idToken);
-      logStep(11, 'Token verification', 'PASS', decodedToken.uid);
+      logStep(8, 'Token verification', 'PASS', `UID: ${decodedToken.uid}`);
     } catch (e: any) {
-      logStep(11, 'Token verification', 'FAIL', e.message);
+      logStep(8, 'Token verification', 'FAIL', e.message);
       return NextResponse.json({ success: false, error: 'Unauthorized: Invalid token', trace }, { status: 401 });
     }
     
-    // Verify requester is an OWNER
+    // 4. Owner Verification
     try {
       const ownerDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
-      if (!ownerDoc.exists || ownerDoc.data()?.role !== 'owner') {
-        logStep(12, 'Owner verification', 'FAIL', 'Not an owner');
+      if (!ownerDoc.exists) {
+        logStep(9, 'Owner existence check', 'FAIL', `UID ${decodedToken.uid} not found in DB`);
+        return NextResponse.json({ success: false, error: 'Forbidden: User not found in database', trace }, { status: 403 });
+      }
+      if (ownerDoc.data()?.role !== 'owner') {
+        logStep(9, 'Owner role verification', 'FAIL', `Role is ${ownerDoc.data()?.role}`);
         return NextResponse.json({ success: false, error: 'Forbidden: Only owners can create users', trace }, { status: 403 });
       }
-      logStep(12, 'Owner verification', 'PASS');
+      logStep(9, 'Owner verification', 'PASS');
     } catch (e: any) {
-      logStep(12, 'Owner verification', 'FAIL', e.message);
-      return NextResponse.json({ success: false, error: 'Database error during owner check', trace }, { status: 500 });
+      logStep(9, 'Owner verification', 'FAIL', e.message);
+      return NextResponse.json({ success: false, error: 'Database error during permission check', details: e.message, trace }, { status: 500 });
     }
 
+    // 5. Request Body Parsing
     let body;
     try {
       body = await req.json();
-      logStep(13, 'Request body parsing', 'PASS');
+      logStep(10, 'Request body parsing', 'PASS');
     } catch (e: any) {
-      logStep(13, 'Request body parsing', 'FAIL', e.message);
+      logStep(10, 'Request body parsing', 'FAIL', e.message);
       return NextResponse.json({ success: false, error: 'Invalid JSON body', trace }, { status: 400 });
     }
     
     const { email, password, name, role, business_id } = body;
+    logStep(11, 'Body content check', 'PASS', `Email: ${email}, Role: ${role}, Business: ${business_id}`);
 
     if (!email || !password || !role || !business_id) {
-      logStep(14, 'Input validation', 'FAIL', 'Missing fields');
+      logStep(12, 'Input validation', 'FAIL', 'Missing required fields');
       return NextResponse.json({ success: false, error: 'Missing required fields', trace }, { status: 400 });
     }
-    logStep(14, 'Input validation', 'PASS');
 
-    // 1. Create the user in Auth
+    // 6. Business Existence Check
+    try {
+      const businessDoc = await adminDb.collection('businesses').doc(business_id).get();
+      if (!businessDoc.exists) {
+        logStep(13, 'Business existence check', 'FAIL', `Business ID ${business_id} not found`);
+        return NextResponse.json({ success: false, error: 'Business not found', trace }, { status: 400 });
+      }
+      logStep(13, 'Business existence check', 'PASS');
+    } catch (e: any) {
+      logStep(13, 'Business existence check', 'FAIL', e.message);
+      // We'll proceed if it's just a read error, but log it
+    }
+
+    // 7. Auth User Creation
     let userRecord;
     try {
-      logStep(15, 'Creating Auth user', 'PASS', email);
+      logStep(14, 'Creating Auth user', 'PASS', email);
       userRecord = await adminAuth.createUser({
         email,
-        password: password.toString(),
+        password: String(password),
         displayName: name,
       });
-      logStep(16, 'Auth user created', 'PASS', userRecord.uid);
+      logStep(15, 'Auth user created', 'PASS', userRecord.uid);
     } catch (err: any) {
-      logStep(15, 'Creating Auth user', 'FAIL', err.message);
+      logStep(14, 'Creating Auth user', 'FAIL', err.message);
       if (err.code === 'auth/email-already-exists') {
-        return NextResponse.json({ success: false, error: 'This email is already registered.', trace }, { status: 409 });
+        return NextResponse.json({ success: false, error: 'Email already exists', trace }, { status: 409 });
       }
       return NextResponse.json({ success: false, error: 'Auth account creation failed', details: err.message, trace }, { status: 500 });
     }
 
-    // 2. Create the user document in Firestore
+    // 8. Firestore User Creation
     try {
-      logStep(17, 'Creating Firestore document', 'PASS', userRecord.uid);
+      // Get ownerId (which is the uid of the owner of this business)
+      const businessDoc = await adminDb.collection('businesses').doc(business_id).get();
+      const bData = businessDoc.data();
+      const ownerId = bData?.ownerId || decodedToken.uid;
+
+      logStep(16, 'Creating Firestore document', 'PASS', userRecord.uid);
       await adminDb.collection('users').doc(userRecord.uid).set({
         email,
         name,
         role,
         businessId: business_id,
+        ownerId: ownerId,
         createdBy: decodedToken.uid,
         active: true,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
-      logStep(18, 'Firestore document created', 'PASS');
+      logStep(17, 'Firestore document created', 'PASS');
     } catch (err: any) {
-      logStep(17, 'Creating Firestore document', 'FAIL', err.message);
+      logStep(16, 'Creating Firestore document', 'FAIL', err.message);
+      // Rollback Auth user
       try {
         await adminAuth.deleteUser(userRecord.uid);
-        logStep(19, 'Rollback Auth user', 'PASS');
+        logStep(18, 'Rollback Auth user', 'PASS');
       } catch (rollbackErr: any) {
-        logStep(19, 'Rollback Auth user', 'FAIL', rollbackErr.message);
+        logStep(18, 'Rollback Auth user', 'FAIL', rollbackErr.message);
       }
       return NextResponse.json({ success: false, error: 'Database record creation failed', details: err.message, trace }, { status: 500 });
     }
 
-    logStep(20, 'Success response generation', 'PASS');
+    logStep(19, 'Process completed successfully', 'PASS');
     return NextResponse.json({ 
       success: true,
       message: 'User created successfully', 
@@ -170,12 +209,13 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (err: any) {
-    console.error('[CreateUserAPI] CRITICAL FAILURE:', err);
+    console.error('[CreateUserAPI] UNCAUGHT CATASTROPHIC ERROR:', err);
     return NextResponse.json({ 
       success: false,
-      error: 'A catastrophic server error occurred',
+      error: 'Catastrophic server error',
       details: err.message,
-      trace
+      stack: err.stack,
+      trace: trace.length > 0 ? trace : ['Crash before trace initialization']
     }, { status: 500 });
   }
 }

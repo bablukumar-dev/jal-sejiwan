@@ -31,7 +31,7 @@ function CustomersList() {
   const [filter, setFilter] = useState('All');
   const [isReminding, setIsReminding] = useState(false);
   const [progressCount, setProgressCount] = useState<number | null>(null);
-  const [selectedCustomerIds, setSelectedCustomerIds] = useState<number[]>([]);
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('customerSearchHistory');
@@ -45,13 +45,8 @@ function CustomersList() {
     }
     return [];
   });
-  const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('userRole');
-      if (stored === 'owner' || stored === 'manager') return stored;
-    }
-    return 'owner';
-  });
+  
+  const userRole = currentUser?.role || 'owner';
 
   const saveSearch = (query: string) => {
     const trimmed = query.trim();
@@ -64,7 +59,7 @@ function CustomersList() {
     });
   };
 
-  const handleSelectToggle = (id: number, e: React.MouseEvent) => {
+  const handleSelectToggle = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setSelectedCustomerIds(prev => 

@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
 import { logActivity } from '@/lib/activityLogger';
+import { addCustomer } from '@/lib/firestore-service';
 import ImageCropperModal from '@/components/ImageCropperModal';
 import Toast, { ToastProps } from '@/components/Toast';
 
@@ -128,14 +129,17 @@ export default function AddCustomer() {
           return;
         }
 
+        if (!currentUser) {
+          setToast({ message: 'Session expired. Please login again.', type: 'error', onClose: () => setToast(null) });
+          return;
+        }
+
         const sanitizedAddress = sanitizeString(address);
         const sanitizedNotes = sanitizeString(notes);
         const sanitizedArea = sanitizeString(area);
         const sanitizedRoute = sanitizeString(route);
 
-        const customersArray = Array.isArray(customers) ? customers : [];
-        const newId = Math.max(0, ...customersArray.map(c => c.id || 0), 0) + 1;
-        const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
+        setIsUploading(true);
         
         let uploadedImageURL = '';
         if (selectedImage) {
@@ -143,8 +147,7 @@ export default function AddCustomer() {
             uploadedImageURL = URL.createObjectURL(selectedImage);
         }
 
-        const newCustomer = {
-          id: newId,
+        const customerData = {
           name: nameVal.value,
           phone: phoneVal.value,
           address: sanitizedAddress,
@@ -163,11 +166,10 @@ export default function AddCustomer() {
           walletBalance: walletBalanceVal.value,
           subscriptionPlan,
           riskLevel,
-          businessId: currentBusinessId,
           imageURL: uploadedImageURL
         };
 
-        setCustomers([...customersArray, newCustomer]);
+        const docRef = await addCustomer(customerData, currentUser);
         
         logActivity({
           module: 'Customers',
@@ -175,23 +177,25 @@ export default function AddCustomer() {
           description: `Added new customer: ${nameVal.value} (${type})`,
           status: 'success',
           resourceType: 'Customer',
-          resourceId: String(newId),
+          resourceId: docRef.id,
           resourceName: nameVal.value,
-          newValue: newCustomer
+          newValue: customerData
         });
 
         setToast({ message: 'Customer Successfully Added', type: 'success', onClose: () => setToast(null) });
-        const role = localStorage.getItem('userRole');
+        const role = currentUser.role;
         setTimeout(() => {
           if (role === 'staff') {
-          router.push('/staff/dashboard');
+            router.push('/staff/dashboard');
           } else {
-          router.push('/owner/customers');
+            router.push('/owner/customers');
           }
         }, 1500);
     } catch (e) {
         console.error("Failed to add customer", e);
         setToast({ message: 'Failed to add customer. Please try again.', type: 'error', onClose: () => setToast(null) });
+    } finally {
+        setIsUploading(false);
     }
   };
 

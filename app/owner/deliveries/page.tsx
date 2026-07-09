@@ -10,27 +10,27 @@ import { useAppContext } from '@/app/context/AppContext';
 import { useRouter } from 'next/navigation';
 import { logActivity } from '@/lib/activityLogger';
 import { wrapRoute } from '@/lib/permissionGuard';
+import { updateDelivery, batchAddDeliveries } from '@/lib/firestore-service';
 
 function DeliveriesList() {
   const router = useRouter();
-  const { deliveries, customers, routes, setDeliveries } = useAppContext();
+  const { deliveries, customers, routes, setDeliveries, currentUser } = useAppContext();
   const [activeTab, setActiveTab] = useState('all');
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [routeFilter, setRouteFilter] = useState('All Routes');
-  const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('userRole');
-      if (stored === 'owner' || stored === 'manager') return stored;
-    }
-    return 'owner';
-  });
+  
+  const userRole = currentUser?.role || 'owner';
 
-  const updatePriority = (deliveryId: number, priority: 'High' | 'Medium' | 'Low') => {
-    setDeliveries(deliveries.map(d => d.id === deliveryId ? { ...d, priority } : d));
+  const updatePriority = async (deliveryId: string, priority: 'High' | 'Medium' | 'Low') => {
+    try {
+      if (!currentUser) return;
+      await updateDelivery(deliveryId, { priority }, currentUser);
+    } catch (e) {
+      console.error("Failed to update priority", e);
+    }
   };
 
   const handleRefresh = async () => {
-    await new Promise(resolve => setTimeout(resolve, 800));
     window.location.reload();
   };
 
@@ -75,15 +75,16 @@ function DeliveriesList() {
     return null;
   };
 
-  const generateRouteDeliveries = () => {
+  const generateRouteDeliveries = async () => {
     if (routeFilter === 'All Routes') {
       alert("Please select a specific route to generate deliveries.");
       return;
     }
+    if (!currentUser) return;
+
     const routeCustomers = customers.filter(c => c.active && c.route === routeFilter);
-    const newDeliveries = routeCustomers.filter(c => !deliveries.some(d => normalizeDate(d.date) === date && d.customerId === c.id))
+    const newDeliveriesData = routeCustomers.filter(c => !deliveries.some(d => normalizeDate(d.date) === date && d.customerId === c.id))
       .map(c => ({
-        id: Date.now() + c.id,
         customerId: c.id,
         customerName: c.name,
         date: date,
@@ -94,20 +95,25 @@ function DeliveriesList() {
         paymentAmount: 0,
         paymentMode: '',
         note: '',
-        staffId: 0, // Should be assigned staff ID based on route
+        staffId: 0,
         staffName: '',
       }));
     
-    if (newDeliveries.length > 0) {
-      setDeliveries([...deliveries, ...newDeliveries]);
-      logActivity({
-        module: 'Water Management',
-        action: 'Deliveries Generated',
-        description: `Generated ${newDeliveries.length} pending deliveries for route ${routeFilter} on ${date}`,
-        status: 'success',
-        metadata: { count: newDeliveries.length, route: routeFilter, date }
-      });
-      alert(`Generated ${newDeliveries.length} pending deliveries for ${routeFilter}`);
+    if (newDeliveriesData.length > 0) {
+      try {
+        await batchAddDeliveries(newDeliveriesData, currentUser);
+        logActivity({
+          module: 'Water Management',
+          action: 'Deliveries Generated',
+          description: `Generated ${newDeliveriesData.length} pending deliveries for route ${routeFilter} on ${date}`,
+          status: 'success',
+          metadata: { count: newDeliveriesData.length, route: routeFilter, date }
+        });
+        alert(`Generated ${newDeliveriesData.length} pending deliveries for ${routeFilter}`);
+      } catch (e) {
+        console.error("Failed to generate deliveries", e);
+        alert("Failed to generate deliveries. Please try again.");
+      }
     } else {
       alert(`All active customers in ${routeFilter} already have deliveries scheduled for ${date}.`);
     }

@@ -4,15 +4,17 @@ import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState } from 'react';
+import { updateBusiness } from '@/lib/firestore-service';
 
 export default function PriceSettings() {
-  const { businessInfo, setBusinessInfo } = useAppContext();
+  const { businessInfo, setBusinessInfo, currentUser } = useAppContext();
   const [rate, setRate] = useState(businessInfo.defaultRate.toString());
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
-        setBusinessInfo({ ...businessInfo, defaultRate: Number(rate) || 0 });
+        if (!currentUser) return;
+        await updateBusiness(currentUser.businessId, { defaultRate: Number(rate) || 0 }, currentUser);
         setIsSuccess(true);
         setTimeout(() => setIsSuccess(false), 3000);
     } catch(e) {

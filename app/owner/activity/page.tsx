@@ -45,35 +45,11 @@ import {
 } from 'firebase/firestore';
 
 export default function ActivityLogDashboard() {
-  const { staff, currentUser: appContextUser } = useAppContext();
+  const { staff, currentUser } = useAppContext();
   
-  // Resolve user identity & role
-  const [userRole, setUserRole] = useState<'owner' | 'manager' | 'staff'>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('userRole');
-      if (stored === 'owner' || stored === 'manager' || stored === 'staff') {
-        return stored;
-      }
-    }
-    return 'owner';
-  });
-
-  const [currentUserId, setCurrentUserId] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      if (localStorage.getItem('userRole') === 'owner') {
-        return localStorage.getItem('ownerId') || 'owner';
-      }
-      return localStorage.getItem('staffUserId') || 'unknown';
-    }
-    return 'owner';
-  });
-
-  const [workspaceId, setWorkspaceId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('businessId') || localStorage.getItem('ownerId');
-    }
-    return null;
-  });
+  const userRole = currentUser?.role || 'owner';
+  const currentUserId = currentUser?.uid || 'unknown';
+  const workspaceId = currentUser?.businessId || null;
 
   const [refreshKey, setRefreshKey] = useState(0);
 

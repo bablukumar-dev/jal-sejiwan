@@ -1,73 +1,189 @@
 {
-  "collections": {
-    "users": {
-      "description": "Stores user profile and role information",
-      "documents": {
-        "{userId}": {
-          "fields": {
-            "email": { "type": "string" },
-            "role": { "type": "string" },
-            "businessId": { "type": "string" },
-            "createdAt": { "type": "timestamp" }
-          },
-          "allow": {
-            "read": "request.auth != null && request.auth.uid == userId",
-            "write": "false"
-          }
-        }
-      }
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System user with role and business association",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["owner", "manager", "staff"] },
+        "businessId": { "type": "string" },
+        "onboardingCompleted": { "type": "boolean" },
+        "profileCompleted": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role", "businessId"]
     },
-    "businesses": {
-      "description": "Stores business-specific data",
-      "documents": {
-        "{businessId}": {
-          "fields": {
-            "name": { "type": "string" },
-            "ownerId": { "type": "string" }
-          },
-          "allow": {
-            "read": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId",
-            "write": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId"
-          },
-          "collections": {
-            "customers": {
-              "documents": {
-                "{customerId}": {
-                  "allow": {
-                    "read": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId",
-                    "write": "request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == businessId"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+    "Business": {
+      "title": "Business",
+      "description": "Business profile representing a tenant",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "defaultRate": { "type": "number" },
+        "canSize": { "type": "string" },
+        "gstNumber": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "ownerId"]
     },
-    "activity_logs": {
-      "description": "Audit trail for system actions",
-      "documents": {
-        "{activityId}": {
-          "fields": {
-            "activityId": { "type": "string" },
-            "timestamp": { "type": "timestamp" },
-            "userId": { "type": "string" },
-            "userName": { "type": "string" },
-            "role": { "type": "string" },
-            "businessId": { "type": "string" },
-            "module": { "type": "string" },
-            "action": { "type": "string" },
-            "status": { "type": "string" },
-            "success": { "type": "boolean" }
-          },
-          "allow": {
-            "read": "request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner' || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == resource.data.businessId) || (request.auth.uid == resource.data.userId))",
-            "create": "request.auth != null",
-            "update": "false",
-            "delete": "false"
-          }
-        }
-      }
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer of a business",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "area": { "type": "string" },
+        "route": { "type": "string" },
+        "type": { "type": "string" },
+        "deliveryType": { "type": "string" },
+        "defaultQty": { "type": "number" },
+        "rate": { "type": "number" },
+        "due": { "type": "number" },
+        "emptyBalance": { "type": "number" },
+        "active": { "type": "boolean" },
+        "businessId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "businessId", "ownerId", "createdBy"]
+    },
+    "Staff": {
+      "title": "Staff",
+      "description": "Staff member of a business",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string" },
+        "route": { "type": "string" },
+        "pin": { "type": "string" },
+        "active": { "type": "boolean" },
+        "businessId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "role", "businessId", "ownerId", "createdBy"]
+    },
+    "Delivery": {
+      "title": "Delivery",
+      "description": "Delivery record",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "deliveredQty": { "type": "number" },
+        "returnedEmpty": { "type": "number" },
+        "status": { "type": "string" },
+        "paymentReceived": { "type": "boolean" },
+        "paymentAmount": { "type": "number" },
+        "paymentMode": { "type": "string" },
+        "staffId": { "type": "string" },
+        "staffName": { "type": "string" },
+        "businessId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerId", "businessId", "ownerId", "createdBy"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Payment record",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date" },
+        "mode": { "type": "string" },
+        "businessId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerId", "amount", "businessId", "ownerId", "createdBy"]
+    },
+    "Inventory": {
+      "title": "Inventory",
+      "description": "Business inventory levels",
+      "type": "object",
+      "properties": {
+        "fullCans": { "type": "number" },
+        "emptyCans": { "type": "number" },
+        "damagedCans": { "type": "number" },
+        "cansWithCustomers": { "type": "number" },
+        "cansInDelivery": { "type": "number" },
+        "refillInProcess": { "type": "number" },
+        "businessId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["businessId", "ownerId"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "Audit trail log",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "module": { "type": "string" },
+        "action": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "businessId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "module", "action", "businessId", "ownerId"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "businesses/{businessId}": {
+      "schema": "Business",
+      "description": "Business profiles"
+    },
+    "customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Customers across all businesses"
+    },
+    "staff/{staffId}": {
+      "schema": "Staff",
+      "description": "Staff across all businesses"
+    },
+    "deliveries/{deliveryId}": {
+      "schema": "Delivery",
+      "description": "Deliveries across all businesses"
+    },
+    "payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Payments across all businesses"
+    },
+    "inventory/{businessId}": {
+      "schema": "Inventory",
+      "description": "Inventory level for a business"
+    },
+    "activity_logs/{logId}": {
+      "schema": "ActivityLog",
+      "description": "Audit logs across all businesses"
     }
   }
 }

@@ -8,13 +8,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { logActivity } from '@/lib/activityLogger';
+import { updateInventory } from '@/lib/firestore-service';
+import { increment } from 'firebase/firestore';
 import { wrapRoute } from '@/lib/permissionGuard';
 
 function DispatchScreen() {
   const router = useRouter();
-  const { staff, setInventory } = useAppContext();
+  const { staff, setInventory, currentUser } = useAppContext();
   const [dispatched, setDispatched] = useState(45);
-  const [localSelectedStaffId, setLocalSelectedStaffId] = useState<number | null>(null);
+  const [localSelectedStaffId, setLocalSelectedStaffId] = useState<string | null>(null);
   const [emptyReceived, setEmptyReceived] = useState(false);
   const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
     if (typeof window !== 'undefined') {
@@ -29,15 +31,14 @@ function DispatchScreen() {
 
   const selectedStaff = staff.find(s => s.id === selectedStaffId);
 
-  const handleConfirm = () => {
-    if (!selectedStaff) return;
+  const handleConfirm = async () => {
+    if (!selectedStaff || !currentUser) return;
 
     try {
-      setInventory(prev => ({
-        ...prev,
-        fullCans: prev.fullCans - dispatched,
-        cansInDelivery: prev.cansInDelivery + dispatched
-      }));
+      await updateInventory(currentUser.businessId, {
+        fullCans: increment(-dispatched),
+        cansInDelivery: increment(dispatched)
+      } as any);
 
       logActivity({
         module: 'Inventory',
@@ -53,7 +54,6 @@ function DispatchScreen() {
         }
       });
 
-      // In a real app, we would log this dispatch to history
       router.push('/inventory/dashboard');
     } catch (e) {
       console.error("Failed to confirm dispatch", e);

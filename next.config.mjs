@@ -12,6 +12,7 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react'],
+    serverExternalPackages: ['firebase-admin'],
   },
   // Allow access to remote image placeholder.
   images: {

@@ -69,7 +69,7 @@ function StaffManagement() {
     return { total, completionRate, feedbackSummary };
   };
 
-  const currentRole = (safeGet('userRole') || '').toLowerCase();
+  const currentRole = currentUser?.role || 'owner';
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">

@@ -6,14 +6,16 @@ import { MapPin, Phone, Droplet, Package, Plus, Minus, CheckCircle2, AlertTriang
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
+import { updateDelivery, updateCustomer, addPayment, updateInventory } from '@/lib/firestore-service';
 import { logActivity } from '@/lib/activityLogger';
 import { validateAmount, validateQuantity } from '@/lib/validation';
 import { savePendingDelivery } from '@/lib/idb';
+import { increment } from 'firebase/firestore';
 
 export default function DeliveryEntry() {
   const router = useRouter();
   const params = useParams();
-  const deliveryId = Number(params.id);
+  const deliveryId = params.id as string;
   const { deliveries, customers, setDeliveries, setCustomers, setInventory, setPayments, businessInfo, inventory, payments, currentUser } = useAppContext();
 
   const delivery = deliveries.find(d => d.id === deliveryId);
@@ -81,12 +83,12 @@ export default function DeliveryEntry() {
     : (paymentType === 'Due' ? '0' : subtotal.toString());
 
   const handleConfirm = async () => {
-    const prevDeliveries = [...deliveries];
-    const prevInventory = {...inventory};
-    const prevPayments = [...payments];
-    const prevCustomers = [...customers];
-
     try {
+        if (!currentUser) {
+          alert('Session expired. Please login again.');
+          return;
+        }
+
         // Enforce validations before otp/confirm cycle
         const deliveredVal = validateQuantity(delivered, true, 500);
         if (!deliveredVal.valid) {
@@ -134,26 +136,8 @@ export default function DeliveryEntry() {
 
         const parsedAmount = collectedAmountVal.value;
 
-        // Save to IndexedDB for Background Sync
-        const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
-        await savePendingDelivery({
-          deliveryId,
-          customerId: customer.id,
-          customerName: customer.name,
-          deliveredQty: delivered,
-          returnedEmpty: empties,
-          damagedQty: damagedQty,
-          paymentMode: paymentType,
-          paymentAmount: parsedAmount,
-          date: date,
-          rate: currentRate,
-          businessId: currentBusinessId
-        });
-
-        // Update delivery
-        const updatedDeliveries = deliveries.map(d => 
-        d.id === deliveryId ? { 
-          ...d, 
+        // 1. Update delivery in Firestore
+        const deliveryData = {
           status: 'delivered', 
           deliveredQty: delivered, 
           returnedEmpty: empties, 
@@ -162,62 +146,51 @@ export default function DeliveryEntry() {
           paymentAmount: parsedAmount,
           paymentMode: paymentType,
           rate: currentRate
-        } : d
-        );
-        setDeliveries(updatedDeliveries);
+        };
+        await updateDelivery(deliveryId, deliveryData, currentUser);
 
-        // Update inventory. Warehouse stock is managed by Dispatch/Reconcile.
-        setInventory(prev => ({
-        ...prev,
-        cansWithCustomers: prev.cansWithCustomers + delivered - empties
-        }));
+        // 2. Update inventory
+        await updateInventory(currentUser.businessId, {
+          cansWithCustomers: increment(delivered - empties)
+        } as any);
 
-        // Handle payment
+        // 3. Update customer
         let newDue = customer.due;
-
         if (paymentType === 'Due') {
           newDue += subtotal;
         } else {
-          // Unpaid difference gets added to customer due balance, or extra payment gets subtracted
           newDue += (subtotal - parsedAmount);
-
-          if (parsedAmount > 0) {
-            const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
-            const newPayment = {
-              id: Date.now(),
-              customerId: customer.id,
-              customerName: customer.name,
-              date: date,
-              amount: parsedAmount,
-              mode: paymentType,
-              collectedBy: 'Staff',
-              note: `DEL-${deliveryId}`,
-              businessId: currentBusinessId
-            };
-            setPayments(prev => [newPayment, ...prev]);
-          }
         }
 
-        // Update customer
-        const updatedCustomers = customers.map(c => 
-        c.id === customer.id ? { 
-            ...c, 
-            due: newDue, 
-            emptyBalance: c.emptyBalance + delivered - empties - damagedQty, 
-            lastDelivery: date,
-            rate: currentRate 
-        } : c
-        );
-        setCustomers(updatedCustomers);
+        const customerUpdate = {
+          due: newDue, 
+          emptyBalance: customer.emptyBalance + delivered - empties - damagedQty, 
+          lastDelivery: date,
+          rate: currentRate 
+        };
+        await updateCustomer(customer.id, customerUpdate, currentUser);
+
+        // 4. Record payment if collected
+        if (parsedAmount > 0) {
+          const paymentData = {
+            customerId: customer.id,
+            customerName: customer.name,
+            date: date,
+            amount: parsedAmount,
+            mode: paymentType,
+            collectedBy: currentUser.name || 'Staff',
+            note: `DEL-${deliveryId}`
+          };
+          await addPayment(paymentData, currentUser);
+        }
         
-        // Log delivery complete activity silently in background
         logActivity({
           module: 'Water Management',
           action: 'Delivery Completed',
           description: `Completed delivery to ${customer.name}: ${delivered} Cans, ${empties} Empties returned, payment ₹${parsedAmount} (${paymentType})`,
           status: 'success',
           resourceType: 'Delivery',
-          resourceId: String(deliveryId),
+          resourceId: deliveryId,
           resourceName: customer.name,
           newValue: {
             delivered,
@@ -231,10 +204,6 @@ export default function DeliveryEntry() {
         alert("Delivery Recorded Successfully!");
         router.back();
     } catch (e) {
-        setDeliveries(prevDeliveries);
-        setInventory(prevInventory);
-        setPayments(prevPayments);
-        setCustomers(prevCustomers);
         console.error("Failed to record delivery", e);
         alert("Failed to record delivery. Please try again.");
     }

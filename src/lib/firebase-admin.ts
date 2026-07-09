@@ -3,54 +3,97 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-const serviceAccount = {
-  projectId: process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId,
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  privateKey: process.env.FIREBASE_PRIVATE_KEY,
-};
+/**
+ * Validates the firebase-admin configuration and credentials.
+ * Throws a descriptive error if something is missing.
+ */
+function validateCredentials() {
+  const projectId = process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+  const errors: string[] = [];
+  if (!projectId) errors.push('FIREBASE_PROJECT_ID');
+  if (!clientEmail) errors.push('FIREBASE_CLIENT_EMAIL');
+  if (!privateKey) errors.push('FIREBASE_PRIVATE_KEY');
+
+  if (errors.length > 0) {
+    console.error('[FirebaseAdmin] Missing environment variables:', errors.join(', '));
+    throw new Error(`Missing required Firebase environment variables: ${errors.join(', ')}`);
+  }
+
+  // Basic format validation
+  if (clientEmail && !clientEmail.includes('@')) {
+    errors.push('FIREBASE_CLIENT_EMAIL format is invalid');
+  }
+  if (privateKey && !privateKey.includes('PRIVATE KEY')) {
+    errors.push('FIREBASE_PRIVATE_KEY format is invalid (missing PEM headers)');
+  }
+
+  if (errors.length > 0) {
+    console.error('[FirebaseAdmin] Invalid credentials format:', errors.join('. '));
+    throw new Error(`Invalid Firebase credentials: ${errors.join('. ')}`);
+  }
+
+  return { projectId, clientEmail, privateKey };
+}
 
 function initAdmin() {
-  if (getApps().length > 0) {
-    return getApp();
-  }
-
-  // Clean the private key
-  let privateKey = serviceAccount.privateKey;
-  if (privateKey) {
-    // Replace literal \n with real newlines
-    privateKey = privateKey.replace(/\\n/g, '\n');
-    // Remove surrounding quotes if present (common in some environment setups)
-    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-      privateKey = privateKey.substring(1, privateKey.length - 1);
-    }
-    // Final check for PEM format consistency
-    if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-      console.warn('Firebase Private Key seems to be missing PEM header');
-    }
-  }
-
-  if (!serviceAccount.projectId || !serviceAccount.clientEmail || !privateKey) {
-    const missing = {
-      projectId: !serviceAccount.projectId,
-      clientEmail: !serviceAccount.clientEmail,
-      privateKey: !privateKey
-    };
-    console.error('Firebase Admin credentials incomplete:', missing);
-    throw new Error(`Firebase Admin credentials missing: ${Object.keys(missing).filter(k => (missing as any)[k]).join(', ')}`);
-  }
-
+  const APP_NAME = 'admin-app';
+  
   try {
+    const existingApps = getApps();
+    const adminApp = existingApps.find(app => app.name === APP_NAME);
+    if (adminApp) {
+      return adminApp;
+    }
+
+    const { projectId, clientEmail, privateKey: rawKey } = validateCredentials();
+
+    // Clean the private key rigorously
+    let privateKey = rawKey;
+    if (privateKey) {
+      // 1. Handle literal \n strings (common in env vars)
+      privateKey = privateKey.replace(/\\n/g, '\n');
+      
+      // 2. Handle escaped quotes
+      if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+        privateKey = privateKey.substring(1, privateKey.length - 1);
+      }
+      
+      // 3. Trim whitespace but keep newlines
+      privateKey = privateKey.trim();
+      
+      // 4. Ensure it has the correct header/footer
+      if (!privateKey.startsWith('-----BEGIN PRIVATE KEY-----')) {
+        privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}`;
+      }
+      if (!privateKey.endsWith('-----END PRIVATE KEY-----')) {
+        privateKey = `${privateKey}\n-----END PRIVATE KEY-----`;
+      }
+    }
+
     const app = initializeApp({
       credential: cert({
-        projectId: serviceAccount.projectId,
-        clientEmail: serviceAccount.clientEmail,
-        privateKey: privateKey,
+        projectId,
+        clientEmail,
+        privateKey,
       }),
-    });
-    console.log('Firebase Admin initialized successfully for project:', serviceAccount.projectId);
+    }, APP_NAME);
+
+    console.log('[FirebaseAdmin] Initialized successfully for project:', projectId);
     return app;
-  } catch (error) {
-    console.error('Error during initializeApp:', error);
+  } catch (error: any) {
+    console.error('[FirebaseAdmin] Initialization failure:', error.message);
+    
+    // Recovery: If it's a duplicate app error, try to return the existing one
+    if (error.code === 'app/duplicate-app') {
+      try {
+        return getApp(APP_NAME);
+      } catch (innerError) {
+        throw error;
+      }
+    }
     throw error;
   }
 }
@@ -62,20 +105,42 @@ export const getAdminAuth = () => {
 
 export const getAdminDb = () => {
   const app = initAdmin();
-  // Use the database ID from the platform config if available, otherwise default to undefined
+  
+  // Use the database ID from the platform config
+  // In AI Studio, this is often a long string like ai-studio-jalsejiwan-...
   const databaseId = firebaseConfig.firestoreDatabaseId;
   
   if (!databaseId || databaseId === '(default)') {
-    console.log('[FirebaseAdmin] Initializing Firestore with default database');
+    console.log('[FirebaseAdmin] Using default Firestore database');
     return getFirestore(app);
   }
   
-  console.log('[FirebaseAdmin] Initializing Firestore with databaseId:', databaseId);
   try {
+    console.log('[FirebaseAdmin] Using Firestore databaseId:', databaseId);
     return getFirestore(app, databaseId);
-  } catch (err) {
-    console.error('[FirebaseAdmin] Failed to initialize Firestore with databaseId:', databaseId, err);
-    // Fallback to default if named fails
+  } catch (err: any) {
+    console.error('[FirebaseAdmin] Firestore init error with databaseId:', databaseId, err.message);
+    // Fallback to default
     return getFirestore(app);
+  }
+};
+
+/**
+ * Diagnostics function to check if the admin SDK is ready
+ */
+export const checkAdminStatus = () => {
+  try {
+    const { projectId, clientEmail } = validateCredentials();
+    return {
+      status: 'ready',
+      projectId,
+      clientEmail: clientEmail.substring(0, 5) + '...',
+      usingDatabaseId: firebaseConfig.firestoreDatabaseId || '(default)'
+    };
+  } catch (e: any) {
+    return {
+      status: 'error',
+      message: e.message
+    };
   }
 };

@@ -41,36 +41,13 @@ function OwnerDashboard() {
   }, [rawCustomers]);
   const [isReminding, setIsReminding] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [userRole, setUserRole] = useState<string>(() => {
-    return safeGet('userRole') || 'owner';
-  });
-  const [userName, setUserName] = useState<string>(() => {
-    const role = safeGet('userRole');
-    if (role === 'owner') {
-      return businessInfo.ownerName || 'Owner';
-    } else {
-      return safeGet('staffUserName') || 'Manager';
-    }
-  });
+  
+  const userRole = currentUser?.role || 'owner';
+  const userName = userRole === 'owner' ? (businessInfo.ownerName || 'Owner') : (currentUser?.name || 'Manager');
 
   const warnings = useLossDetection(customers, deliveries, inventory, payments);
 
   const pendingCustomers = useMemo(() => customers.filter(c => c.due > 0).length, [customers]);
-
-  useEffect(() => {
-    const role = safeGet('userRole');
-    if (role) {
-      requestAnimationFrame(() => {
-        setUserRole(role);
-        if (role === 'owner') {
-          setUserName(businessInfo.ownerName || 'Owner');
-        } else {
-          setUserName(safeGet('staffUserName') || 'Manager');
-        }
-      });
-    }
-  }, [businessInfo.ownerName]);
-
 
   useEffect(() => {
     if (currentUser && currentUser.role === 'owner') {

@@ -2,14 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc, collection, query, where, orderBy } from 'firebase/firestore';
 import { getFirebase } from '@/src/lib/firebase';
 import { getUnsyncedDeliveries } from '@/lib/idb';
 import { setCookie, deleteCookie } from '@/lib/authHelper';
 import { logActivity } from '@/lib/activityLogger';
 
 export type Customer = {
-  id: number;
+  id: string;
   name: string;
   phone: string;
   address: string;
@@ -28,13 +28,17 @@ export type Customer = {
   walletBalance?: number;
   subscriptionPlan?: 'None' | 'Monthly' | 'Unlimited' | 'Custom';
   riskLevel?: 'Low' | 'Medium' | 'High';
-  businessId?: string;
+  businessId: string;
+  ownerId: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
   imageURL?: string;
 };
 
 export type Delivery = {
-  id: number;
-  customerId: number;
+  id: string;
+  customerId: string;
   customerName: string;
   date: string;
   deliveredQty: number;
@@ -44,24 +48,32 @@ export type Delivery = {
   paymentAmount: number;
   paymentMode: string;
   note: string;
-  staffId: number;
+  staffId: string;
   staffName: string;
   skipReason?: string;
   skipRemarks?: string;
   priority?: 'High' | 'Medium' | 'Low';
-  businessId?: string;
+  businessId: string;
+  ownerId: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type Payment = {
-  id: number;
-  customerId: number;
+  id: string;
+  customerId: string;
   customerName: string;
   date: string;
   amount: number;
   mode: string;
   collectedBy: string;
   note: string;
-  businessId?: string;
+  businessId: string;
+  ownerId: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type Inventory = {
@@ -71,30 +83,40 @@ export type Inventory = {
   cansWithCustomers: number;
   cansInDelivery: number;
   refillInProcess: number;
-  businessId?: string;
+  businessId: string;
+  ownerId: string;
+  updatedAt: string;
 };
 
 export type InventoryHistory = {
-  id: number;
+  id: string;
   date: string;
   type: string;
   qty: number;
   source: string;
   note: string;
+  businessId: string;
+  ownerId: string;
+  createdBy: string;
+  createdAt: string;
 };
 
 export type Staff = {
-  id: number;
+  id: string;
   name: string;
   phone: string;
   role: string;
   route: string;
   pin: string;
   encryptedPin?: string;
-  createdBy?: string;
+  createdBy: string;
   failedPinAttempts?: number;
   pinLockedUntil?: string;
   active: boolean;
+  businessId: string;
+  ownerId: string;
+  createdAt: string;
+  updatedAt: string;
   permissions?: {
     canCreateStaff?: boolean;
     canDeleteStaff?: boolean;
@@ -184,7 +206,10 @@ const initialInventory: Inventory = {
   damagedCans: 0,
   cansWithCustomers: 0,
   cansInDelivery: 0,
-  refillInProcess: 0
+  refillInProcess: 0,
+  businessId: '',
+  ownerId: '',
+  updatedAt: new Date().toISOString()
 };
 
 const initialInventoryHistory: InventoryHistory[] = [];
@@ -254,7 +279,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await signOut(auth);
       }
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("Logout Failed:", error);
     } finally {
       // 2. Reset all context data states to avoid stale cache leaks immediately after signout resolves
       setCustomers(initialCustomers);
@@ -347,7 +372,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setAuthLoading(false);
           }
         }, (error: any) => {
-          console.error("Error listening to user data:", error);
+          console.error("Permission Denied:", error);
           if (error.code === 'permission-denied') {
             console.error("FIRESTORE PERMISSION DENIED: Please ensure your security rules allow reading from the 'users' collection.");
           }
@@ -543,10 +568,72 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Supabase real-time listener removed
+  // Real-time synchronization for all modules
   useEffect(() => {
-    console.log("Auth System Removed: real-time listener removed");
-  }, [ownerId]);
+    const { auth, db } = getFirebase();
+    if (!auth || !db || !currentUser?.businessId) return;
+
+    const bId = currentUser.businessId;
+    const oId = currentUser.role === 'owner' ? currentUser.uid : (currentUser as any).ownerId || bId; // Fallback if ownerId not directly on user
+
+    console.log(`[AppContext] Starting real-time sync for business: ${bId}`);
+
+    // Sync Customers
+    const qCustomers = query(collection(db, 'customers'), where('businessId', '==', bId));
+    const unsubCustomers = onSnapshot(qCustomers, (snapshot) => {
+      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Customer));
+      setCustomers(docs);
+      
+      // Update routes and areas from customers
+      const rts = Array.from(new Set(docs.map(c => c.route).filter(Boolean)));
+      const ars = Array.from(new Set(docs.map(c => c.area).filter(Boolean)));
+      setRoutes(rts);
+      setAreas(ars);
+    }, (error) => {
+      console.error("Profile Sync Error (Customers):", error);
+    });
+
+    // Sync Deliveries
+    const qDeliveries = query(collection(db, 'deliveries'), where('businessId', '==', bId), orderBy('date', 'desc'));
+    const unsubDeliveries = onSnapshot(qDeliveries, (snapshot) => {
+      setDeliveries(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Delivery)));
+    });
+
+    // Sync Payments
+    const qPayments = query(collection(db, 'payments'), where('businessId', '==', bId), orderBy('date', 'desc'));
+    const unsubPayments = onSnapshot(qPayments, (snapshot) => {
+      setPayments(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Payment)));
+    });
+
+    // Sync Staff
+    const qStaff = query(collection(db, 'staff'), where('businessId', '==', bId));
+    const unsubStaff = onSnapshot(qStaff, (snapshot) => {
+      setStaff(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Staff)));
+    });
+
+    // Sync Inventory
+    const unsubInventory = onSnapshot(doc(db, 'inventory', bId), (snapshot) => {
+      if (snapshot.exists()) {
+        setInventory(snapshot.data() as Inventory);
+      }
+    });
+
+    // Sync Business Info
+    const unsubBusiness = onSnapshot(doc(db, 'businesses', bId), (snapshot) => {
+      if (snapshot.exists()) {
+        setBusinessInfo(snapshot.data() as BusinessInfo);
+      }
+    });
+
+    return () => {
+      unsubCustomers();
+      unsubDeliveries();
+      unsubPayments();
+      unsubStaff();
+      unsubInventory();
+      unsubBusiness();
+    };
+  }, [currentUser]);
 
   // Define a centralized manual triggerSync function
   const triggerSync = useCallback(async () => {

@@ -8,13 +8,14 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
 import { logActivity } from '@/lib/activityLogger';
+import { updateCustomer } from '@/lib/firestore-service';
 
 export default function EditCustomer() {
   const router = useRouter();
   const params = useParams();
-  const { areas, setAreas, routes, setRoutes, setCustomers, customers, staff, setStaff } = useAppContext();
+  const { areas, setAreas, routes, setRoutes, setCustomers, customers, staff, setStaff, currentUser } = useAppContext();
 
-  const customerId = parseInt(params.id as string);
+  const customerId = params.id as string;
   const customer = customers.find(c => c.id === customerId);
 
   const [name, setName] = useState(customer?.name || '');
@@ -76,18 +77,16 @@ export default function EditCustomer() {
         const sanitizedArea = sanitizeString(area);
         const sanitizedRoute = sanitizeString(route);
 
-        const currentBusinessId = customer?.businessId || (typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business');
+        const currentBusinessId = customer?.businessId || currentUser?.businessId;
         
         let uploadedImageURL = customer?.imageURL || '';
         if (selectedImage) {
-            // Auth system removed - Storage upload simulated
             uploadedImageURL = URL.createObjectURL(selectedImage);
         } else if (imagePreview === null) {
           uploadedImageURL = '';
         }
 
-        const updatedCustomer = {
-          ...customer,
+        const updatedCustomerData = {
           name: nameVal.value,
           phone: phoneVal.value,
           address: sanitizedAddress,
@@ -105,11 +104,11 @@ export default function EditCustomer() {
           walletBalance: walletBalanceVal.value,
           subscriptionPlan,
           riskLevel,
-          businessId: currentBusinessId,
           imageURL: uploadedImageURL
         };
 
-        setCustomers(customers.map(c => c.id === customerId ? updatedCustomer : c));
+        if (!currentUser) return;
+        await updateCustomer(customerId, updatedCustomerData, currentUser);
 
         logActivity({
           module: 'Customers',
@@ -119,7 +118,7 @@ export default function EditCustomer() {
           resourceType: 'Customer',
           resourceId: String(customerId),
           resourceName: nameVal.value,
-          newValue: updatedCustomer
+          newValue: updatedCustomerData
         });
 
         alert('Customer Successfully Updated');

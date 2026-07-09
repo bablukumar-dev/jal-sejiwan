@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { logActivity } from '@/lib/activityLogger';
+import { addPayment, updateCustomer } from '@/lib/firestore-service';
 import { validateAmount } from '@/lib/validation';
 
 export default function RecordPayment() {
@@ -22,7 +23,7 @@ export default function RecordPayment() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [mode, setMode] = useState('Cash');
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [isOffline, setIsOffline] = useState(false);
@@ -82,7 +83,7 @@ export default function RecordPayment() {
     setAmount(val);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
       const parsedAmount = validateAmount(amount, false, 1000000);
       if (!parsedAmount.valid) {
@@ -91,39 +92,43 @@ export default function RecordPayment() {
       }
       
       const numAmount = parsedAmount.value;
-      if (!selectedCustomerId) {
+      if (!selectedCustomerId || !selectedCustomer) {
         alert('Please select a customer');
         return;
       }
 
-      const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
-      const newPayment = {
-        id: Math.max(0, ...payments.map(p => p.id)) + 1,
+      if (!currentUser) {
+        alert('Session expired. Please login again.');
+        return;
+      }
+
+      // 1. Record payment in Firestore
+      const paymentData = {
         customerId: selectedCustomerId,
-        customerName: selectedCustomer?.name || '',
+        customerName: selectedCustomer.name,
         amount: numAmount,
         date,
         mode,
-        collectedBy: 'Owner', // Or whoever is logged in
+        collectedBy: currentUser.name || 'Owner',
         note: '',
-        businessId: currentBusinessId
       };
 
-      setPayments([...payments, newPayment]);
-      setCustomers(customers.map(c => 
-        c.id === selectedCustomerId ? { ...c, due: Math.max(0, c.due - numAmount) } : c
-      ));
+      const docRef = await addPayment(paymentData, currentUser);
 
-      // Log direct payment collection activity silently in background
+      // 2. Update customer due balance
+      await updateCustomer(selectedCustomerId, {
+        due: Math.max(0, selectedCustomer.due - numAmount)
+      }, currentUser);
+
       logActivity({
         module: 'Payments',
         action: 'Payment Collected',
-        description: `Collected payment of ₹${numAmount} from ${selectedCustomer?.name || 'customer'} (${mode})`,
+        description: `Collected payment of ₹${numAmount} from ${selectedCustomer.name} (${mode})`,
         status: 'success',
         resourceType: 'Payment',
-        resourceId: String(newPayment.id),
-        resourceName: selectedCustomer?.name,
-        newValue: newPayment
+        resourceId: docRef.id,
+        resourceName: selectedCustomer.name,
+        newValue: { ...paymentData, id: docRef.id }
       });
 
       alert('Payment Recorded Successfully');

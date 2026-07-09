@@ -80,7 +80,7 @@ function SignupContent() {
         businessId: businessId,
         active: true,
         createdAt: new Date().toISOString()
-      });
+      }, { merge: true });
 
       // Synchronously write to localStorage and context state to avoid race conditions
       localStorage.setItem('businessId', businessId);
@@ -149,7 +149,7 @@ function SignupContent() {
           businessId: businessId,
           active: true,
           createdAt: new Date().toISOString()
-        });
+        }, { merge: true });
       } else {
         const data = userDoc.data();
         businessId = data.businessId || '';

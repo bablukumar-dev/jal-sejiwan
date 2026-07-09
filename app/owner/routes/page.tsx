@@ -6,17 +6,22 @@ import { useAppContext } from '@/app/context/AppContext';
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { wrapRoute } from '@/lib/permissionGuard';
+import { updateBusiness } from '@/lib/firestore-service';
 
 function RouteManagement() {
-  const { routes, setRoutes } = useAppContext();
+  const { routes, currentUser } = useAppContext();
   const [newRoute, setNewRoute] = useState('');
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-        if (newRoute.trim() && !routes.includes(newRoute.trim())) {
-        setRoutes([...routes, newRoute.trim()]);
-        setNewRoute('');
+        if (!currentUser) return;
+        const trimmed = newRoute.trim();
+        if (trimmed && !routes.includes(trimmed)) {
+          await updateBusiness(currentUser.businessId, {
+            routes: [...routes, trimmed]
+          }, currentUser);
+          setNewRoute('');
         }
     } catch (err) {
         console.error(err);
@@ -24,9 +29,12 @@ function RouteManagement() {
     }
   };
 
-  const handleRemove = (route: string) => {
+  const handleRemove = async (route: string) => {
     try {
-        setRoutes(routes.filter(r => r !== route));
+        if (!currentUser) return;
+        await updateBusiness(currentUser.businessId, {
+          routes: routes.filter(r => r !== route)
+        }, currentUser);
     } catch (err) {
         console.error(err);
         alert("Failed to remove route.");

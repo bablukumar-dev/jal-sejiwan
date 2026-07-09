@@ -9,24 +9,19 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { sendWhatsAppSummary } from '@/lib/reminderService';
+import { updateCustomer, batchAddDeliveries } from '@/lib/firestore-service';
 
 export default function CustomerDetail() {
   const params = useParams();
   const router = useRouter();
-  const { customers, deliveries, payments, setCustomers, setDeliveries, staff, businessInfo } = useAppContext();
+  const { customers, deliveries, payments, setCustomers, setDeliveries, staff, businessInfo, currentUser } = useAppContext();
   
-  const customerId = parseInt(params.id as string);
+  const customerId = params.id as string;
   const customer = customers.find(c => c.id === customerId);
   
   const [activeTab, setActiveTab] = useState('Ledger');
   const [notes, setNotes] = useState(customer?.notes || '');
-  const [userRole, setUserRole] = useState<'owner' | 'manager' | 'staff'>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('userRole');
-      if (stored === 'owner' || stored === 'manager' || stored === 'staff') return stored;
-    }
-    return 'owner';
-  });
+  const userRole = currentUser?.role || 'owner';
 
   if (!customer) {
     return <div className="min-h-screen bg-slate-50 flex items-center justify-center">Customer not found</div>;
@@ -40,9 +35,14 @@ export default function CustomerDetail() {
     ...customerPayments.map(p => ({ ...p, type: 'payment', dateObj: new Date(p.date) }))
   ].sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
 
-  const handleSaveNotes = () => {
-    setCustomers(customers.map(c => c.id === customerId ? { ...c, notes } : c));
-    alert('Notes saved');
+  const handleSaveNotes = async () => {
+    try {
+      if (!currentUser) return;
+      await updateCustomer(customerId, { notes }, currentUser);
+      alert('Notes saved');
+    } catch (e) {
+      console.error("Failed to save notes", e);
+    }
   };
 
   const handleGeneratePdfSafe = async () => {
@@ -147,33 +147,19 @@ export default function CustomerDetail() {
     }
   };
 
-  const handleDeliverWater = (e: React.MouseEvent) => {
+  const handleDeliverWater = async (e: React.MouseEvent) => {
     e.preventDefault();
+    if (!currentUser) return;
+
     const today = new Date().toISOString().split('T')[0];
     const existing = deliveries.find(d => d.customerId === customer.id && d.date === today);
     if (existing) {
       router.push(`/staff/delivery/${existing.id}`);
     } else {
-      let currentStaffId = 0;
-      let currentStaffName = '';
-      
-      if (typeof window !== 'undefined') {
-        const localStaffId = localStorage.getItem('staffUserId');
-        const localStaffName = localStorage.getItem('staffUserName');
-        if (localStaffId) {
-          currentStaffId = parseInt(localStaffId) || 0;
-          currentStaffName = localStaffName || '';
-        } else {
-          currentStaffName = 'Owner/Manager';
-        }
-      }
-
-      const getUniqueId = () => {
-        return Date.now() + Math.floor(Math.random() * 1000);
-      };
+      const currentStaffId = currentUser.uid;
+      const currentStaffName = currentUser.name || 'Owner/Manager';
 
       const newDelivery = {
-        id: getUniqueId(),
         customerId: customer.id,
         customerName: customer.name || '',
         date: today,
@@ -188,8 +174,15 @@ export default function CustomerDetail() {
         note: ''
       };
 
-      setDeliveries([...deliveries, newDelivery]);
-      router.push(`/staff/delivery/${newDelivery.id}`);
+      try {
+        const ids = await batchAddDeliveries([newDelivery], currentUser);
+        if (ids && ids.length > 0) {
+          router.push(`/staff/delivery/${ids[0]}`);
+        }
+      } catch (e) {
+        console.error("Failed to create delivery", e);
+        alert("Failed to create delivery.");
+      }
     }
   };
 

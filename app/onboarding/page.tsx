@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '@/app/context/AppContext';
 import { getFirebase } from '@/src/lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import { setCookie } from '@/lib/authHelper';
 
 // --- ZOD SCHEMAS FOR VALIDATION ---
@@ -241,31 +241,53 @@ export default function OnboardingPage() {
       const userDocRef = doc(db, 'users', currentUser.uid);
 
       if (role === 'owner') {
-        // 2. Prepare Business Info payload
-        const updatedBusinessInfo = {
+        const bId = currentUser.businessId;
+        const oId = currentUser.uid;
+
+        // 1. Create Business Document
+        const businessDocRef = doc(db, 'businesses', bId);
+        const businessData = {
           name: ownerOrg.orgName,
-          ownerName: currentUser.role === 'owner' ? ownerOrg.orgName + " Head" : "Owner",
-          phone: ownerOrg.contactNumber,
+          ownerId: oId,
           address: ownerOrg.officeAddress,
+          phone: ownerOrg.contactNumber,
+          state: ownerOrg.state,
+          district: ownerOrg.district,
           defaultRate: 45,
           whatsappConfig: {
             enabled: ownerNotify.whatsappEnabled,
             useApi: false,
             reminderDay: ownerNotify.reminderDay,
-          }
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
+        await setDoc(businessDocRef, businessData);
 
-        // Update local context/state
-        setBusinessInfo(updatedBusinessInfo);
-        localStorage.setItem('businessInfo', JSON.stringify(updatedBusinessInfo));
+        // 2. Initialize Inventory for this business
+        const inventoryDocRef = doc(db, 'inventory', bId);
+        await setDoc(inventoryDocRef, {
+          fullCans: 0,
+          emptyCans: 0,
+          damagedCans: 0,
+          cansWithCustomers: 0,
+          cansInDelivery: 0,
+          refillInProcess: 0,
+          businessId: bId,
+          ownerId: oId,
+          updatedAt: new Date().toISOString(),
+        });
 
-        // 3. Update Firestore Document for Owner
+        // 3. Update User Document
         await updateDoc(userDocRef, {
           onboardingCompleted: true,
           profileCompleted: true,
           updatedAt: new Date().toISOString(),
-          businessInfo: updatedBusinessInfo,
         });
+
+        // Update local context/state
+        setBusinessInfo(businessData as any);
+        localStorage.setItem('businessInfo', JSON.stringify(businessData));
 
       } else if (role === 'manager') {
         // Update Firestore Document for Manager

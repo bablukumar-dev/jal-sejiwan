@@ -9,6 +9,9 @@ import Link from 'next/link';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { getUnsyncedDeliveries } from '@/lib/idb';
+import { updateBusiness } from '@/lib/firestore-service';
+import { updateDoc, doc } from 'firebase/firestore';
+import { getFirebase } from '@/src/lib/firebase';
 
 const INDIAN_LANGUAGES = [
   'English', 'हिन्दी (Hindi)', 'বাংলা (Bengali)', 'తెలుగు (Telugu)', 
@@ -158,6 +161,7 @@ export default function SettingsPage() {
 
   const handleSaveProfile = async () => {
     try {
+      if (!currentUser) return;
       const { validateName } = await import('@/lib/validation');
       const nameVal = validateName(newName);
       if (!nameVal.valid) {
@@ -167,10 +171,16 @@ export default function SettingsPage() {
       
       const cleanName = nameVal.value;
       if (currentUser?.role === 'owner') {
-        setBusinessInfo({ ...businessInfo, ownerName: cleanName });
+        await updateBusiness(currentUser.businessId, { ownerName: cleanName }, currentUser);
       } else {
+        const { db } = getFirebase();
+        if (db) {
+          await updateDoc(doc(db, 'users', currentUser.uid), {
+            name: cleanName,
+            updatedAt: new Date().toISOString()
+          });
+        }
         setUserName(cleanName);
-        console.log("Auth System Removed: User DB update skipped");
       }
       setIsEditingProfile(false);
     } catch (e) {
