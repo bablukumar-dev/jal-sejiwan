@@ -14,7 +14,7 @@ import Toast, { ToastProps } from '@/components/Toast';
 
 export default function AddCustomer() {
   const router = useRouter();
-  const { areas, setAreas, routes, setRoutes, setCustomers, customers, staff, setStaff } = useAppContext();
+  const { areas, setAreas, routes, setRoutes, setCustomers, customers, staff, setStaff, currentUser } = useAppContext();
 
   const [toast, setToast] = useState<ToastProps | null>(null);
   const [name, setName] = useState('');

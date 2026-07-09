@@ -28,76 +28,88 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    function belongsToUser() {
-      return isSignedIn() && (resource.data.userId == request.auth.uid || resource.id == request.auth.uid);
+    function isMemberOfBusiness(businessId) {
+      return isSignedIn() && getUserData().businessId == businessId;
     }
 
-    function willBelongToUser() {
-      return isSignedIn() && (request.resource.data.userId == request.auth.uid || request.resource.id == request.auth.uid);
+    function belongsToBusiness() {
+      return isSignedIn() && (
+        resource.data.businessId == getUserData().businessId || 
+        resource.id == request.auth.uid || 
+        resource.id == getUserData().businessId
+      );
+    }
+
+    function willBelongToBusiness() {
+      return isSignedIn() && (
+        request.resource.data.businessId == getUserData().businessId || 
+        request.resource.id == request.auth.uid ||
+        request.resource.id == getUserData().businessId
+      );
     }
 
     // --- ENTITY RULES ---
 
     // Users: Private profile
     match /users/{userId} {
-      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isSignedIn() && (request.auth.uid == userId || isMemberOfBusiness(resource.data.businessId));
       allow update: if isSignedIn() && request.auth.uid == userId && incoming().role == existing().role;
       allow create: if false;
     }
 
-    // Businesses: Tenant profiles (Isolated by userId/UID)
-    match /businesses/{userId} {
-      allow read: if isSignedIn() && (userId == request.auth.uid || resource.data.userId == request.auth.uid);
-      allow create: if isSignedIn() && (userId == request.auth.uid || incoming().userId == request.auth.uid);
-      allow update: if isSignedIn() && (userId == request.auth.uid || (existing().userId == request.auth.uid && incoming().userId == request.auth.uid));
+    // Businesses: Tenant profiles (Isolated by businessId)
+    match /businesses/{businessId} {
+      allow read: if isSignedIn() && (businessId == getUserData().businessId || isMemberOfBusiness(businessId));
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && businessId == getUserData().businessId;
     }
 
-    // Customers: Isolated by userId
+    // Customers: Isolated by businessId
     match /customers/{customerId} {
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if belongsToUser();
-      allow create: if willBelongToUser();
-      allow update: if belongsToUser() && willBelongToUser();
-      allow delete: if belongsToUser();
+      allow list: if isSignedIn() && isMemberOfBusiness(resource.data.businessId);
+      allow get: if belongsToBusiness();
+      allow create: if willBelongToBusiness();
+      allow update: if belongsToBusiness() && willBelongToBusiness();
+      allow delete: if belongsToBusiness();
     }
 
-    // Staff: Isolated by userId
+    // Staff: Isolated by businessId
     match /staff/{staffId} {
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if belongsToUser();
-      allow create: if willBelongToUser();
-      allow update: if belongsToUser() && willBelongToUser();
-      allow delete: if belongsToUser();
+      allow list: if isSignedIn() && isMemberOfBusiness(resource.data.businessId);
+      allow get: if belongsToBusiness();
+      allow create: if willBelongToBusiness();
+      allow update: if belongsToBusiness() && willBelongToBusiness();
+      allow delete: if belongsToBusiness();
     }
 
-    // Deliveries: Isolated by userId
+    // Deliveries: Isolated by businessId
     match /deliveries/{deliveryId} {
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if belongsToUser();
-      allow create: if willBelongToUser();
-      allow update: if belongsToUser() && willBelongToUser();
-      allow delete: if belongsToUser();
+      allow list: if isSignedIn() && isMemberOfBusiness(resource.data.businessId);
+      allow get: if belongsToBusiness();
+      allow create: if willBelongToBusiness();
+      allow update: if belongsToBusiness() && willBelongToBusiness();
+      allow delete: if belongsToBusiness();
     }
 
-    // Payments: Isolated by userId
+    // Payments: Isolated by businessId
     match /payments/{paymentId} {
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if belongsToUser();
-      allow create: if willBelongToUser();
-      allow update: if belongsToUser() && willBelongToUser();
-      allow delete: if belongsToUser();
+      allow list: if isSignedIn() && isMemberOfBusiness(resource.data.businessId);
+      allow get: if belongsToBusiness();
+      allow create: if willBelongToBusiness();
+      allow update: if belongsToBusiness() && willBelongToBusiness();
+      allow delete: if belongsToBusiness();
     }
 
-    // Inventory: Business-specific document (Isolated by userId/UID)
-    match /inventory/{userId} {
-      allow read: if isSignedIn() && (userId == request.auth.uid || resource.data.userId == request.auth.uid);
-      allow write: if isSignedIn() && (userId == request.auth.uid || incoming().userId == request.auth.uid);
+    // Inventory: Business-specific document (Isolated by businessId)
+    match /inventory/{businessId} {
+      allow read: if isSignedIn() && (businessId == getUserData().businessId || isMemberOfBusiness(businessId));
+      allow write: if isSignedIn() && businessId == getUserData().businessId;
     }
 
-    // Activity Logs: Isolated by userId
+    // Activity Logs: Isolated by businessId
     match /activity_logs/{logId} {
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().businessId == getUserData().businessId;
+      allow read: if isSignedIn() && resource.data.businessId == getUserData().businessId;
       allow update, delete: if false;
     }
 

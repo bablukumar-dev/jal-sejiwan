@@ -587,7 +587,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const uId = currentUser.uid;
 
     // Sync Customers
-    const qCustomers = query(collection(db, 'customers'), where('userId', '==', uId));
+    const qCustomers = query(collection(db, 'customers'), where('businessId', '==', bId));
     const unsubCustomers = onSnapshot(qCustomers, (snapshot) => {
       const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Customer));
       setCustomers(docs);
@@ -602,35 +602,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Sync Deliveries
-    const qDeliveries = query(collection(db, 'deliveries'), where('userId', '==', uId), orderBy('date', 'desc'));
+    const qDeliveries = query(collection(db, 'deliveries'), where('businessId', '==', bId), orderBy('date', 'desc'));
     const unsubDeliveries = onSnapshot(qDeliveries, (snapshot) => {
       setDeliveries(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Delivery)));
     });
 
     // Sync Payments
-    const qPayments = query(collection(db, 'payments'), where('userId', '==', uId), orderBy('date', 'desc'));
+    const qPayments = query(collection(db, 'payments'), where('businessId', '==', bId), orderBy('date', 'desc'));
     const unsubPayments = onSnapshot(qPayments, (snapshot) => {
       setPayments(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Payment)));
     });
 
     // Sync Staff
-    const qStaff = query(collection(db, 'staff'), where('userId', '==', uId));
+    const qStaff = query(collection(db, 'staff'), where('businessId', '==', bId));
     const unsubStaff = onSnapshot(qStaff, (snapshot) => {
       setStaff(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Staff)));
     });
 
     // Sync Inventory
-    // Note: Inventory was using businessId as doc ID. To support per-user isolation,
-    // we should use userId as the doc ID for the inventory document.
-    const unsubInventory = onSnapshot(doc(db, 'inventory', uId), (snapshot) => {
+    // Note: Inventory uses businessId as doc ID. 
+    const unsubInventory = onSnapshot(doc(db, 'inventory', bId), (snapshot) => {
       if (snapshot.exists()) {
         setInventory(snapshot.data() as Inventory);
       }
     });
 
     // Sync Business Info
-    // Similarly for business info, if it's isolated per user:
-    const unsubBusiness = onSnapshot(doc(db, 'businesses', uId), (snapshot) => {
+    const unsubBusiness = onSnapshot(doc(db, 'businesses', bId), (snapshot) => {
       if (snapshot.exists()) {
         setBusinessInfo(snapshot.data() as BusinessInfo);
       }

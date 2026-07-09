@@ -37,6 +37,10 @@ export async function POST(req: NextRequest) {
     console.log(`[CreateUserAPI] ${msg}`);
   };
 
+  console.log("-----------------------------------------");
+  console.log("STARTING USER CREATION TRACE");
+  console.log("-----------------------------------------");
+
   try {
     logStep(1, 'Route execution started', 'PASS');
 
@@ -209,6 +213,8 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (err: any) {
+    console.log("CATASTROPHIC FAILURE REACHED");
+    console.error(err.stack);
     console.error('[CreateUserAPI] UNCAUGHT CATASTROPHIC ERROR:', err);
     return NextResponse.json({ 
       success: false,

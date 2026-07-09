@@ -79,7 +79,7 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
   const currentStepData = steps[step - 1];
   const totalSteps = steps.length;
 
-  const handleComplete = async () => {
+  const handleComplete = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
     if (currentUser) {
@@ -103,11 +103,11 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
     }
     // Close overlay state
     onClose();
-  };
+  }, [currentUser, onClose]);
 
   const handleSkip = useCallback(async () => {
     await handleComplete();
-  }, [currentUser, onClose]);
+  }, [handleComplete]);
 
   const handleNext = () => {
     if (step < totalSteps) {
