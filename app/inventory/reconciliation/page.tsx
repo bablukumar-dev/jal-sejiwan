@@ -29,7 +29,7 @@ function ReturnReconciliation() {
   const handleVerifyAndSave = async () => {
     if (!currentUser) return;
     try {
-      await updateInventory(currentUser.businessId, {
+      await updateInventory(currentUser.uid, {
         fullCans: increment(fullReturned),
         emptyCans: increment(emptyReturned),
         damagedCans: increment(damaged),

@@ -4,6 +4,7 @@ import { getFirebase } from '@/src/lib/firebase';
 export interface AuditFields {
   businessId: string;
   ownerId: string;
+  userId: string;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -17,6 +18,7 @@ export const createWithAudit = async (collectionName: string, data: any, current
     ...data,
     businessId: currentUser.businessId,
     ownerId: currentUser.role === 'owner' ? currentUser.uid : (currentUser.ownerId || currentUser.businessId),
+    userId: currentUser.uid,
     createdBy: currentUser.uid,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -69,6 +71,7 @@ export const batchAddDeliveries = async (deliveries: any[], currentUser: any) =>
       ...d,
       businessId: currentUser.businessId,
       ownerId: currentUser.role === 'owner' ? currentUser.uid : (currentUser.ownerId || currentUser.businessId),
+      userId: currentUser.uid,
       createdBy: currentUser.uid,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -81,11 +84,11 @@ export const batchAddDeliveries = async (deliveries: any[], currentUser: any) =>
   return results;
 };
 
-export const updateInventory = async (businessId: string, changes: Partial<any>) => {
+export const updateInventory = async (uid: string, changes: Partial<any>) => {
   const { db } = getFirebase();
   if (!db) return;
 
-  const docRef = doc(db, 'inventory', businessId);
+  const docRef = doc(db, 'inventory', uid);
   return await updateDoc(docRef, {
     ...changes,
     updatedAt: new Date().toISOString()

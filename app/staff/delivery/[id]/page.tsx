@@ -150,7 +150,7 @@ export default function DeliveryEntry() {
         await updateDelivery(deliveryId, deliveryData, currentUser);
 
         // 2. Update inventory
-        await updateInventory(currentUser.businessId, {
+        await updateInventory(currentUser.uid, {
           cansWithCustomers: increment(delivered - empties)
         } as any);
 

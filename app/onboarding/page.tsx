@@ -245,10 +245,11 @@ export default function OnboardingPage() {
         const oId = currentUser.uid;
 
         // 1. Create Business Document
-        const businessDocRef = doc(db, 'businesses', bId);
+        const businessDocRef = doc(db, 'businesses', oId);
         const businessData = {
           name: ownerOrg.orgName,
           ownerId: oId,
+          userId: oId,
           address: ownerOrg.officeAddress,
           phone: ownerOrg.contactNumber,
           state: ownerOrg.state,
@@ -265,7 +266,7 @@ export default function OnboardingPage() {
         await setDoc(businessDocRef, businessData);
 
         // 2. Initialize Inventory for this business
-        const inventoryDocRef = doc(db, 'inventory', bId);
+        const inventoryDocRef = doc(db, 'inventory', oId);
         await setDoc(inventoryDocRef, {
           fullCans: 0,
           emptyCans: 0,
@@ -275,6 +276,7 @@ export default function OnboardingPage() {
           refillInProcess: 0,
           businessId: bId,
           ownerId: oId,
+          userId: oId,
           updatedAt: new Date().toISOString(),
         });
 

@@ -28,120 +28,76 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    function belongsToBusiness(businessId) {
-      return isSignedIn() && getUserData().businessId == businessId;
+    function belongsToUser() {
+      return isSignedIn() && (resource.data.userId == request.auth.uid || resource.id == request.auth.uid);
     }
 
-    function isOwner() {
-      return isSignedIn() && getUserData().role == 'owner';
-    }
-
-    function isManager() {
-      return isSignedIn() && getUserData().role == 'manager';
-    }
-
-    function isStaff() {
-      return isSignedIn() && getUserData().role == 'staff';
-    }
-
-    // --- VALIDATION BLUEPRINTS ---
-
-    function isValidTimestamp(ts) {
-      return ts is timestamp || (ts is string && ts.size() <= 64);
-    }
-
-    function hasAuditFields(data) {
-      return data.businessId is string 
-        && data.ownerId is string 
-        && data.createdBy is string
-        && data.createdAt != null
-        && data.updatedAt != null;
+    function willBelongToUser() {
+      return isSignedIn() && (request.resource.data.userId == request.auth.uid || request.resource.id == request.auth.uid);
     }
 
     // --- ENTITY RULES ---
 
-    // Users: Private profile and Role
+    // Users: Private profile
     match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || (getUserData().businessId == existing().businessId && (isOwner() || isManager())));
-      
-      // Update: Users can update their own non-role fields, Owners can update roles in their business
-      allow update: if isSignedIn() && (
-        (request.auth.uid == userId && incoming().role == existing().role && incoming().businessId == existing().businessId) ||
-        (isOwner() && getUserData().businessId == existing().businessId && incoming().businessId == existing().businessId)
-      );
-      
-      // Create: Handled by Admin API, but for onboarding we allow updates to completion status
-      allow create: if false; // Only via Admin API or initial Auth trigger
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && request.auth.uid == userId && incoming().role == existing().role;
+      allow create: if false;
     }
 
-    // Businesses: Tenant profiles
-    match /businesses/{businessId} {
-      allow read: if belongsToBusiness(businessId);
-      allow create: if isSignedIn() && isOwner() && incoming().ownerId == request.auth.uid;
-      allow update: if belongsToBusiness(businessId) && isOwner() && incoming().ownerId == existing().ownerId;
+    // Businesses: Tenant profiles (Isolated by userId/UID)
+    match /businesses/{userId} {
+      allow read: if isSignedIn() && (userId == request.auth.uid || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && (userId == request.auth.uid || incoming().userId == request.auth.uid);
+      allow update: if isSignedIn() && (userId == request.auth.uid || (existing().userId == request.auth.uid && incoming().userId == request.auth.uid));
     }
 
-    // Customers: Multi-tenant collection
+    // Customers: Isolated by userId
     match /customers/{customerId} {
-      function isValidCustomer(data) {
-        return data.name is string && data.name.size() > 0 && data.name.size() < 100
-          && hasAuditFields(data);
-      }
-
-      allow list: if isSignedIn() && resource.data.businessId == getUserData().businessId;
-      allow get: if belongsToBusiness(existing().businessId);
-      
-      allow create: if isSignedIn() 
-        && belongsToBusiness(incoming().businessId)
-        && isValidCustomer(incoming())
-        && incoming().createdBy == request.auth.uid;
-        
-      allow update: if isSignedIn()
-        && belongsToBusiness(existing().businessId)
-        && incoming().businessId == existing().businessId
-        && isValidCustomer(incoming());
-        
-      allow delete: if belongsToBusiness(existing().businessId) && isOwner();
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if belongsToUser();
+      allow create: if willBelongToUser();
+      allow update: if belongsToUser() && willBelongToUser();
+      allow delete: if belongsToUser();
     }
 
-    // Staff: Multi-tenant collection
+    // Staff: Isolated by userId
     match /staff/{staffId} {
-      allow list: if isSignedIn() && resource.data.businessId == getUserData().businessId;
-      allow get: if belongsToBusiness(existing().businessId);
-      
-      allow create: if isOwner() && belongsToBusiness(incoming().businessId);
-      allow update: if belongsToBusiness(existing().businessId) && (isOwner() || isManager());
-      allow delete: if isOwner() && belongsToBusiness(existing().businessId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if belongsToUser();
+      allow create: if willBelongToUser();
+      allow update: if belongsToUser() && willBelongToUser();
+      allow delete: if belongsToUser();
     }
 
-    // Deliveries: Multi-tenant collection
+    // Deliveries: Isolated by userId
     match /deliveries/{deliveryId} {
-      allow list: if isSignedIn() && resource.data.businessId == getUserData().businessId;
-      allow get: if belongsToBusiness(existing().businessId);
-      
-      allow create: if isSignedIn() && belongsToBusiness(incoming().businessId);
-      allow update: if belongsToBusiness(existing().businessId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if belongsToUser();
+      allow create: if willBelongToUser();
+      allow update: if belongsToUser() && willBelongToUser();
+      allow delete: if belongsToUser();
     }
 
-    // Payments: Multi-tenant collection
+    // Payments: Isolated by userId
     match /payments/{paymentId} {
-      allow list: if isSignedIn() && resource.data.businessId == getUserData().businessId;
-      allow get: if belongsToBusiness(existing().businessId);
-      
-      allow create: if isSignedIn() && belongsToBusiness(incoming().businessId);
-      allow update: if belongsToBusiness(existing().businessId) && (isOwner() || isManager());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if belongsToUser();
+      allow create: if willBelongToUser();
+      allow update: if belongsToUser() && willBelongToUser();
+      allow delete: if belongsToUser();
     }
 
-    // Inventory: Business-specific document
-    match /inventory/{businessId} {
-      allow read: if belongsToBusiness(businessId);
-      allow write: if belongsToBusiness(businessId);
+    // Inventory: Business-specific document (Isolated by userId/UID)
+    match /inventory/{userId} {
+      allow read: if isSignedIn() && (userId == request.auth.uid || resource.data.userId == request.auth.uid);
+      allow write: if isSignedIn() && (userId == request.auth.uid || incoming().userId == request.auth.uid);
     }
 
-    // Activity Logs: Multi-tenant audit trail
+    // Activity Logs: Isolated by userId
     match /activity_logs/{logId} {
-      allow create: if isSignedIn() && incoming().businessId == getUserData().businessId;
-      allow read: if isSignedIn() && resource.data.businessId == getUserData().businessId && (isOwner() || isManager() || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow update, delete: if false;
     }
 

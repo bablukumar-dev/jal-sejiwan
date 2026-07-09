@@ -35,7 +35,7 @@ function DispatchScreen() {
     if (!selectedStaff || !currentUser) return;
 
     try {
-      await updateInventory(currentUser.businessId, {
+      await updateInventory(currentUser.uid, {
         fullCans: increment(-dispatched),
         cansInDelivery: increment(dispatched)
       } as any);
