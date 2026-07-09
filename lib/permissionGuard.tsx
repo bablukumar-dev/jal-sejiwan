@@ -127,14 +127,17 @@ export function wrapRoute<P extends object>(
     const [authorized, setAuthorized] = useState(false);
 
     useEffect(() => {
+      console.log(`[PermissionGuard] GuardedComponent check. authLoading: ${authLoading}, currentUser: ${currentUser ? JSON.stringify(currentUser) : 'null'}`);
       if (authLoading) return;
 
       if (!currentUser) {
+        console.log(`[PermissionGuard] Redirecting to login: No currentUser.`);
         router.replace('/login');
         return;
       }
 
       const role = currentUser.role.toLowerCase() as UserRole;
+      console.log(`[PermissionGuard] Checking authorization. Role: ${role}, RequiredRole: ${options.requiredRole}, RequiredPerm: ${options.requiredPermission}`);
       let isAllowed = true;
 
       if (options.requiredRole) {
@@ -149,7 +152,10 @@ export function wrapRoute<P extends object>(
         isAllowed = false;
       }
 
+      console.log(`[PermissionGuard] IsAllowed: ${isAllowed}`);
+
       if (!isAllowed) {
+        console.log(`[PermissionGuard] Unauthorized access. Redirecting.`);
         // Strict role-based redirection
         if (role === 'owner') {
           router.replace('/owner/dashboard');
@@ -163,7 +169,7 @@ export function wrapRoute<P extends object>(
       } else {
         setAuthorized(true);
       }
-    }, [currentUser, authLoading, router]);
+    }, [currentUser, authLoading, router, options.requiredRole, options.requiredPermission, options.strict]);
 
     if (authLoading || !authorized) {
       return (

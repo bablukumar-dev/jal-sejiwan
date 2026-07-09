@@ -154,6 +154,7 @@ export default function CustomerDetail() {
     const today = new Date().toISOString().split('T')[0];
     const existing = deliveries.find(d => d.customerId === customer.id && d.date === today);
     if (existing) {
+      setCookie('userRole', currentUser.role, 3600 * 24 * 30);
       router.push(`/staff/delivery/${existing.id}`);
     } else {
       const currentStaffId = currentUser.uid;
@@ -177,6 +178,7 @@ export default function CustomerDetail() {
       try {
         const ids = await batchAddDeliveries([newDelivery], currentUser);
         if (ids && ids.length > 0) {
+          setCookie('userRole', currentUser.role, 3600 * 24 * 30);
           router.push(`/staff/delivery/${ids[0]}`);
         }
       } catch (e) {

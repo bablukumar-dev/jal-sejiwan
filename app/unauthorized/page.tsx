@@ -1,11 +1,11 @@
 'use client';
 /* eslint-disable react-hooks/set-state-in-effect */
-'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ShieldAlert, ArrowLeft, Mail } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, Mail, Loader2 } from 'lucide-react';
+import { useAppContext } from '@/app/context/AppContext';
 
 interface AccessAttempt {
   id: string;
@@ -17,33 +17,15 @@ interface AccessAttempt {
 
 export default function UnauthorizedPage() {
   const router = useRouter();
+  const { currentUser, authLoading } = useAppContext();
   const [timeLeft, setTimeLeft] = useState(10);
   const [showDebug, setShowDebug] = useState(false);
   const [attempts, setAttempts] = useState<AccessAttempt[]>([]);
-  const [sessionInfo, setSessionInfo] = useState<{
-    role: string | null;
-    email: string | null;
-    businessId: string | null;
-    pinAuth: string | null;
-    staffName: string | null;
-  }>({ role: null, email: null, businessId: null, pinAuth: null, staffName: null });
 
   useEffect(() => {
+    if (authLoading) return;
+
     if (typeof window !== 'undefined') {
-      const currentRole = localStorage.getItem('userRole') || 'Guest';
-      const currentUserEmail = localStorage.getItem('userEmail') || 'N/A';
-      const currentBusinessId = localStorage.getItem('businessId') || 'N/A';
-      const currentPinAuth = localStorage.getItem('pinAuth') === 'true' ? 'Yes' : 'No';
-      const currentStaffName = localStorage.getItem('staffUserName') || null;
-
-      setSessionInfo({
-        role: currentRole,
-        email: currentUserEmail,
-        businessId: currentBusinessId,
-        pinAuth: currentPinAuth,
-        staffName: currentStaffName,
-      });
-
       // Manage Access Attempt Logs
       const stored = localStorage.getItem('unauthorized_attempts');
       let list: AccessAttempt[] = [];
@@ -55,35 +37,8 @@ export default function UnauthorizedPage() {
         }
       }
 
-      // Seed mock records if log is completely empty
-      if (list.length === 0) {
-        list = [
-          {
-            id: 'att-1',
-            timestamp: new Date(Date.now() - 1000 * 60 * 15).toLocaleString(),
-            user: 'manager_staff_01@jalsejiwan.in',
-            attemptedPath: '/owner/reports',
-            role: 'Manager',
-          },
-          {
-            id: 'att-2',
-            timestamp: new Date(Date.now() - 1000 * 60 * 45).toLocaleString(),
-            user: '+91 98765 43210 (PIN)',
-            attemptedPath: '/inventory/dispatch',
-            role: 'Delivery Partner',
-          },
-          {
-            id: 'att-3',
-            timestamp: new Date(Date.now() - 1000 * 60 * 120).toLocaleString(),
-            user: 'unauthorized_guest',
-            attemptedPath: '/owner/staff/add',
-            role: 'Guest',
-          }
-        ];
-      }
-
       // Add current diagnostic attempt to log
-      const logIdentity = currentUserEmail !== 'N/A' ? currentUserEmail : (currentStaffName || 'Anonymous Visitor');
+      const logIdentity = currentUser?.uid || 'Anonymous Visitor';
       let logPath = '/owner/dashboard';
       try {
         if (document.referrer) {
@@ -107,16 +62,18 @@ export default function UnauthorizedPage() {
           timestamp: new Date().toLocaleString(),
           user: logIdentity,
           attemptedPath: logPath,
-          role: currentRole.charAt(0).toUpperCase() + currentRole.slice(1),
+          role: currentUser?.role.charAt(0).toUpperCase() + currentUser?.role.slice(1) || 'Guest',
         });
       }
 
       localStorage.setItem('unauthorized_attempts', JSON.stringify(list));
       setAttempts(list);
     }
-  }, []);
+  }, [authLoading, currentUser]);
 
   useEffect(() => {
+    if (authLoading) return;
+    
     if (timeLeft <= 0) {
       router.push('/login');
       return;
@@ -127,7 +84,15 @@ export default function UnauthorizedPage() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [timeLeft, router]);
+  }, [timeLeft, router, authLoading]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   // Support pre-populated mail template
   const supportEmail = 'support@jalsejiwan.in';
@@ -135,10 +100,9 @@ export default function UnauthorizedPage() {
   const mailtoBody = encodeURIComponent(
     `Dear Support Team,\n\nAn unauthorized access attempt was detected on the Jalsejiwan application:\n\n` +
     `• Timestamp: ${new Date().toLocaleString()}\n` +
-    `• User Identity: ${sessionInfo.email !== 'N/A' ? sessionInfo.email : (sessionInfo.staffName || 'Anonymous')}\n` +
-    `• Assigned Role: ${sessionInfo.role || 'Guest'}\n` +
-    `• PIN Auth Mode: ${sessionInfo.pinAuth || 'No'}\n` +
-    `• Business ID: ${sessionInfo.businessId || 'N/A'}\n\n` +
+    `• User Identity: ${currentUser?.uid || 'Anonymous'}\n` +
+    `• Assigned Role: ${currentUser?.role || 'Guest'}\n` +
+    `• Business ID: ${currentUser?.businessId || 'N/A'}\n\n` +
     `Please assist in resolving these permission access levels.\n\nRegards,\nSecurity Operations`
   );
   const reportMailto = `mailto:${supportEmail}?subject=${mailtoSubject}&body=${mailtoBody}`;
@@ -166,10 +130,9 @@ export default function UnauthorizedPage() {
           </button>
           {showDebug && (
             <div id="debug-info-details" className="mt-3 bg-slate-50 rounded-xl p-4 text-[11px] font-mono text-slate-600 space-y-1.5 border border-slate-100 animate-fadeIn">
-              <div className="flex justify-between"><span className="font-semibold text-slate-500">Session Role:</span> <span className="text-slate-800">{sessionInfo.role || 'Guest'}</span></div>
-              <div className="flex justify-between"><span className="font-semibold text-slate-500">Identity:</span> <span className="text-slate-800 truncate max-w-[150px]">{sessionInfo.email !== 'N/A' ? sessionInfo.email : (sessionInfo.staffName || 'Guest')}</span></div>
-              <div className="flex justify-between"><span className="font-semibold text-slate-500">PIN Auth Mode:</span> <span className="text-slate-800">{sessionInfo.pinAuth || 'No'}</span></div>
-              <div className="flex justify-between"><span className="font-semibold text-slate-500">Business ID:</span> <span className="text-slate-800 truncate max-w-[150px]">{sessionInfo.businessId || 'N/A'}</span></div>
+              <div className="flex justify-between"><span className="font-semibold text-slate-500">Session Role:</span> <span className="text-slate-800">{currentUser?.role || 'Guest'}</span></div>
+              <div className="flex justify-between"><span className="font-semibold text-slate-500">Identity:</span> <span className="text-slate-800 truncate max-w-[150px]">{currentUser?.uid || 'Guest'}</span></div>
+              <div className="flex justify-between"><span className="font-semibold text-slate-500">Business ID:</span> <span className="text-slate-800 truncate max-w-[150px]">{currentUser?.businessId || 'N/A'}</span></div>
             </div>
           )}
         </div>

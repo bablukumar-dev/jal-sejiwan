@@ -120,7 +120,9 @@ export function middleware(request: NextRequest) {
     // Protect role-specific routes (only if role cookie is present to prevent blocking during client-side token refresh)
     // Owner & Admin access
     if (pathname.startsWith('/owner') || pathname.startsWith('/admin') || pathname.startsWith('/inventory')) {
+      console.log(`[Middleware] Checking owner/admin access. Path: ${pathname}, Role: ${role}`);
       if (role && role !== 'owner') {
+        console.log(`[Middleware] Unauthorized owner access. Redirecting.`);
         const url = request.nextUrl.clone();
         url.pathname = '/unauthorized';
         return NextResponse.redirect(url);
@@ -129,7 +131,9 @@ export function middleware(request: NextRequest) {
 
     // Manager specific access
     if (pathname.startsWith('/manager')) {
+      console.log(`[Middleware] Checking manager access. Path: ${pathname}, Role: ${role}`);
       if (role && role !== 'manager') {
+        console.log(`[Middleware] Unauthorized manager access. Redirecting.`);
         const url = request.nextUrl.clone();
         url.pathname = '/unauthorized';
         return NextResponse.redirect(url);
@@ -138,7 +142,9 @@ export function middleware(request: NextRequest) {
 
     // Staff specific access
     if (pathname.startsWith('/staff')) {
+      console.log(`[Middleware] Checking staff access. Path: ${pathname}, Role: ${role}`);
       if (role && role !== 'staff' && role !== 'owner' && role !== 'manager') {
+        console.log(`[Middleware] Unauthorized staff access. Redirecting.`);
         const url = request.nextUrl.clone();
         url.pathname = '/unauthorized';
         return NextResponse.redirect(url);
