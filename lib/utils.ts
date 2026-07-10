@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const getUniqueId = () => {
-  return Date.now() + Math.floor(Math.random() * 1000);
+  return String(Date.now() + Math.floor(Math.random() * 1000));
 };
 
 export const safeGet = (key: string): string | null => {

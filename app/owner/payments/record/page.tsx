@@ -133,9 +133,16 @@ export default function RecordPayment() {
 
       alert('Payment Recorded Successfully');
       router.back();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert('Failed to record payment');
+      logActivity({
+        module: 'Payments',
+        action: 'Payment Collection Failed',
+        description: `Failed to record payment from ${selectedCustomer?.name || 'Unknown'}: ${e.message || e}`,
+        status: 'error',
+        failureReason: e.message || String(e)
+      }).catch(err => console.error("Error logging failed:", err));
+      alert('Failed to record payment: ' + (e.message || e));
     }
   };
 

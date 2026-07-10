@@ -62,7 +62,7 @@ export default function UnauthorizedPage() {
           timestamp: new Date().toLocaleString(),
           user: logIdentity,
           attemptedPath: logPath,
-          role: currentUser?.role.charAt(0).toUpperCase() + currentUser?.role.slice(1) || 'Guest',
+          role: currentUser?.role ? currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1) : 'Guest',
         });
       }
 

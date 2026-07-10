@@ -16,7 +16,7 @@ export default function MyRoute() {
   const { deliveries, setDeliveries, customers, staff, businessInfo, currentUser } = useAppContext();
   const [activeTab, setActiveTab] = useState<'Pending' | 'Completed'>('Pending');
   const [staffRoute, setStaffRoute] = useState('');
-  const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
+  const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
   
   useEffect(() => {
     // 1. Check PIN-based authentication first
@@ -71,15 +71,15 @@ export default function MyRoute() {
 
   const displayList = activeTab === 'Pending' ? pendingList : completedList;
 
-  const generateDelivery = useCallback((customerId: number) => {
+  const generateDelivery = useCallback((customerId: string) => {
     const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
     return {
-      id: Date.now() + Math.floor(Math.random() * 1000),
+      id: String(Date.now() + Math.floor(Math.random() * 1000)),
       customerId: customerId,
       customerName: customers.find(c => c.id === customerId)?.name || '',
       date: today,
       status: 'Pending' as const,
-      staffId: currentStaffId || 0,
+      staffId: currentStaffId || '',
       staffName: staff.find(s => s.id === currentStaffId)?.name || '',
       deliveredQty: 0,
       returnedEmpty: 0,
@@ -91,7 +91,7 @@ export default function MyRoute() {
     };
   }, [customers, today, currentStaffId, staff]);
 
-  const handleRecordDelivery = useCallback((customerId: number, e?: React.MouseEvent) => {
+  const handleRecordDelivery = useCallback((customerId: string, e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     const existing = deliveries.find(d => d.customerId === customerId && d.date === today);
     if (existing) {
@@ -103,7 +103,7 @@ export default function MyRoute() {
     }
   }, [deliveries, today, router, setDeliveries, generateDelivery]);
 
-  const handleSkipDelivery = useCallback((customerId: number, e?: React.MouseEvent) => {
+  const handleSkipDelivery = useCallback((customerId: string, e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     const existing = deliveries.find(d => d.customerId === customerId && d.date === today);
     if (existing) {

@@ -123,7 +123,7 @@ export default function ActivityLogDashboard() {
 
     setIsLoading(true);
     const { db } = getFirebase();
-    if (!db) return;
+    if (!db || !workspaceId) return;
 
     let logsQuery = query(
       collection(db, 'businesses', workspaceId, 'activityLogs'),
@@ -273,7 +273,7 @@ export default function ActivityLogDashboard() {
     const totalPaymentsValue = logs
       .filter(l => l.module === 'Payments' && l.success)
       .reduce((sum, l) => {
-        const amt = Number(l.newValue?.amount || l.metadata?.amount || 0);
+        const amt = Number(l.newValue?.amount || 0);
         return sum + amt;
       }, 0);
 

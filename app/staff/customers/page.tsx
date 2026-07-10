@@ -11,7 +11,7 @@ import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect, useMemo } from 'react';
 
 const getUniqueId = () => {
-  return Date.now() + Math.floor(Math.random() * 1000);
+  return String(Date.now() + Math.floor(Math.random() * 1000));
 };
 
 export default function StaffCustomers() {
@@ -27,7 +27,7 @@ export default function StaffCustomers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [staffRoute, setStaffRoute] = useState('');
-  const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
+  const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
   
   const userRole = currentUser?.role || '';
   
@@ -100,7 +100,7 @@ export default function StaffCustomers() {
   const pendingCount = mappedDeliveries.filter(m => m.delivery.status?.toLowerCase() !== 'delivered').length;
   const completedCount = mappedDeliveries.filter(m => m.delivery.status?.toLowerCase() === 'delivered').length;
 
-  const handleRecordDelivery = (customerId: number, e: React.MouseEvent) => {
+  const handleRecordDelivery = (customerId: string, e: React.MouseEvent) => {
     e.preventDefault();
     console.log("HandleRecordDelivery called for customer:", customerId);
     const existing = deliveries.find(d => d.customerId === customerId && d.date === today);
@@ -111,12 +111,12 @@ export default function StaffCustomers() {
       console.log("No existing delivery, creating new one");
       const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
       const newDelivery = {
-        id: getUniqueId(),
+        id: String(getUniqueId()),
         customerId: customerId,
         customerName: customers.find(c => c.id === customerId)?.name || '',
         date: today,
         status: 'Pending',
-        staffId: currentStaffId || 0,
+        staffId: currentStaffId || '',
         staffName: staff.find(s => s.id === currentStaffId)?.name || '',
         deliveredQty: 0,
         returnedEmpty: 0,
@@ -132,7 +132,7 @@ export default function StaffCustomers() {
     }
   };
 
-  const handleSkipDelivery = (customerId: number, e: React.MouseEvent) => {
+  const handleSkipDelivery = (customerId: string, e: React.MouseEvent) => {
     e.preventDefault();
     const existing = deliveries.find(d => d.customerId === customerId && d.date === today);
     if (existing) {
@@ -140,12 +140,12 @@ export default function StaffCustomers() {
     } else {
       const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
       const newDelivery = {
-        id: getUniqueId(),
+        id: String(getUniqueId()),
         customerId: customerId,
         customerName: customers.find(c => c.id === customerId)?.name || '',
         date: today,
         status: 'Pending',
-        staffId: currentStaffId || 0,
+        staffId: currentStaffId || '',
         staffName: staff.find(s => s.id === currentStaffId)?.name || '',
         deliveredQty: 0,
         returnedEmpty: 0,

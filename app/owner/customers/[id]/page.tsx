@@ -170,7 +170,6 @@ export default function CustomerDetail() {
       } else {
         console.log("Creating new delivery for:", customer?.id);
         const newDelivery = {
-          id: getUniqueId(),
           customerId: customer?.id,
           customerName: customer?.name || '',
           date: today,
@@ -200,6 +199,16 @@ export default function CustomerDetail() {
     } catch (e: any) {
       console.error("Failed to create delivery", e);
       console.error("Error stack:", e.stack);
+      
+      const { logActivity } = await import('@/lib/activityLogger');
+      logActivity({
+        module: 'Water Management',
+        action: 'Delivery Creation Failed',
+        description: `Failed to initiate delivery for ${customer?.name}: ${e.message || e}`,
+        status: 'error',
+        failureReason: e.message || String(e)
+      }).catch(err => console.error("Error logging failed:", err));
+
       alert("Failed to create delivery: " + (e.message || e));
     } finally {
       setIsDelivering(false);

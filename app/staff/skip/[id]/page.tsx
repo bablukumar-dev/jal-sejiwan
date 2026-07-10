@@ -10,7 +10,7 @@ import { logActivity } from '@/lib/activityLogger';
 export default function SkipDelivery() {
   const router = useRouter();
   const params = useParams();
-  const deliveryId = Number(params.id);
+  const deliveryId = params.id as string;
   const { deliveries, customers, setDeliveries } = useAppContext();
 
   const delivery = deliveries.find(d => d.id === deliveryId);

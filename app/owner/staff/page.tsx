@@ -5,7 +5,7 @@ import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { Users, UserPlus, Search, Phone, Mail, Route, Filter, TrendingUp, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Key } from 'lucide-react';
-import { useAppContext } from '@/app/context/AppContext';
+import { useAppContext, Staff } from '@/app/context/AppContext';
 import { useState } from 'react';
 import { hashPin, getFriendlyAuthErrorMessage } from '@/lib/authHelper';
 import { logActivity } from '@/lib/activityLogger';

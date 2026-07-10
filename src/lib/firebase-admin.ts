@@ -35,7 +35,7 @@ function validateCredentials() {
     throw new Error(`Invalid Firebase credentials: ${errors.join('. ')}`);
   }
 
-  return { projectId, clientEmail, privateKey };
+  return { projectId: projectId as string, clientEmail: clientEmail as string, privateKey: privateKey as string };
 }
 
 function initAdmin() {

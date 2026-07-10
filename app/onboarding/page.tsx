@@ -46,8 +46,8 @@ const managerProfileSchema = z.object({
 
 const managerAreaSchema = z.object({
   assignedArea: z.string().min(2, { message: "Assigned Area/District is required" }),
-  verified: z.literal(true, { 
-    errorMap: () => ({ message: "You must verify your assigned area to proceed" }) 
+  verified: z.boolean().refine(val => val === true, { 
+    message: "You must verify your assigned area to proceed" 
   }),
 });
 
@@ -58,8 +58,8 @@ const staffProfileSchema = z.object({
 });
 
 const staffTermsSchema = z.object({
-  acceptedTerms: z.literal(true, { 
-    errorMap: () => ({ message: "You must accept the Terms of Service to proceed" }) 
+  acceptedTerms: z.boolean().refine(val => val === true, { 
+    message: "You must accept the Terms of Service to proceed" 
   }),
 });
 
@@ -75,7 +75,7 @@ const INDIAN_STATES = [
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { currentUser, setBusinessInfo, setCookie: setAppContextCookie } = useAppContext();
+  const { currentUser, setBusinessInfo } = useAppContext();
   
   const [currentStep, setCurrentStep] = useState(1);
   const role = currentUser?.role || null;
@@ -175,7 +175,7 @@ export default function OnboardingPage() {
         if (!result.success) {
           const errors: Record<string, string> = {};
           result.error.issues.forEach(issue => {
-            errors[issue.path[0]] = issue.message;
+            errors[String(issue.path[0])] = issue.message;
           });
           setValidationErrors(errors);
           return;
@@ -187,7 +187,7 @@ export default function OnboardingPage() {
         if (!result.success) {
           const errors: Record<string, string> = {};
           result.error.issues.forEach(issue => {
-            errors[issue.path[0]] = issue.message;
+            errors[String(issue.path[0])] = issue.message;
           });
           setValidationErrors(errors);
           return;
@@ -197,7 +197,7 @@ export default function OnboardingPage() {
         if (!result.success) {
           const errors: Record<string, string> = {};
           result.error.issues.forEach(issue => {
-            errors[issue.path[0]] = issue.message;
+            errors[String(issue.path[0])] = issue.message;
           });
           setValidationErrors(errors);
           return;
@@ -209,7 +209,7 @@ export default function OnboardingPage() {
         if (!result.success) {
           const errors: Record<string, string> = {};
           result.error.issues.forEach(issue => {
-            errors[issue.path[0]] = issue.message;
+            errors[String(issue.path[0])] = issue.message;
           });
           setValidationErrors(errors);
           return;

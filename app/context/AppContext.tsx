@@ -29,11 +29,11 @@ export type Customer = {
   subscriptionPlan?: 'None' | 'Monthly' | 'Unlimited' | 'Custom';
   riskLevel?: 'Low' | 'Medium' | 'High';
   businessId: string;
-  ownerId: string;
-  userId: string;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
+  ownerId?: string;
+  userId?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
   imageURL?: string;
 };
 
@@ -55,11 +55,11 @@ export type Delivery = {
   skipRemarks?: string;
   priority?: 'High' | 'Medium' | 'Low';
   businessId: string;
-  ownerId: string;
-  userId: string;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
+  ownerId?: string;
+  userId?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type Payment = {
@@ -72,11 +72,11 @@ export type Payment = {
   collectedBy: string;
   note: string;
   businessId: string;
-  ownerId: string;
-  userId: string;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
+  ownerId?: string;
+  userId?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type Inventory = {
@@ -87,9 +87,9 @@ export type Inventory = {
   cansInDelivery: number;
   refillInProcess: number;
   businessId: string;
-  ownerId: string;
-  userId: string;
-  updatedAt: string;
+  ownerId?: string;
+  userId?: string;
+  updatedAt?: string;
 };
 
 export type InventoryHistory = {
@@ -100,10 +100,10 @@ export type InventoryHistory = {
   source: string;
   note: string;
   businessId: string;
-  ownerId: string;
-  userId: string;
-  createdBy: string;
-  createdAt: string;
+  ownerId?: string;
+  userId?: string;
+  createdBy?: string;
+  createdAt?: string;
 };
 
 export type Staff = {
@@ -114,15 +114,15 @@ export type Staff = {
   route: string;
   pin: string;
   encryptedPin?: string;
-  createdBy: string;
+  createdBy?: string;
   failedPinAttempts?: number;
   pinLockedUntil?: string;
   active: boolean;
   businessId: string;
-  ownerId: string;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
+  ownerId?: string;
+  userId?: string;
+  createdAt?: string;
+  updatedAt?: string;
   permissions?: {
     canCreateStaff?: boolean;
     canDeleteStaff?: boolean;
@@ -153,6 +153,7 @@ export type BusinessInfo = {
 export type CurrentUser = {
   uid: string;
   role: string;
+  name?: string;
   businessId: string;
   onboardingCompleted?: boolean;
   dashboardTourCompleted?: boolean;
@@ -290,7 +291,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       action: 'Logout',
       description: 'User logged out',
       status: 'success',
-      businessId: currentUser?.businessId || ''
+      
     }).catch(err => console.warn("Failed to log activity during logout:", err));
 
     setIsLoggingOut(true);

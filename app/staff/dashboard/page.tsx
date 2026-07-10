@@ -14,7 +14,7 @@ function StaffDashboard() {
   const { customers, deliveries, payments, inventory, staff, businessInfo, currentUser } = useAppContext();
   const [userName, setUserName] = useState('');
   const [staffRoute, setStaffRoute] = useState('');
-  const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
+  const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
   const [showSummary, setShowSummary] = useState(false);

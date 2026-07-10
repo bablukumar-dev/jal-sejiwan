@@ -13,7 +13,7 @@ interface DeliveryEntry {
   date: string;
   rate: number;
   timestamp: number;
-  synced: boolean;
+  synced: number;
   businessId: string;
 }
 
@@ -21,7 +21,7 @@ interface JalSejiwanDB extends DBSchema {
   'pending-deliveries': {
     key: string;
     value: DeliveryEntry;
-    indexes: { 'by-synced': boolean };
+    indexes: { 'by-synced': number };
   };
 }
 
@@ -53,7 +53,7 @@ export const savePendingDelivery = async (entry: Omit<DeliveryEntry, 'synced' | 
     const fullEntry: DeliveryEntry = {
       ...entry,
       id: `pending_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      synced: false,
+      synced: 0,
       timestamp: Date.now(),
     };
 
@@ -83,13 +83,13 @@ export const getUnsyncedDeliveries = async () => {
 
     // Attempt to use index first as it's more efficient
     try {
-      return await db.getAllFromIndex('pending-deliveries', 'by-synced', false);
+      return await db.getAllFromIndex('pending-deliveries', 'by-synced', 0);
     } catch (indexError) {
       console.warn("IndexedDB index query failed, falling back to manual filter:", indexError);
       // Fallback: get all and filter manually
       try {
         const all = await db.getAll('pending-deliveries');
-        return all.filter(entry => entry.synced === false);
+        return all.filter(entry => entry.synced === 0);
       } catch (allError) {
         console.warn("IndexedDB getAll failed:", allError);
         return [];
@@ -114,7 +114,7 @@ export const markAsSynced = async (id: string) => {
     try {
       const entry = await db.get('pending-deliveries', id);
       if (entry) {
-        entry.synced = true;
+        entry.synced = 1;
         await db.put('pending-deliveries', entry);
       }
     } catch (dbError) {
@@ -134,14 +134,14 @@ export const deleteSyncedDeliveries = async () => {
       return;
     }
 
-    let synced = [];
+    let synced: DeliveryEntry[] = [];
     try {
-      synced = await db.getAllFromIndex('pending-deliveries', 'by-synced', true);
+      synced = await db.getAllFromIndex('pending-deliveries', 'by-synced', 1);
     } catch (indexError) {
       console.warn("IndexedDB index query for deletion failed, falling back to manual filter:", indexError);
       try {
         const all = await db.getAll('pending-deliveries');
-        synced = all.filter(entry => entry.synced === true);
+        synced = all.filter(entry => entry.synced === 1);
       } catch (allError) {
         console.warn("IndexedDB getAll for deletion failed:", allError);
       }

@@ -80,12 +80,13 @@ export const updateWithAudit = async (collectionName: string, docId: string, dat
   return await updateDoc(docRef, auditData);
 };
 
-export const deleteWithAudit = async (collectionName: string, docId: string) => {
-  // Keeping for compatibility, though we don't use direct deletion usually
+export const deleteWithAudit = async (collectionName: string, docId: string, currentUser?: any) => {
   const { db } = getFirebase();
   if (!db) throw new Error("Firestore not initialized");
 
-  const businessId = localStorage.getItem('businessId') || '';
+  const businessId = currentUser?.businessId || localStorage.getItem('businessId') || '';
+  if (!businessId) throw new Error("Cannot delete without businessId context");
+
   const docRef = getDocRef(db, businessId, collectionName, docId);
   return await deleteDoc(docRef);
 };
@@ -109,6 +110,7 @@ export const batchAddDeliveries = async (deliveries: any[], currentUser: any) =>
 
   const batch = writeBatch(db);
   const results: string[] = [];
+  const { logActivity } = await import('./activityLogger');
 
   deliveries.forEach(d => {
     const colRef = getSubcollectionRef(db, businessId, 'deliveries');
@@ -127,6 +129,17 @@ export const batchAddDeliveries = async (deliveries: any[], currentUser: any) =>
   });
 
   await batch.commit();
+
+  // Log batch delivery activity
+  logActivity({
+    module: 'Water Management',
+    action: 'Batch Deliveries Created',
+    description: `Created ${deliveries.length} new delivery records for ${businessId}`,
+    status: 'success',
+    resourceType: 'Delivery',
+    newValue: { count: deliveries.length, ids: results }
+  }).catch(err => console.error("Batch delivery logging failed:", err));
+
   return results;
 };
 

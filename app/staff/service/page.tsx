@@ -35,7 +35,7 @@ export default function CustomerService() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('All');
-  const [currentStaffId, setCurrentStaffId] = useState<number | null>(null);
+  const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
   
   const today = new Date().toISOString().split('T')[0];
 

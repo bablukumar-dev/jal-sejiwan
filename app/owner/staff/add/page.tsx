@@ -136,7 +136,8 @@ function AddStaff() {
           active: true,
           createdBy: creatorId,
           failedPinAttempts: 0,
-          permissions: role === 'Manager' ? permissions : undefined
+          permissions: role === 'Manager' ? permissions : undefined,
+          businessId: currentUser?.businessId || ''
         };
 
         setStaff([...staff, newStaffMember]);

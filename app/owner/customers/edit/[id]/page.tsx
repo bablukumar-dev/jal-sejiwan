@@ -141,7 +141,7 @@ export default function EditCustomer() {
       if (!confirm(confirmText)) return;
 
       const { deleteWithAudit } = await import('@/lib/firestore-service');
-      await deleteWithAudit('customers', customerId);
+      await deleteWithAudit('customers', customerId, currentUser);
 
       await logActivity({
         module: 'Customers',

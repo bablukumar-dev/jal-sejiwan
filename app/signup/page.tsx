@@ -19,7 +19,7 @@ import { Suspense } from 'react';
 
 function SignupContent() {
   const router = useRouter();
-  const { currentUser } = useAppContext();
+  const { currentUser, setCurrentUser } = useAppContext();
 
   const [role, setRole] = useState<'owner' | 'staff' | 'manager'>('owner');
   const [email, setEmail] = useState('');

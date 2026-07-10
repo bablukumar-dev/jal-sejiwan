@@ -221,9 +221,16 @@ export default function AddCustomer() {
             router.push('/owner/customers');
           }
         }, 1500);
-    } catch (e) {
+    } catch (e: any) {
         console.error("Failed to add customer", e);
-        setToast({ message: 'Failed to add customer. Please try again.', type: 'error', onClose: () => setToast(null) });
+        logActivity({
+          module: 'Customers',
+          action: 'Customer Creation Failed',
+          description: `Failed to add customer ${name}: ${e.message || e}`,
+          status: 'error',
+          failureReason: e.message || String(e)
+        }).catch(err => console.error("Error logging failed:", err));
+        setToast({ message: 'Failed to add customer: ' + (e.message || e), type: 'error', onClose: () => setToast(null) });
     } finally {
         setIsUploading(false);
     }

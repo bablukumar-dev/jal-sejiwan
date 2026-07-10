@@ -51,6 +51,7 @@ export async function logActivity(
     resourceType?: string;
     resourceId?: string;
     resourceName?: string;
+    businessId?: string;
     previousValue?: any;
     newValue?: any;
     failureReason?: string;

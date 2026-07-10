@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Store } from 'lucide-react';
 
-function ErrorFallback({ error }: { error: Error }) {
+function ErrorFallback({ error }: { error: any }) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 text-red-600 bg-red-50">
       <div className="text-center">
