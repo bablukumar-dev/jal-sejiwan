@@ -147,12 +147,26 @@ export default function DeliveryEntry() {
           paymentMode: paymentType,
           rate: currentRate
         };
-        await updateDelivery(deliveryId, deliveryData, currentUser);
+        console.log("Updating delivery...");
+        try {
+          await updateDelivery(deliveryId, deliveryData, currentUser);
+        } catch (e) {
+          console.error("Failed to update delivery:", e);
+          throw new Error(`Delivery update failed: ${e}`);
+        }
+        console.log("Delivery updated.");
 
         // 2. Update inventory
-        await updateInventory(currentUser.uid, {
-          cansWithCustomers: increment(delivered - empties)
-        } as any, currentUser);
+        console.log("Updating inventory...");
+        try {
+          await updateInventory(currentUser.uid, {
+            cansWithCustomers: increment(delivered - empties)
+          } as any, currentUser);
+        } catch (e) {
+          console.error("Failed to update inventory:", e);
+          throw new Error(`Inventory update failed: ${e}`);
+        }
+        console.log("Inventory updated.");
 
         // 3. Update customer
         let newDue = customer.due;
@@ -168,7 +182,14 @@ export default function DeliveryEntry() {
           lastDelivery: date,
           rate: currentRate 
         };
-        await updateCustomer(customer.id, customerUpdate, currentUser);
+        console.log("Updating customer...");
+        try {
+          await updateCustomer(customer.id, customerUpdate, currentUser);
+        } catch (e) {
+          console.error("Failed to update customer:", e);
+          throw new Error(`Customer update failed: ${e}`);
+        }
+        console.log("Customer updated.");
 
         // 4. Record payment if collected
         if (parsedAmount > 0) {
@@ -181,7 +202,14 @@ export default function DeliveryEntry() {
             collectedBy: currentUser.name || 'Staff',
             note: `DEL-${deliveryId}`
           };
-          await addPayment(paymentData, currentUser);
+          console.log("Recording payment...");
+          try {
+            await addPayment(paymentData, currentUser);
+          } catch (e) {
+            console.error("Failed to add payment:", e);
+            throw new Error(`Payment update failed: ${e}`);
+          }
+          console.log("Payment recorded.");
         }
         
         logActivity({
@@ -519,6 +547,7 @@ export default function DeliveryEntry() {
             whileHover={{ scale: 1.01 }} 
             whileTap={{ scale: 0.98 }}
             onClick={handleConfirm}
+            aria-label={otpSent ? 'Verify OTP and deliver water' : 'Send OTP to customer'}
             className={`w-full text-white font-bold py-4 rounded-xl text-lg flex items-center justify-center gap-2 transition-transform ${otpSent ? 'bg-emerald-600' : 'bg-blue-700'}`}
           >
             {otpSent ? 'VERIFY OTP & DELIVER' : 'SEND OTP'} <CheckCircle2 className="w-6 h-6" />
