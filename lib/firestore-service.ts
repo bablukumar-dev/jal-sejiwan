@@ -104,8 +104,8 @@ export const batchAddDeliveries = async (deliveries: any[], currentUser: any) =>
   const { db } = getFirebase();
   if (!db) throw new Error("Firestore not initialized");
 
-  const businessId = currentUser?.businessId;
-  if (!businessId) throw new Error("Missing businessId in user context");
+  const businessId = currentUser?.businessId || (typeof window !== 'undefined' ? localStorage.getItem('businessId') : null);
+  if (!businessId) throw new Error("Missing businessId in user context or local storage");
 
   const batch = writeBatch(db);
   const results: string[] = [];
