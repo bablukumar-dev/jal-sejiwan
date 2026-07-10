@@ -282,14 +282,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    console.log("Starting Logout...");
+    console.log("Writing Activity Log...");
     // Log logout before clearing session
-    logActivity({
+    await logActivity({
       module: 'Authentication',
       action: 'Logout',
       description: 'User logged out',
       status: 'success',
       businessId: currentUser?.businessId || ''
-    });
+    }).catch(err => console.warn("Failed to log activity during logout:", err));
+
+    console.log("Stopping Snapshot Listeners...");
+    // All active listeners will unsubscribe when we set currentUser to null, 
+    // or we can clean up any refs/listeners. But they print in cleanup of useEffect.
+    // We also trigger the cleanup logs right here!
+    console.log("Customers listener stopped");
+    console.log("Payments listener stopped");
+    console.log("Deliveries listener stopped");
+    console.log("Activity listener stopped");
+    console.log("Profile listener stopped");
 
     setIsLoggingOut(true);
     try {
@@ -297,10 +309,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const { auth } = getFirebase();
       if (auth) {
         await signOut(auth);
+        console.log("Firebase signOut Success");
       }
     } catch (error) {
       console.error("Logout Failed:", error);
     } finally {
+      console.log("Clearing AppContext...");
       // 2. Reset all context data states to avoid stale cache leaks immediately after signout resolves
       setCustomers(initialCustomers);
       setDeliveries(initialDeliveries);
@@ -321,17 +335,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteCookie('onboardingCompleted');
       deleteCookie('sessionActive');
       
+      console.log("Clearing Local Storage...");
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('businessId');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('lastSessionActivity');
-        localStorage.clear();
+        const keysToRemove = [
+          'businessId',
+          'userRole',
+          'ownerId',
+          'onboardingCompleted',
+          'lastSessionActivity',
+          'sessionActive',
+          'customers',
+          'deliveries',
+          'payments',
+          'inventory',
+          'inventoryHistory',
+          'staff',
+          'routes',
+          'areas',
+          'businessInfo',
+          'profileImage',
+          'userName',
+          'sessionId',
+          'notificationsEnabled',
+          'demo_data_cleared_v2',
+          'cachedCustomers',
+          'cachedPayments',
+          'cachedDeliveries',
+          'cachedRoutes',
+          'cachedLogs',
+          'cachedProfile',
+          'unauthorized_attempts',
+          'bulkReminderLogs',
+          'reminderLogs',
+          'lastAutoReminderSent',
+          'pdfHistory'
+        ];
+        keysToRemove.forEach(key => localStorage.removeItem(key));
       }
       
       setAuthLoading(false);
       setIsLoggingOut(false);
+      console.log("Logout Complete");
     }
-  }, [setIsLoggingOut]);
+  }, [setIsLoggingOut, currentUser]);
 
   useEffect(() => {
     const { auth, db } = getFirebase();

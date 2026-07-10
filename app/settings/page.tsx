@@ -73,6 +73,16 @@ const FAQS = [
   }
 ];
 
+const INDIAN_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", 
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", 
+  "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", 
+  "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", 
+  "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", 
+  "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+];
+
 export default function SettingsPage() {
   const router = useRouter();
   const { 
@@ -89,12 +99,16 @@ export default function SettingsPage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [newName, setNewName] = useState(businessInfo.ownerName);
-  const [profileImage, setProfileImage] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('profileImage');
-    }
-    return null;
-  });
+  const [editBusinessName, setEditBusinessName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [editState, setEditState] = useState('');
+  const [editPincode, setEditPincode] = useState('');
+  const [editGstNumber, setEditGstNumber] = useState('');
+
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('notificationsEnabled') !== 'false';
@@ -124,19 +138,43 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (currentUser) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setUserName(currentUser.name || 'User');
+      requestAnimationFrame(() => {
+        setUserName(currentUser.ownerName || 'User');
+        setNewName(currentUser.ownerName || '');
+        setEditBusinessName(currentUser.businessName || '');
+        setEditPhone(currentUser.phone || '');
+        setEditEmail(currentUser.email || '');
+        setEditAddress(currentUser.address || '');
+        setEditCity(currentUser.city || '');
+        setEditState(currentUser.state || '');
+        setEditPincode(currentUser.pincode || '');
+        setEditGstNumber(currentUser.gstNumber || '');
+        setProfileImage(currentUser.profilePhoto || null);
+      });
     }
   }, [currentUser]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const base64String = reader.result as string;
         setProfileImage(base64String);
-        localStorage.setItem('profileImage', base64String);
+        
+        // Save base64 photo directly to users/{uid} document!
+        const { db } = getFirebase();
+        if (db && currentUser) {
+          try {
+            await updateDoc(doc(db, 'users', currentUser.uid), {
+              profilePhoto: base64String,
+              updatedAt: new Date().toISOString()
+            });
+            console.log("Profile Photo updated on Firestore");
+          } catch (err) {
+            console.error("Failed to save profile photo to Firestore:", err);
+          }
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -174,6 +212,14 @@ export default function SettingsPage() {
       if (db) {
         await updateDoc(doc(db, 'users', currentUser.uid), {
           ownerName: cleanName,
+          businessName: editBusinessName,
+          phone: editPhone,
+          email: editEmail,
+          address: editAddress,
+          city: editCity,
+          state: editState,
+          pincode: editPincode,
+          gstNumber: editGstNumber,
           updatedAt: new Date().toISOString()
         });
         console.log("Profile Updated. Firestore Path: users/" + currentUser.uid);
@@ -185,15 +231,18 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSignOut = async () => {
+  const handleLogout = async () => {
+    console.log("Logout Button Clicked");
+    console.log("Starting Logout...");
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
       await logout();
+      console.log("Redirecting to Login");
       router.replace('/login');
+      console.log("Logout Complete");
     } catch (e) {
       console.error('Logout failed:', e);
-      // Fallback redirect
       window.location.href = '/login';
     } finally {
       setIsLoggingOut(false);
@@ -236,20 +285,78 @@ export default function SettingsPage() {
           </div>
           <div className="mt-4 flex items-center gap-2">
             <h1 className="text-2xl font-bold text-slate-900 leading-none tracking-tight">
-              {currentUser.ownerName || 'User'}
+              {currentUser?.ownerName || 'User'}
             </h1>
             <button 
-              onClick={() => { setNewName(currentUser.ownerName || ''); setIsEditingProfile(true); }}
+              onClick={() => { setNewName(currentUser?.ownerName || ''); setIsEditingProfile(true); }}
               className="p-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
           </div>
           <p className="text-sm font-medium text-slate-500 mt-1.5">
-            {businessInfo.name} • {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+            {currentUser?.businessName || businessInfo.name} • {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
           </p>
         </div>
-          {/* rest of the profile sections */}
+
+        {/* Profile Information Block */}
+        <div className="bg-white rounded-3xl border border-slate-100 p-5 mb-8 shadow-sm space-y-4">
+          <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+            <h3 className="text-sm font-bold text-slate-800">Profile Information</h3>
+            <button 
+              onClick={() => setIsEditingProfile(true)}
+              className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full"
+            >
+              <Edit2 className="w-3 h-3" /> Edit
+            </button>
+          </div>
+          <div className="grid grid-cols-1 gap-3 text-xs">
+            <div className="flex justify-between py-1 border-b border-slate-50/50">
+              <span className="text-slate-400 font-medium">Business ID</span>
+              <span className="text-slate-700 font-mono font-semibold">{currentUser?.businessId || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-slate-50/50">
+              <span className="text-slate-400 font-medium">System Role</span>
+              <span className="text-slate-700 font-semibold uppercase">{userRole}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-slate-50/50">
+              <span className="text-slate-400 font-medium">Full Name</span>
+              <span className="text-slate-800 font-bold">{currentUser?.ownerName || 'Not configured'}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-slate-50/50">
+              <span className="text-slate-400 font-medium">Business Name</span>
+              <span className="text-slate-800 font-semibold">{currentUser?.businessName || businessInfo.name || 'Not configured'}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-slate-50/50">
+              <span className="text-slate-400 font-medium">Phone Number</span>
+              <span className="text-slate-800 font-semibold">{currentUser?.phone ? `+91 ${currentUser.phone}` : 'Not configured'}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-slate-50/50">
+              <span className="text-slate-400 font-medium">Email Address</span>
+              <span className="text-slate-800 font-semibold">{currentUser?.email || 'Not configured'}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-slate-50/50">
+              <span className="text-slate-400 font-medium">Office/Residential Address</span>
+              <span className="text-slate-800 font-semibold text-right max-w-[200px] truncate" title={currentUser?.address}>{currentUser?.address || 'Not configured'}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-slate-50/50">
+              <span className="text-slate-400 font-medium">City / District</span>
+              <span className="text-slate-800 font-semibold">{currentUser?.city || 'Not configured'}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-slate-50/50">
+              <span className="text-slate-400 font-medium">State</span>
+              <span className="text-slate-800 font-semibold">{currentUser?.state || 'Not configured'}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-slate-50/50">
+              <span className="text-slate-400 font-medium">Pincode</span>
+              <span className="text-slate-800 font-semibold">{currentUser?.pincode || 'Not configured'}</span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span className="text-slate-400 font-medium">GST Number</span>
+              <span className="text-slate-800 font-semibold uppercase">{currentUser?.gstNumber || 'Not configured'}</span>
+            </div>
+          </div>
+        </div>
 
         {(userRole === 'owner' || userRole === 'manager') && (
           <>
@@ -435,7 +542,7 @@ export default function SettingsPage() {
         </div>
 
         <button 
-          onClick={handleSignOut}
+          onClick={handleLogout}
           className="w-full bg-red-50 text-red-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
         >
           <LogOut className="w-5 h-5" /> LOG OUT
@@ -457,36 +564,124 @@ export default function SettingsPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl"
+              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl max-h-[85vh] flex flex-col"
             >
-              <div className="flex justify-between items-center mb-5">
-                <h2 className="text-xl font-bold text-slate-900">Edit Profile Name</h2>
+              <div className="flex justify-between items-center mb-5 shrink-0">
+                <h2 className="text-xl font-bold text-slate-900">Edit Profile</h2>
                 <button onClick={() => setIsEditingProfile(false)} className="p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200">
                   <X className="w-5 h-5" />
                 </button>
               </div>
               
-              <div className="mb-6">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Full Name</label>
-                <input 
-                  type="text" 
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900"
-                  autoFocus
-                />
+              <div className="overflow-y-auto pr-1 space-y-4 flex-1 pb-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Full Name *</label>
+                  <input 
+                    type="text" 
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Business Name</label>
+                  <input 
+                    type="text" 
+                    value={editBusinessName}
+                    onChange={(e) => setEditBusinessName(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
+                  <input 
+                    type="text" 
+                    maxLength={10}
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, ''))}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+                  <input 
+                    type="email" 
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Office/Residential Address</label>
+                  <textarea 
+                    rows={2}
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">City / District</label>
+                  <input 
+                    type="text" 
+                    value={editCity}
+                    onChange={(e) => setEditCity(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">State</label>
+                  <select 
+                    value={editState}
+                    onChange={(e) => setEditState(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900 text-sm bg-white"
+                  >
+                    <option value="">Select State</option>
+                    {INDIAN_STATES.map((st) => (
+                      <option key={st} value={st}>{st}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pincode</label>
+                  <input 
+                    type="text" 
+                    maxLength={6}
+                    value={editPincode}
+                    onChange={(e) => setEditPincode(e.target.value.replace(/\D/g, ''))}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">GST Number</label>
+                  <input 
+                    type="text" 
+                    maxLength={15}
+                    value={editGstNumber}
+                    onChange={(e) => setEditGstNumber(e.target.value.toUpperCase())}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900 text-sm"
+                  />
+                </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-4 border-t border-slate-100 shrink-0">
                 <button 
                   onClick={() => setIsEditingProfile(false)}
-                  className="flex-1 py-3 font-bold text-slate-600 bg-slate-100 rounded-xl active:scale-95 transition-transform"
+                  className="flex-1 py-3 font-bold text-slate-600 bg-slate-100 rounded-xl active:scale-95 transition-transform text-sm"
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleSaveProfile}
-                  className="flex-1 py-3 font-bold text-white bg-blue-600 rounded-xl active:scale-95 transition-transform"
+                  className="flex-1 py-3 font-bold text-white bg-blue-600 rounded-xl active:scale-95 transition-transform text-sm"
                 >
                   Save Changes
                 </button>

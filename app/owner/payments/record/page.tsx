@@ -11,7 +11,7 @@ import { validateAmount } from '@/lib/validation';
 
 export default function RecordPayment() {
   const router = useRouter();
-  const { customers, payments, setPayments, setCustomers } = useAppContext();
+  const { customers, payments, setPayments, setCustomers, currentUser } = useAppContext();
   const [amount, setAmount] = useState('0');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');

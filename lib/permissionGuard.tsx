@@ -169,6 +169,7 @@ export function wrapRoute<P extends object>(
       } else {
         setAuthorized(true);
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUser, authLoading, router, options.requiredRole, options.requiredPermission, options.strict]);
 
     if (authLoading || !authorized) {

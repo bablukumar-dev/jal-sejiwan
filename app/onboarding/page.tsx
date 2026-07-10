@@ -281,7 +281,7 @@ export default function OnboardingPage() {
         });
 
         // 3. Update User Document (Single Source of Truth)
-        await updateDoc(userDocRef, {
+        await setDoc(userDocRef, {
           onboardingCompleted: true,
           profileCompleted: true,
           updatedAt: new Date().toISOString(),
@@ -290,8 +290,11 @@ export default function OnboardingPage() {
           phone: ownerOrg.contactNumber,
           state: ownerOrg.state,
           city: ownerOrg.district,
-          ownerName: '', // Need to add ownerName input in onboarding? Or is it already there?
-        });
+          ownerName: currentUser.ownerName || auth.currentUser.displayName || 'Owner',
+          pincode: '',
+          gstNumber: '',
+          email: auth.currentUser.email || '',
+        }, { merge: true });
         console.log("Onboarding Save Success. Firestore Path: users/" + currentUser.uid);
 
         // Update local context/state
@@ -313,22 +316,23 @@ export default function OnboardingPage() {
           address: managerProfile.address,
           assignedArea: managerArea.assignedArea,
           notifyDailyReports: managerNotify.dailyReports,
-          notifyCriticalAlerts: managerNotify.criticalAlerts
+          notifyCriticalAlerts: managerNotify.criticalAlerts,
+          email: auth.currentUser?.email || '',
         };
 
         // Update Firestore Document for Manager (User)
-        await updateDoc(userDocRef, managerData);
+        await setDoc(userDocRef, managerData, { merge: true });
         console.log("Onboarding Save Success. Firestore Path: users/" + currentUser.uid);
 
         // Also update staff subcollection document
         const staffDocRef = doc(db, 'businesses', bId, 'staff', currentUser.uid);
-        await updateDoc(staffDocRef, {
+        await setDoc(staffDocRef, {
           name: managerProfile.name,
           phone: managerProfile.phone,
           onboardingCompleted: true,
           profileCompleted: true,
           updatedAt: new Date().toISOString()
-        }).catch(err => console.warn("Staff document update skipped or failed:", err));
+        }, { merge: true }).catch(err => console.warn("Staff document update skipped or failed:", err));
 
       } else if (role === 'staff') {
         const bId = currentUser?.businessId;
@@ -340,21 +344,22 @@ export default function OnboardingPage() {
           updatedAt: new Date().toISOString(),
           ownerName: staffProfile.name,
           phone: staffProfile.phone,
+          email: auth.currentUser?.email || '',
         };
 
         // Update Firestore Document for Staff (User)
-        await updateDoc(userDocRef, staffData);
+        await setDoc(userDocRef, staffData, { merge: true });
         console.log("Onboarding Save Success. Firestore Path: users/" + currentUser.uid);
 
         // Also update staff subcollection document
         const staffDocRef = doc(db, 'businesses', bId, 'staff', currentUser.uid);
-        await updateDoc(staffDocRef, {
+        await setDoc(staffDocRef, {
           name: staffProfile.name,
           phone: staffProfile.phone,
           onboardingCompleted: true,
           profileCompleted: true,
           updatedAt: new Date().toISOString()
-        }).catch(err => console.warn("Staff document update skipped or failed:", err));
+        }, { merge: true }).catch(err => console.warn("Staff document update skipped or failed:", err));
       }
 
       // Synchronize Cookie immediately so middleware lets them in
