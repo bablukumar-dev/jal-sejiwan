@@ -38,7 +38,7 @@ function DispatchScreen() {
       await updateInventory(currentUser.uid, {
         fullCans: increment(-dispatched),
         cansInDelivery: increment(dispatched)
-      } as any);
+      } as any, currentUser);
 
       logActivity({
         module: 'Inventory',

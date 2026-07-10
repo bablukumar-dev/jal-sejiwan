@@ -74,9 +74,8 @@ function AddStaff() {
           return;
         }
 
-        const pinRegex = /^\d{4,6}$/;
-        if (!pinRegex.test(cleanPin)) {
-          setErrorMessage('PIN must be 4 to 6 numeric digits');
+        if (cleanPin.length < 6) {
+          setErrorMessage('Password/PIN must be at least 6 characters');
           setIsSubmitting(false);
           return;
         }
@@ -296,7 +295,7 @@ function AddStaff() {
                 onChange={(e) => setPin(e.target.value)}
                 required
               />
-              <p className="text-xs text-slate-500 mt-1">Staff will use this password to log in</p>
+              <p className="text-xs text-slate-500 mt-1">Staff will use this password to log in (minimum 6 characters)</p>
             </div>
             
             {role === 'Manager' && (

@@ -34,7 +34,7 @@ function ReturnReconciliation() {
         emptyCans: increment(emptyReturned),
         damagedCans: increment(damaged),
         cansInDelivery: increment(-totalDispatched)
-      } as any);
+      } as any, currentUser);
 
       logActivity({
         module: 'Inventory',

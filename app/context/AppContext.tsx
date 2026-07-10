@@ -293,19 +293,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       businessId: currentUser?.businessId || ''
     }).catch(err => console.warn("Failed to log activity during logout:", err));
 
-    console.log("Stopping Snapshot Listeners...");
-    // All active listeners will unsubscribe when we set currentUser to null, 
-    // or we can clean up any refs/listeners. But they print in cleanup of useEffect.
-    // We also trigger the cleanup logs right here!
-    console.log("Customers listener stopped");
-    console.log("Payments listener stopped");
-    console.log("Deliveries listener stopped");
-    console.log("Activity listener stopped");
-    console.log("Profile listener stopped");
-
     setIsLoggingOut(true);
     try {
-      // 1. Clear Firebase Auth session first and wait for it to fully resolve
       const { auth } = getFirebase();
       if (auth) {
         await signOut(auth);
@@ -314,66 +303,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Logout Failed:", error);
     } finally {
-      console.log("Clearing AppContext...");
-      // 2. Reset all context data states to avoid stale cache leaks immediately after signout resolves
-      setCustomers(initialCustomers);
-      setDeliveries(initialDeliveries);
-      setPayments(initialPayments);
-      setInventory(initialInventory);
-      setInventoryHistory(initialInventoryHistory);
-      setStaff(initialStaff);
-      setRoutes(initialRoutes);
-      setAreas(initialAreas);
-      setBusinessInfo(initialBusinessInfo);
-      
-      setCurrentUser(null);
-      setOwnerId(null);
-      
-      deleteCookie('firebaseIdToken');
-      deleteCookie('userRole');
-      deleteCookie('businessId');
-      deleteCookie('onboardingCompleted');
-      deleteCookie('sessionActive');
-      
-      console.log("Clearing Local Storage...");
-      if (typeof window !== 'undefined') {
-        const keysToRemove = [
-          'businessId',
-          'userRole',
-          'ownerId',
-          'onboardingCompleted',
-          'lastSessionActivity',
-          'sessionActive',
-          'customers',
-          'deliveries',
-          'payments',
-          'inventory',
-          'inventoryHistory',
-          'staff',
-          'routes',
-          'areas',
-          'businessInfo',
-          'profileImage',
-          'userName',
-          'sessionId',
-          'notificationsEnabled',
-          'demo_data_cleared_v2',
-          'cachedCustomers',
-          'cachedPayments',
-          'cachedDeliveries',
-          'cachedRoutes',
-          'cachedLogs',
-          'cachedProfile',
-          'unauthorized_attempts',
-          'bulkReminderLogs',
-          'reminderLogs',
-          'lastAutoReminderSent',
-          'pdfHistory'
-        ];
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-      }
-      
-      setAuthLoading(false);
       setIsLoggingOut(false);
       console.log("Logout Complete");
     }
@@ -454,8 +383,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             console.log("Realtime Profile Synced. Firestore Path: users/" + user.uid);
             setOwnerId(data.businessId);
             if (typeof window !== 'undefined') {
+              const resolvedName = data.name || data.ownerName || user.displayName || 'User';
               localStorage.setItem('businessId', data.businessId);
               localStorage.setItem('userRole', data.role);
+              localStorage.setItem('userName', resolvedName);
+              localStorage.setItem('ownerId', data.businessId);
               localStorage.setItem('onboardingCompleted', onboardingCompleted ? 'true' : 'false');
             }
             setCookie('userRole', data.role, 3600 * 24 * 30);
@@ -510,22 +442,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
       } else {
         // No user is authenticated with Firebase
-        if (!isLoggingOutRef.current) {
-          console.log("[AppContext] No authenticated user. Clearing auth states.");
-          setCurrentUser(null);
-          setOwnerId(null);
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('businessId');
-            localStorage.removeItem('userRole');
-            localStorage.removeItem('onboardingCompleted');
-          }
-          deleteCookie('firebaseIdToken');
-          deleteCookie('userRole');
-          deleteCookie('businessId');
-          deleteCookie('onboardingCompleted');
-          deleteCookie('sessionActive');
-          setAuthLoading(false);
+        console.log("[AppContext] No authenticated user. Clearing auth states.");
+        setCurrentUser(null);
+        setOwnerId(null);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('businessId');
+          localStorage.removeItem('userRole');
+          localStorage.removeItem('onboardingCompleted');
+          localStorage.removeItem('ownerId');
+          localStorage.removeItem('cachedProfile');
+          localStorage.removeItem('businessInfo');
+          localStorage.removeItem('cachedCustomers');
+          localStorage.removeItem('cachedPayments');
+          localStorage.removeItem('cachedDeliveries');
         }
+        deleteCookie('firebaseIdToken');
+        deleteCookie('userRole');
+        deleteCookie('businessId');
+        deleteCookie('onboardingCompleted');
+        deleteCookie('sessionActive');
+        setAuthLoading(false);
       }
     });
 

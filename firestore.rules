@@ -28,11 +28,15 @@ service cloud.firestore {
     // --- USERS ROOT COLLECTION ---
     match /users/{userId} {
       // Users can read and update their own profiles.
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      
       // Owners and Managers can read profiles of members of the same business.
       allow read: if isSignedIn() && (
-        request.auth.uid == userId || 
-        (getUserData().businessId == resource.data.businessId && (getUserRole() == 'owner' || getUserRole() == 'manager'))
+        request.auth.uid != userId && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId == resource.data.businessId && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'manager']
       );
+      
       // Let any authenticated user write or merge their user doc during signup/onboarding
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isSignedIn() && request.auth.uid == userId;
@@ -100,10 +104,12 @@ service cloud.firestore {
 
       // --- Settings subcollection (including inventory) ---
       match /settings/{settingId} {
-        // Staff has "No Settings"
-        allow read: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() != 'staff';
-        allow create, update: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() != 'staff';
-        allow delete: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() == 'owner';
+        // Anyone in the business can read and update the inventory setting
+        allow read, update: if isSignedIn() && isMemberOfBusiness(businessId) && settingId == 'inventory';
+        // Only non-staff (owner, manager) can read/update other settings
+        allow read, update: if isSignedIn() && isMemberOfBusiness(businessId) && settingId != 'inventory' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != 'staff';
+        // Only owner can create or delete settings docs
+        allow create, delete: if isSignedIn() && isMemberOfBusiness(businessId) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner';
       }
     }
   }

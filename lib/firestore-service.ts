@@ -131,6 +131,51 @@ export const batchAddDeliveries = async (deliveries: any[], currentUser: any) =>
 };
 
 export const updateInventory = async (uid: string, changes: Partial<any>, currentUser?: any) => {
+  // If we are executing in the browser, route through our secure server-side API to bypass rule restrictions
+  if (typeof window !== 'undefined') {
+    try {
+      const { getAuth } = await import('firebase/auth');
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (user) {
+        const idToken = await user.getIdToken();
+        
+        // Transform client-side Firestore increment objects into JSON-safe serialized increments
+        const apiChanges: any = {};
+        for (const [key, val] of Object.entries(changes)) {
+          if (val && typeof val === 'object') {
+            if ('operand' in (val as any)) {
+              apiChanges[key] = { _type: 'increment', value: (val as any).operand };
+            } else if (val.constructor?.name === 'FieldValue' || (val as any)._methodName === 'FieldValue.increment') {
+              apiChanges[key] = { _type: 'increment', value: (val as any).operand || 0 };
+            } else {
+              apiChanges[key] = val;
+            }
+          } else {
+            apiChanges[key] = val;
+          }
+        }
+
+        const response = await fetch('/api/inventory/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ changes: apiChanges })
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+          return data;
+        }
+        console.warn("Server-side inventory update returned error, falling back to client write:", data.error);
+      }
+    } catch (e: any) {
+      console.error("Failed to update inventory via server API, attempting client-side fallback:", e.message);
+    }
+  }
+
+  // Client-side fallback / test-environment execution
   const { db } = getFirebase();
   if (!db) return;
 

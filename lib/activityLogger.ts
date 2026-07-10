@@ -83,7 +83,21 @@ export async function logActivity(
     const user = auth.currentUser;
     const role = localStorage.getItem('userRole') || 'unknown';
     // Use businessId from finalParams if provided, else fallback to localStorage
-    const businessId = finalParams.businessId || localStorage.getItem('businessId') || '';
+    let businessId = finalParams.businessId || localStorage.getItem('businessId') || '';
+    if (!businessId && user) {
+      try {
+        const { doc, getDoc } = await import('firebase/firestore');
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          businessId = userDoc.data()?.businessId || '';
+          if (businessId && typeof window !== 'undefined') {
+            localStorage.setItem('businessId', businessId);
+          }
+        }
+      } catch (err) {
+        console.error("Activity Logger failed to fetch user businessId:", err);
+      }
+    }
     const userName = user.displayName || localStorage.getItem('userName') || 'User';
 
     console.log("[ActivityLogger] Logging activity. businessId:", businessId, "user:", user.uid);

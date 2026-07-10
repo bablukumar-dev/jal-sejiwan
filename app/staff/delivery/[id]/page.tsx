@@ -152,7 +152,7 @@ export default function DeliveryEntry() {
         // 2. Update inventory
         await updateInventory(currentUser.uid, {
           cansWithCustomers: increment(delivered - empties)
-        } as any);
+        } as any, currentUser);
 
         // 3. Update customer
         let newDue = customer.due;
