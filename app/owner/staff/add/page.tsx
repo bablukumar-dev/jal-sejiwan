@@ -329,9 +329,10 @@ function AddStaff() {
 
           <button 
             type="submit" 
-            className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-200 active:scale-95 transition-transform"
+            disabled={isSubmitting}
+            className={`w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-200 active:scale-95 transition-transform ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            Save Staff Member
+            {isSubmitting ? 'Saving...' : 'Save Staff Member'}
           </button>
         </form>
       </main>
