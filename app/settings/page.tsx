@@ -92,7 +92,8 @@ export default function SettingsPage() {
     routes, 
     deliveries,
     currentUser,
-    logout
+    logout,
+    authLoading
   } = useAppContext();
   
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -137,22 +138,40 @@ export default function SettingsPage() {
   }, [fetchPendingSyncs]);
 
   useEffect(() => {
-    if (currentUser) {
-      requestAnimationFrame(() => {
-        setUserName(currentUser.ownerName || 'User');
-        setNewName(currentUser.ownerName || '');
-        setEditBusinessName(currentUser.businessName || '');
-        setEditPhone(currentUser.phone || '');
-        setEditEmail(currentUser.email || '');
-        setEditAddress(currentUser.address || '');
-        setEditCity(currentUser.city || '');
-        setEditState(currentUser.state || '');
-        setEditPincode(currentUser.pincode || '');
-        setEditGstNumber(currentUser.gstNumber || '');
-        setProfileImage(currentUser.profilePhoto || null);
-      });
+    console.log("SettingsPage mounted. Auth state check:");
+    console.log("currentUser:", currentUser);
+    console.log("businessInfo:", businessInfo);
+    
+    try {
+      if (currentUser) {
+        console.log("Attempting to set profile state...");
+        requestAnimationFrame(() => {
+          try {
+            setUserName(currentUser.ownerName || 'User');
+            setNewName(currentUser.ownerName || '');
+            setEditBusinessName(currentUser.businessName || '');
+            setEditPhone(currentUser.phone || '');
+            setEditEmail(currentUser.email || '');
+            setEditAddress(currentUser.address || '');
+            setEditCity(currentUser.city || '');
+            setEditState(currentUser.state || '');
+            setEditPincode(currentUser.pincode || '');
+            setEditGstNumber(currentUser.gstNumber || '');
+            setProfileImage(currentUser.profilePhoto || null);
+            console.log("Profile state updated successfully.");
+          } catch (err) {
+            console.error("Error setting profile state:", err);
+            console.error((err as Error).stack);
+          }
+        });
+      } else {
+        console.warn("currentUser is null or undefined in SettingsPage.");
+      }
+    } catch (e) {
+      console.error("Critical error in SettingsPage useEffect:", e);
+      console.error((e as Error).stack);
     }
-  }, [currentUser]);
+  }, [currentUser, businessInfo]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -250,6 +269,12 @@ export default function SettingsPage() {
   };
 
   const userRole = currentUser?.role || 'staff';
+  console.log("Rendering SettingsPage. currentUser:", currentUser, "businessInfo:", businessInfo);
+
+  if (!businessInfo) {
+    console.error("businessInfo is undefined or null!");
+    return <div className="p-10">Something went wrong! Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 relative">
