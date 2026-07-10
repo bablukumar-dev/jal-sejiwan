@@ -102,10 +102,13 @@ export default function StaffCustomers() {
 
   const handleRecordDelivery = (customerId: number, e: React.MouseEvent) => {
     e.preventDefault();
+    console.log("HandleRecordDelivery called for customer:", customerId);
     const existing = deliveries.find(d => d.customerId === customerId && d.date === today);
     if (existing) {
+      console.log("Existing delivery found, routing to:", `/staff/delivery/${existing.id}`);
       router.push(`/staff/delivery/${existing.id}`);
     } else {
+      console.log("No existing delivery, creating new one");
       const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'default_business' : 'default_business';
       const newDelivery = {
         id: getUniqueId(),
@@ -123,6 +126,7 @@ export default function StaffCustomers() {
         note: '',
         businessId: currentBusinessId
       };
+      console.log("New delivery created:", newDelivery);
       setDeliveries([...deliveries, newDelivery]);
       router.push(`/staff/delivery/${newDelivery.id}`);
     }

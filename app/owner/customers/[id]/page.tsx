@@ -10,11 +10,14 @@ import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
 import { sendWhatsAppSummary } from '@/lib/reminderService';
 import { updateCustomer, batchAddDeliveries } from '@/lib/firestore-service';
+import { setCookie } from '@/lib/authHelper';
+import { getUniqueId } from '@/lib/utils';
 
 export default function CustomerDetail() {
   const params = useParams();
   const router = useRouter();
   const { customers, deliveries, payments, setCustomers, setDeliveries, staff, businessInfo, currentUser } = useAppContext();
+  const [isDelivering, setIsDelivering] = useState(false);
   
   const customerId = params.id as string;
   const customer = customers.find(c => c.id === customerId);
@@ -149,42 +152,60 @@ export default function CustomerDetail() {
 
   const handleDeliverWater = async (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!currentUser) return;
+    if (isDelivering) return; 
+    setIsDelivering(true);
+    
+    console.log("HandleDeliverWater called for customer:", customer.id);
+    if (!currentUser) {
+      console.error("No current user");
+      alert("Please login");
+      setIsDelivering(false);
+      return;
+    }
 
     const today = new Date().toISOString().split('T')[0];
     const existing = deliveries.find(d => d.customerId === customer.id && d.date === today);
-    if (existing) {
-      setCookie('userRole', currentUser.role, 3600 * 24 * 30);
-      router.push(`/staff/delivery/${existing.id}`);
-    } else {
-      const currentStaffId = currentUser.uid;
-      const currentStaffName = currentUser.name || 'Owner/Manager';
+    console.log("Existing delivery found:", existing);
 
-      const newDelivery = {
-        customerId: customer.id,
-        customerName: customer.name || '',
-        date: today,
-        status: 'Pending',
-        staffId: currentStaffId,
-        staffName: currentStaffName,
-        deliveredQty: 0,
-        returnedEmpty: 0,
-        paymentReceived: false,
-        paymentAmount: 0,
-        paymentMode: 'Cash',
-        note: ''
-      };
+    try {
+      if (existing) {
+        console.log("Routing to existing delivery:", `/staff/delivery/${existing.id}`);
+        setCookie('userRole', currentUser.role, 3600 * 24 * 30);
+        router.push(`/staff/delivery/${existing.id}`);
+      } else {
+        console.log("Creating new delivery for:", customer.id);
+        const currentStaffId = currentUser.uid;
+        const currentStaffName = currentUser.name || 'Owner/Manager';
 
-      try {
+        const newDelivery = {
+          id: getUniqueId(),
+          customerId: customer.id,
+          customerName: customer.name || '',
+          date: today,
+          status: 'Pending',
+          staffId: currentStaffId,
+          staffName: currentStaffName,
+          deliveredQty: 0,
+          returnedEmpty: 0,
+          paymentReceived: false,
+          paymentAmount: 0,
+          paymentMode: 'Cash',
+          note: ''
+        };
+
+        console.log("Creating new delivery:", newDelivery);
         const ids = await batchAddDeliveries([newDelivery], currentUser);
+        console.log("New delivery created with IDs:", ids);
         if (ids && ids.length > 0) {
           setCookie('userRole', currentUser.role, 3600 * 24 * 30);
           router.push(`/staff/delivery/${ids[0]}`);
         }
-      } catch (e) {
-        console.error("Failed to create delivery", e);
-        alert("Failed to create delivery.");
       }
+    } catch (e) {
+      console.error("Failed to create delivery", e);
+      alert("Failed to create delivery: " + e);
+    } finally {
+      setIsDelivering(false);
     }
   };
 
@@ -257,10 +278,14 @@ export default function CustomerDetail() {
           {['owner', 'manager', 'staff'].includes(userRole) && (
             <button 
               onClick={handleDeliverWater}
-              className="bg-blue-600 text-white rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform"
+              disabled={isDelivering}
+              aria-label="Deliver water"
+              className={`bg-blue-600 text-white rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform ${isDelivering ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <Truck className="w-5 h-5 text-white" />
-              <span className="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">Deliver Water</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">
+                {isDelivering ? 'Processing...' : 'Deliver Water'}
+              </span>
             </button>
           )}
         </div>
