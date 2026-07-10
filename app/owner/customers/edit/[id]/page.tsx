@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import TopAppBar from '@/components/TopAppBar';
-import { User, MapPin, Save, Settings, IndianRupee, Camera } from 'lucide-react';
+import { User, MapPin, Save, Settings, IndianRupee, Camera, Trash2 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { sanitizeString, validateName, validatePhone, validateAmount, validateQuantity } from '@/lib/validation';
@@ -126,6 +126,38 @@ export default function EditCustomer() {
     } catch (e) {
         console.error("Failed to update customer", e);
         alert("Failed to update customer. Please try again.");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      if (!currentUser) return;
+      if (currentUser.role !== 'owner') {
+        alert("Only owners are permitted to delete customer profiles.");
+        return;
+      }
+
+      const confirmText = `Are you sure you want to permanently delete customer "${customer?.name}"?\nThis action is irreversible and will delete their document from the database.`;
+      if (!confirm(confirmText)) return;
+
+      const { deleteWithAudit } = await import('@/lib/firestore-service');
+      await deleteWithAudit('customers', customerId);
+
+      await logActivity({
+        module: 'Customers',
+        action: 'Customer Deleted',
+        description: `Permanently deleted customer: ${name} (ID: ${customerId})`,
+        status: 'success',
+        resourceType: 'Customer',
+        resourceId: String(customerId),
+        resourceName: name
+      }).catch(err => console.error("Activity logging failed during deletion:", err));
+
+      alert('Customer successfully deleted.');
+      router.push('/owner/customers');
+    } catch (e: any) {
+      console.error("Failed to delete customer", e);
+      alert(`Deletion Failed: ${e.message || 'Please try again.'}`);
     }
   };
 
@@ -502,6 +534,23 @@ export default function EditCustomer() {
             </div>
           </div>
         </div>
+
+        {currentUser?.role === 'owner' && (
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-red-100 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Trash2 className="w-5 h-5 text-red-600" />
+              <h2 className="text-xs font-bold text-red-600 uppercase tracking-wider">Danger Zone (Khatarnak Kshetra)</h2>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">Permanently delete this customer record and all opening balances. This action is irreversible.</p>
+            <button 
+              type="button"
+              onClick={handleDelete}
+              className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform border border-red-200"
+            >
+              <Trash2 className="w-4 h-4" /> Delete Customer Profile
+            </button>
+          </div>
+        )}
 
       </main>
 

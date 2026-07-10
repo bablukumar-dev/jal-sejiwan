@@ -79,6 +79,7 @@ export default function ActivityLogDashboard() {
 
   // Load real activity logs with real-time updates
   useEffect(() => {
+    const { db } = getFirebase();
     console.log("[ActivityLogDashboard] useEffect setup. workspaceId:", workspaceId, "db:", !!db);
     if (!db || !workspaceId) {
         console.log("[ActivityLogDashboard] Listener skipped. Missing db or workspaceId.");
