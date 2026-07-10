@@ -30,12 +30,12 @@ function AddStaff() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<'owner' | 'manager'>(() => {
-    // Keep this or use currentUser.role
+  const [currentUserRole, setCurrentUserRole] = useState<'owner' | 'manager'>('owner');
+
+  useEffect(() => {
     const stored = safeGet('userRole');
-    if (stored === 'owner' || stored === 'manager') return stored as 'owner' | 'manager';
-    return 'owner';
-  });
+    if (stored === 'owner' || stored === 'manager') setCurrentUserRole(stored as 'owner' | 'manager');
+  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,21 +43,12 @@ function AddStaff() {
     setSuccessMessage(null);
     setIsSubmitting(true);
     
-    console.log("-----------------------------------------");
-    console.log("DEBUG: AddStaff: handleSave triggered");
-    console.log("NAME:", name);
-    console.log("EMAIL:", email);
-    console.log("ROLE:", role);
-    console.log("ROUTE:", route);
-    console.log("CURRENT USER:", currentUser);
-    console.log("-----------------------------------------");
     
     try {
-        console.log("[DEBUG] AddStaff: Starting account creation process...");
         
-        if (currentUser?.role !== 'owner') {
+        if (currentUser?.role !== 'owner' && currentUser?.role !== 'manager') {
            console.error("[DEBUG] AddStaff: Permission Denied");
-           setErrorMessage("Permission Denied: Only owners can create staff/manager accounts.");
+           setErrorMessage("Permission Denied: Only owners/managers can create staff/manager accounts.");
            setIsSubmitting(false);
            return;
         }

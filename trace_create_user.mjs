@@ -63,7 +63,7 @@ async function run() {
       },
       body: JSON.stringify({
         email: `staff_trace_${Date.now()}@jalsejiwan.test`,
-        password: '1234', // 4-digit PIN
+        password: '123456', // 6-digit PIN
         name: 'Staff Trace',
         role: 'staff',
         business_id: businessId

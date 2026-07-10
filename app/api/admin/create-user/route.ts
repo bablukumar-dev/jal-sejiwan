@@ -90,7 +90,6 @@ export async function POST(req: NextRequest) {
 
     // 3. Auth Header Verification
     const authHeader = req.headers.get('Authorization');
-    console.log("DEBUG: AUTH HEADER:", authHeader);
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       logStep(7, 'Auth header check', 'FAIL', 'Missing or invalid');
       return NextResponse.json({ success: false, error: 'Unauthorized: Missing token', trace }, { status: 401 });
@@ -135,25 +134,10 @@ export async function POST(req: NextRequest) {
     }
     
     const { email, password, name, role, business_id } = body;
-    console.log("-----------------------------------------");
-    console.log("DEBUG: RECEIVED REQUEST BODY");
-    console.log("EMAIL:", email);
-    console.log("PASSWORD:", password ? "******" : "MISSING");
-    console.log("ROLE:", role);
-    console.log("BUSINESS ID:", business_id);
-    console.log("DISPLAY NAME:", name);
-    console.log("-----------------------------------------");
     logStep(11, 'Body content check', 'PASS', `Email: ${email}, Role: ${role}, Business: ${business_id}`);
 
     // Verify Firebase Admin SDK initialization
     const firebaseAdmin = await import('../../../../src/lib/firebase-admin');
-    console.log("firebaseAdmin.apps.length:", firebaseAdmin.getAdminAuth().app.name);
-    console.log("Firebase Admin initialized successfully");
-
-    // Verify environment variables
-    console.log("FIREBASE_PROJECT_ID Exists:", !!process.env.FIREBASE_PROJECT_ID);
-    console.log("FIREBASE_CLIENT_EMAIL Exists:", !!process.env.FIREBASE_CLIENT_EMAIL);
-    console.log("FIREBASE_PRIVATE_KEY Exists:", !!process.env.FIREBASE_PRIVATE_KEY);
 
     if (!email || !password || !role || !business_id) {
       logStep(12, 'Input validation', 'FAIL', 'Missing required fields');
