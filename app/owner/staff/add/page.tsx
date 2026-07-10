@@ -30,12 +30,11 @@ function AddStaff() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<'owner' | 'manager'>('owner');
-
-  useEffect(() => {
+  const [currentUserRole, setCurrentUserRole] = useState<'owner' | 'manager'>(() => {
     const stored = safeGet('userRole');
-    if (stored === 'owner' || stored === 'manager') setCurrentUserRole(stored as 'owner' | 'manager');
-  }, []);
+    if (stored === 'owner' || stored === 'manager') return stored as 'owner' | 'manager';
+    return 'owner';
+  });
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

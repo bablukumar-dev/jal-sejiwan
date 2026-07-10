@@ -41,206 +41,301 @@ export async function POST(req: NextRequest) {
   console.log("STARTING USER CREATION TRACE");
   console.log("-----------------------------------------");
 
+  let getAdminAuth, getAdminDb;
+  let adminAuth: any, adminDb: any;
+  let body: any;
+  let decodedToken: any;
+  let businessId: string = '';
+  let ownerDocData: any;
+  let userRecord: any;
+
+  // STEP 1: Firebase Admin module loading
+  console.log("STEP 1: Firebase Admin module loading");
   try {
-    logStep(1, 'Route execution started', 'PASS');
+    const fbAdmin = await import('../../../../src/lib/firebase-admin');
+    getAdminAuth = fbAdmin.getAdminAuth;
+    getAdminDb = fbAdmin.getAdminDb;
+    logStep(1, 'Firebase Admin Module loaded', 'PASS');
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({
+      success: false,
+      failedStep: "Firebase Admin Module Loading",
+      code: error.code || 'MODULE_LOAD_ERROR',
+      message: error.message,
+      details: "Could not import firebase-admin modules dynamically",
+      stack: error.stack,
+      trace
+    }, { status: 500 });
+  }
 
-    // 1. Dynamic import of Firebase Admin to catch load-time errors
-    let getAdminAuth, getAdminDb;
-    try {
-      const fbAdmin = await import('../../../../src/lib/firebase-admin');
-      getAdminAuth = fbAdmin.getAdminAuth;
-      getAdminDb = fbAdmin.getAdminDb;
-      logStep(2, 'Firebase Admin Module loaded', 'PASS');
-    } catch (e: any) {
-      logStep(2, 'Firebase Admin Module loaded', 'FAIL', e.message);
-      return NextResponse.json({ success: false, error: 'Module Load Failed', details: e.message, trace }, { status: 500 });
+  // STEP 2: Firebase Admin Auth initialization
+  console.log("STEP 2: Firebase Admin Auth initialization");
+  try {
+    adminAuth = getAdminAuth();
+    logStep(2, 'Firebase Admin Auth initialized', 'PASS');
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({
+      success: false,
+      failedStep: "Firebase Admin Auth initialization",
+      code: error.code || 'AUTH_INIT_ERROR',
+      message: error.message,
+      details: "Failed to initialize Firebase Admin Authentication",
+      stack: error.stack,
+      trace
+    }, { status: 500 });
+  }
+
+  // STEP 3: Firebase Admin Firestore initialization
+  console.log("STEP 3: Firebase Admin Firestore initialization");
+  try {
+    adminDb = getAdminDb();
+    logStep(3, 'Firebase Admin Firestore initialized', 'PASS');
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({
+      success: false,
+      failedStep: "Firebase Admin Firestore initialization",
+      code: error.code || 'FIRESTORE_INIT_ERROR',
+      message: error.message,
+      details: "Failed to initialize Firebase Admin Firestore Database",
+      stack: error.stack,
+      trace
+    }, { status: 500 });
+  }
+
+  // STEP 4: Request body parsing
+  console.log("STEP 4: Request body parsing");
+  try {
+    body = await req.json();
+    logStep(4, 'Request body parsing', 'PASS');
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({
+      success: false,
+      failedStep: "Request body parsing",
+      code: error.code || 'JSON_PARSE_ERROR',
+      message: error.message,
+      details: "Failed to parse incoming JSON request body",
+      stack: error.stack,
+      trace
+    }, { status: 400 });
+  }
+
+  // STEP 5: Input validation
+  console.log("STEP 5: Input validation");
+  const { email, password, name, role, business_id } = body;
+  try {
+    if (!email || !password || !role || !business_id) {
+      throw new Error("Missing required fields: email, password, role, or business_id");
     }
+    logStep(5, 'Input validation', 'PASS', `Email: ${email}, Role: ${role}, Business: ${business_id}`);
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({
+      success: false,
+      failedStep: "Input validation",
+      code: 'MISSING_FIELDS',
+      message: error.message,
+      details: "The request body is missing one or more required fields.",
+      stack: error.stack,
+      trace
+    }, { status: 400 });
+  }
 
-    let adminAuth, adminDb;
-    try {
-      adminAuth = getAdminAuth();
-      logStep(3, 'Firebase Admin Auth initialized', 'PASS');
-    } catch (e: any) {
-      logStep(3, 'Firebase Admin Auth initialized', 'FAIL', e.message);
-      return NextResponse.json({ success: false, error: 'Auth Init Failed', details: e.message, trace }, { status: 500 });
-    }
-
-    try {
-      adminDb = getAdminDb();
-      logStep(4, 'Firebase Admin Firestore initialized', 'PASS');
-    } catch (e: any) {
-      logStep(4, 'Firebase Admin Firestore initialized', 'FAIL', e.message);
-      return NextResponse.json({ success: false, error: 'Firestore Init Failed', details: e.message, trace }, { status: 500 });
-    }
-
-    // 2. Identify IP and check rate limit
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
-    logStep(5, 'IP Address identified', 'PASS', ip);
-    
-    try {
-      const limitStatus = countAndCheckLimit(`api_admin_create_user_${ip}`, 50, 15 * 60 * 1000); // Increased limit for debugging
-      if (limitStatus.limited) {
-        logStep(6, 'Rate limit check', 'FAIL', 'Limited');
-        return NextResponse.json({ success: false, error: 'Rate limit exceeded', trace }, { status: 429 });
-      }
-      logStep(6, 'Rate limit check', 'PASS');
-    } catch (e: any) {
-      logStep(6, 'Rate limit check', 'FAIL', e.message);
-    }
-
-    // 3. Auth Header Verification
+  // STEP 6: Token verification
+  console.log("STEP 6: Token verification");
+  try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      logStep(7, 'Auth header check', 'FAIL', 'Missing or invalid');
-      return NextResponse.json({ success: false, error: 'Unauthorized: Missing token', trace }, { status: 401 });
+      throw new Error("Missing or invalid Authorization header scheme");
     }
-    logStep(7, 'Auth header check', 'PASS');
-
     const idToken = authHeader.split('Bearer ')[1];
-    let decodedToken;
-    try {
-      decodedToken = await adminAuth.verifyIdToken(idToken);
-      logStep(8, 'Token verification', 'PASS', `UID: ${decodedToken.uid}`);
-    } catch (e: any) {
-      logStep(8, 'Token verification', 'FAIL', e.message);
-      return NextResponse.json({ success: false, error: 'Unauthorized: Invalid token', trace }, { status: 401 });
+    decodedToken = await adminAuth.verifyIdToken(idToken);
+    logStep(6, 'Token verification', 'PASS', `UID: ${decodedToken.uid}`);
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({
+      success: false,
+      failedStep: "Token verification",
+      code: error.code || 'UNAUTHORIZED',
+      message: error.message,
+      details: "Token verification failed. Please authenticate as a valid Owner.",
+      stack: error.stack,
+      trace
+    }, { status: 401 });
+  }
+
+  // STEP 7: Current owner verification
+  console.log("STEP 7: Current owner verification");
+  try {
+    const ownerDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
+    if (!ownerDoc.exists) {
+      throw new Error(`Owner UID ${decodedToken.uid} does not exist in Firestore 'users' collection`);
     }
+    ownerDocData = ownerDoc.data();
+    if (ownerDocData?.role !== 'owner') {
+      throw new Error(`Forbidden: User has role '${ownerDocData?.role}', only 'owner' is authorized to create staff`);
+    }
+    logStep(7, 'Owner verification', 'PASS');
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({
+      success: false,
+      failedStep: "Owner verification",
+      code: 'FORBIDDEN_ROLE',
+      message: error.message,
+      details: "You do not have the required role or permissions to perform this operation.",
+      stack: error.stack,
+      trace
+    }, { status: 403 });
+  }
+
+  // STEP 8: businessId loading and existence verification
+  console.log("STEP 8: businessId loading");
+  try {
+    businessId = business_id;
+    const businessDoc = await adminDb.collection('businesses').doc(businessId).get();
+    if (!businessDoc.exists) {
+      throw new Error(`Business collection doc for ID '${businessId}' does not exist`);
+    }
+    logStep(8, 'Business existence check', 'PASS');
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({
+      success: false,
+      failedStep: "Business existence check",
+      code: 'BUSINESS_NOT_FOUND',
+      message: error.message,
+      details: "The specified business ID does not map to an existing business document.",
+      stack: error.stack,
+      trace
+    }, { status: 400 });
+  }
+
+  // STEP 9: createUser() in Firebase Auth
+  console.log("STEP 9: createUser() in Firebase Auth");
+  console.log("-----------------------------------------");
+  console.log("CREATING AUTH USER INFO:");
+  console.log("Email:", email);
+  console.log("Password length:", password ? String(password).length : 0);
+  console.log("DisplayName:", name);
+  console.log("-----------------------------------------");
+
+  try {
+    logStep(9, 'Creating Auth user', 'PASS', email);
+    userRecord = await adminAuth.createUser({
+      email,
+      password: String(password),
+      displayName: name,
+    });
+    logStep(9, 'Auth user created successfully', 'PASS', userRecord.uid);
+  } catch (error: any) {
+    console.error("createUser failed! Printing details:");
+    console.error("Code:", error.code);
+    console.error("Message:", error.message);
+    console.error("Stack:", error.stack);
     
-    // 4. Owner Verification
-    try {
-      const ownerDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
-      if (!ownerDoc.exists) {
-        logStep(9, 'Owner existence check', 'FAIL', `UID ${decodedToken.uid} not found in DB`);
-        return NextResponse.json({ success: false, error: 'Forbidden: User not found in database', trace }, { status: 403 });
-      }
-      if (ownerDoc.data()?.role !== 'owner') {
-        logStep(9, 'Owner role verification', 'FAIL', `Role is ${ownerDoc.data()?.role}`);
-        return NextResponse.json({ success: false, error: 'Forbidden: Only owners can create users', trace }, { status: 403 });
-      }
-      logStep(9, 'Owner verification', 'PASS');
-    } catch (e: any) {
-      logStep(9, 'Owner verification', 'FAIL', e.message);
-      return NextResponse.json({ success: false, error: 'Database error during permission check', details: e.message, trace }, { status: 500 });
-    }
+    return NextResponse.json({
+      success: false,
+      failedStep: "Auth user creation",
+      code: error.code || 'AUTH_CREATION_FAILED',
+      message: error.message,
+      details: error.code === 'auth/email-already-exists' 
+        ? 'This email is already registered.' 
+        : 'Failed to create user account on Firebase Auth module.',
+      stack: error.stack,
+      trace
+    }, { status: error.code === 'auth/email-already-exists' ? 409 : 500 });
+  }
 
-    // 5. Request Body Parsing
-    let body;
-    try {
-      body = await req.json();
-      logStep(10, 'Request body parsing', 'PASS');
-    } catch (e: any) {
-      logStep(10, 'Request body parsing', 'FAIL', e.message);
-      return NextResponse.json({ success: false, error: 'Invalid JSON body', trace }, { status: 400 });
-    }
-    
-    const { email, password, name, role, business_id } = body;
-    logStep(11, 'Body content check', 'PASS', `Email: ${email}, Role: ${role}, Business: ${business_id}`);
+  // STEP 10: Firestore writes with rollback capability
+  console.log("STEP 10: Firestore writes with rollback capability");
+  const ownerId = decodedToken.uid;
+  console.log("-----------------------------------------");
+  console.log("FIRESTORE WRITE CONFIGURATION:");
+  console.log("Owner UID:", ownerId);
+  console.log("Business ID:", businessId);
+  console.log("Staff Role:", role);
+  console.log("Staff UID:", userRecord.uid);
+  console.log("-----------------------------------------");
 
-    // Verify Firebase Admin SDK initialization
-    const firebaseAdmin = await import('../../../../src/lib/firebase-admin');
+  try {
+    // 1. Write users/{uid}
+    logStep(10, 'Writing users/{uid} document', 'PASS', userRecord.uid);
+    await adminDb.collection('users').doc(userRecord.uid).set({
+      email,
+      name,
+      role,
+      businessId: businessId,
+      ownerId: ownerId,
+      createdBy: ownerId,
+      active: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    console.log("Firestore users/{uid} document written successfully!");
 
-    if (!email || !password || !role || !business_id) {
-      logStep(12, 'Input validation', 'FAIL', 'Missing required fields');
-      return NextResponse.json({ success: false, error: 'Missing required fields', trace }, { status: 400 });
-    }
+    // 2. Write businesses/{businessId}/staff/{uid}
+    logStep(11, 'Writing businesses/{businessId}/staff/{uid} document', 'PASS');
+    await adminDb.collection('businesses').doc(businessId).collection('staff').doc(userRecord.uid).set({
+      name,
+      phone: '', // Placeholder phone
+      role,
+      route: '', // Placeholder route
+      pin: '1234', // Default pin
+      active: true,
+      businessId: businessId,
+      ownerId: ownerId,
+      createdBy: ownerId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    console.log("Firestore businesses/{businessId}/staff/{uid} written successfully!");
 
-    // 6. Business Existence Check
-    try {
-      const businessDoc = await adminDb.collection('businesses').doc(business_id).get();
-      if (!businessDoc.exists) {
-        logStep(13, 'Business existence check', 'FAIL', `Business ID ${business_id} not found`);
-        return NextResponse.json({ success: false, error: 'Business not found', trace }, { status: 400 });
-      }
-      logStep(13, 'Business existence check', 'PASS');
-    } catch (e: any) {
-      logStep(13, 'Business existence check', 'FAIL', e.message);
-      // We'll proceed if it's just a read error, but log it
-    }
+    // 3. Write businesses/{businessId}/activityLogs to log creation event
+    logStep(12, 'Writing business activity log', 'PASS');
+    await adminDb.collection('businesses').doc(businessId).collection('activityLogs').add({
+      module: 'Staff Management',
+      action: 'Staff Created',
+      description: `Staff member ${name} (${email}) was created by Owner.`,
+      status: 'success',
+      userId: ownerId,
+      businessId: businessId,
+      createdAt: new Date().toISOString()
+    });
+    console.log("Activity log recorded successfully!");
 
-    // 7. Auth User Creation
-    let userRecord;
-    try {
-      logStep(14, 'Creating Auth user', 'PASS', email);
-      userRecord = await adminAuth.createUser({
-        email,
-        password: String(password),
-        displayName: name,
-      });
-      logStep(15, 'Auth user created', 'PASS', userRecord.uid);
-    } catch (err: any) {
-      logStep(14, 'Creating Auth user', 'FAIL', err.message);
-      if (err.code === 'auth/email-already-exists') {
-        return NextResponse.json({ success: false, error: 'Email already exists', trace }, { status: 409 });
-      }
-      return NextResponse.json({ success: false, error: 'Auth account creation failed', details: err.message, trace }, { status: 500 });
-    }
-
-    // 8. Firestore User and Staff Creation
-    try {
-      // Get ownerId (which is the uid of the owner of this business)
-      const businessDoc = await adminDb.collection('businesses').doc(business_id).get();
-      const bData = businessDoc.data();
-      const ownerId = bData?.ownerId || decodedToken.uid;
-
-      logStep(16, 'Creating Firestore user document', 'PASS', userRecord.uid);
-      await adminDb.collection('users').doc(userRecord.uid).set({
-        email,
-        name,
-        role,
-        businessId: business_id,
-        ownerId: ownerId,
-        createdBy: decodedToken.uid,
-        active: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-      logStep(17, 'Firestore user document created', 'PASS');
-
-      logStep(18, 'Creating Firestore staff subcollection document', 'PASS');
-      await adminDb.collection('businesses').doc(business_id).collection('staff').doc(userRecord.uid).set({
-        name,
-        phone: '', // Placeholder phone
-        role,
-        route: '', // Placeholder route
-        pin: '1234', // Default pin
-        active: true,
-        businessId: business_id,
-        ownerId: ownerId,
-        createdBy: decodedToken.uid,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-      logStep(19, 'Firestore staff subcollection document created', 'PASS');
-    } catch (err: any) {
-      logStep(16, 'Creating Firestore document', 'FAIL', err.message);
-      // Rollback Auth user
-      try {
-        await adminAuth.deleteUser(userRecord.uid);
-        logStep(20, 'Rollback Auth user', 'PASS');
-      } catch (rollbackErr: any) {
-        logStep(20, 'Rollback Auth user', 'FAIL', rollbackErr.message);
-      }
-      return NextResponse.json({ success: false, error: 'Database record creation failed', details: err.message, trace }, { status: 500 });
-    }
-
-    logStep(21, 'Process completed successfully', 'PASS');
-    return NextResponse.json({ 
+    logStep(13, 'Process completed successfully', 'PASS');
+    return NextResponse.json({
       success: true,
-      message: 'User created successfully', 
+      message: 'User created successfully',
       userId: userRecord.uid,
       trace
     });
 
-  } catch (err: any) {
-    console.log("CATASTROPHIC FAILURE REACHED");
-    console.error(err.stack);
-    console.error('[CreateUserAPI] UNCAUGHT CATASTROPHIC ERROR:', err);
-    return NextResponse.json({ 
+  } catch (error: any) {
+    console.error("Firestore write failed! Initiating rollback delete of created Auth user:", userRecord.uid);
+    console.error(error);
+
+    try {
+      await adminAuth.deleteUser(userRecord.uid);
+      logStep(14, 'Rollback Auth user deletion', 'PASS', userRecord.uid);
+      console.log("Rollback completed successfully. Auth user deleted.");
+    } catch (rollbackError: any) {
+      logStep(14, 'Rollback Auth user deletion', 'FAIL', rollbackError.message);
+      console.error("Rollback failed! Orphan Auth user may exist. Details:", rollbackError);
+    }
+
+    return NextResponse.json({
       success: false,
-      error: 'Catastrophic server error',
-      details: err.message,
-      stack: err.stack,
-      trace: trace.length > 0 ? trace : ['Crash before trace initialization']
+      failedStep: "Firestore writes",
+      code: error.code || 'FIRESTORE_WRITE_FAILED',
+      message: error.message,
+      details: "User creation was rolled back because database record creation failed.",
+      stack: error.stack,
+      trace
     }, { status: 500 });
   }
 }

@@ -99,7 +99,7 @@ export default function SettingsPage() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const [newName, setNewName] = useState(businessInfo.ownerName);
+  const [newName, setNewName] = useState(businessInfo?.ownerName || '');
   const [editBusinessName, setEditBusinessName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editEmail, setEditEmail] = useState('');
@@ -296,10 +296,10 @@ export default function SettingsPage() {
             <div className="w-28 h-28 rounded-full bg-slate-200 overflow-hidden border-[5px] border-white shadow-xl flex items-center justify-center relative bg-gradient-to-tr from-blue-100 to-indigo-50">
               {profileImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={profileImage} alt={`${userRole === 'owner' ? businessInfo.ownerName : userName} - Registered Owner/Manager Profile on JalSejiwan`} className="w-full h-full object-cover" />
+                <img src={profileImage} alt={`${userRole === 'owner' ? (businessInfo?.ownerName || currentUser?.ownerName || 'Owner') : userName} - Registered Owner/Manager Profile on JalSejiwan`} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-4xl font-bold text-blue-400">
-                  {userRole === 'owner' ? businessInfo.ownerName.charAt(0).toUpperCase() : userName?.charAt(0).toUpperCase()}
+                  {userRole === 'owner' ? (businessInfo?.ownerName || currentUser?.ownerName || 'O').charAt(0).toUpperCase() : (userName || 'U').charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
@@ -320,7 +320,7 @@ export default function SettingsPage() {
             </button>
           </div>
           <p className="text-sm font-medium text-slate-500 mt-1.5">
-            {currentUser?.businessName || businessInfo.name} • {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+            {currentUser?.businessName || businessInfo?.name || 'Business'} • {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
           </p>
         </div>
 
@@ -350,7 +350,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex justify-between py-1 border-b border-slate-50/50">
               <span className="text-slate-400 font-medium">Business Name</span>
-              <span className="text-slate-800 font-semibold">{currentUser?.businessName || businessInfo.name || 'Not configured'}</span>
+              <span className="text-slate-800 font-semibold">{currentUser?.businessName || businessInfo?.name || 'Not configured'}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-slate-50/50">
               <span className="text-slate-400 font-medium">Phone Number</span>

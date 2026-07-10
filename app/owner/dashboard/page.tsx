@@ -43,7 +43,7 @@ function OwnerDashboard() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   
   const userRole = currentUser?.role || 'owner';
-  const userName = userRole === 'owner' ? (businessInfo.ownerName || 'Owner') : (currentUser?.name || 'Manager');
+  const userName = userRole === 'owner' ? (businessInfo?.ownerName || currentUser?.ownerName || 'Owner') : (currentUser?.ownerName || currentUser?.name || 'Manager');
 
   const warnings = useLossDetection(customers, deliveries, inventory, payments);
 
