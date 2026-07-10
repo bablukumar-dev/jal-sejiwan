@@ -43,6 +43,15 @@ function AddStaff() {
     setSuccessMessage(null);
     setIsSubmitting(true);
     
+    console.log("-----------------------------------------");
+    console.log("DEBUG: AddStaff: handleSave triggered");
+    console.log("NAME:", name);
+    console.log("EMAIL:", email);
+    console.log("ROLE:", role);
+    console.log("ROUTE:", route);
+    console.log("CURRENT USER:", currentUser);
+    console.log("-----------------------------------------");
+    
     try {
         console.log("[DEBUG] AddStaff: Starting account creation process...");
         

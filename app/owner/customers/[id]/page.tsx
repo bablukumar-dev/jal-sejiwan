@@ -136,16 +136,21 @@ export default function CustomerDetail() {
   };
 
   const handleDeliverWater = async (e: React.MouseEvent) => {
-    // e.preventDefault(); // Removed preventDefault to see if it fixes navigation
-    console.log("Deliver button clicked");
-    console.log("currentUser:", currentUser);
-    console.log("customer:", customer);
-    console.log("pathname:", window.location.pathname);
-
-    if (isDelivering) return; 
-    setIsDelivering(true);
+    e.preventDefault();
+    console.log("Deliver Water button clicked");
+    console.log("currentUser UID:", currentUser?.uid);
+    console.log("currentUser Role:", currentUser?.role);
+    console.log("customer ID:", customer?.id);
+    console.log("isDelivering:", isDelivering);
     
-    console.log("HandleDeliverWater called for customer:", customer?.id);
+    if (isDelivering) {
+        console.warn("Already delivering, ignoring click");
+        return;
+    }
+    
+    setIsDelivering(true);
+    console.log("setIsDelivering set to true");
+
     if (!currentUser) {
       console.error("No current user");
       alert("Please login");
@@ -153,32 +158,25 @@ export default function CustomerDetail() {
       return;
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    console.log("Today:", today);
-    const existing = deliveries.find(d => {
-        console.log("Checking delivery:", d.customerId, d.date);
-        return d.customerId === customer?.id && d.date === today;
-    });
-    console.log("Existing delivery found:", existing);
-
     try {
+      const today = new Date().toISOString().split('T')[0];
+      console.log("Today:", today);
+      const existing = deliveries.find(d => d.customerId === customer?.id && d.date === today);
+      console.log("Existing delivery found:", existing);
+
       if (existing) {
         console.log("Routing to existing delivery:", `/staff/delivery/${existing.id}`);
-        setCookie('userRole', currentUser.role, 3600 * 24 * 30);
         router.push(`/staff/delivery/${existing.id}`);
       } else {
         console.log("Creating new delivery for:", customer?.id);
-        const currentStaffId = currentUser.uid;
-        const currentStaffName = currentUser.name || 'Owner/Manager';
-
         const newDelivery = {
           id: getUniqueId(),
           customerId: customer?.id,
           customerName: customer?.name || '',
           date: today,
           status: 'Pending',
-          staffId: currentStaffId,
-          staffName: currentStaffName,
+          staffId: currentUser.uid,
+          staffName: currentUser.name || 'Owner/Manager',
           deliveredQty: 0,
           returnedEmpty: 0,
           paymentReceived: false,
@@ -190,18 +188,22 @@ export default function CustomerDetail() {
         console.log("Creating new delivery:", newDelivery);
         const ids = await batchAddDeliveries([newDelivery], currentUser);
         console.log("New delivery created with IDs:", ids);
+        
         if (ids && ids.length > 0) {
-          setCookie('userRole', currentUser.role, 3600 * 24 * 30);
-          console.log("Navigating to:", `/staff/delivery/${ids[0]}`);
+          console.log("Navigating to new delivery:", `/staff/delivery/${ids[0]}`);
           router.push(`/staff/delivery/${ids[0]}`);
+        } else {
+            console.error("No delivery ID returned from batchAddDeliveries");
+            throw new Error("Failed to create delivery: No ID returned");
         }
       }
     } catch (e: any) {
       console.error("Failed to create delivery", e);
-      console.error(e.stack);
-      alert("Failed to create delivery: " + e);
+      console.error("Error stack:", e.stack);
+      alert("Failed to create delivery: " + (e.message || e));
     } finally {
       setIsDelivering(false);
+      console.log("setIsDelivering set to false");
     }
   };
 
