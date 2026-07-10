@@ -95,8 +95,8 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
             <LogOut className="w-5 h-5" />
           </button>
           {showProfile && (
-            <Link id="onboarding-profile" href="/settings" className="w-9 h-9 rounded-full overflow-hidden border-2 border-blue-600 bg-slate-100 flex items-center justify-center active:scale-95 transition-transform shrink-0">
-              <UserCircle className="w-7 h-7 text-slate-400" />
+            <Link id="onboarding-profile" href="/settings" className="w-10 h-10 rounded-full overflow-hidden border-2 border-blue-600 bg-slate-100 flex items-center justify-center active:scale-95 transition-transform shrink-0 hover:bg-blue-50 cursor-pointer">
+              <UserCircle className="w-8 h-8 text-blue-600" />
             </Link>
           )}
         </div>

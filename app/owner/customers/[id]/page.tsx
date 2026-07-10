@@ -136,7 +136,7 @@ export default function CustomerDetail() {
   };
 
   const handleDeliverWater = async (e: React.MouseEvent) => {
-    e.preventDefault();
+    // e.preventDefault(); // Removed preventDefault to see if it fixes navigation
     console.log("Deliver button clicked");
     console.log("currentUser:", currentUser);
     console.log("customer:", customer);
@@ -154,7 +154,11 @@ export default function CustomerDetail() {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const existing = deliveries.find(d => d.customerId === customer?.id && d.date === today);
+    console.log("Today:", today);
+    const existing = deliveries.find(d => {
+        console.log("Checking delivery:", d.customerId, d.date);
+        return d.customerId === customer?.id && d.date === today;
+    });
     console.log("Existing delivery found:", existing);
 
     try {
