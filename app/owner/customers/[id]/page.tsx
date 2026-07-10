@@ -48,21 +48,6 @@ export default function CustomerDetail() {
     }
   };
 
-  const handleGeneratePdfSafe = async () => {
-    try {
-      if (!customer) {
-        alert('Customer data is not available.');
-        return;
-      }
-      const { generatePdfFromCustomer } = await import('@/lib/pdfService');
-      await generatePdfFromCustomer(customerId, customers, deliveries, payments, businessInfo);
-      alert('PDF generated safely!');
-    } catch (e) {
-      console.error(e);
-      alert('Failed to generate PDF');
-    }
-  };
-
   const handleSendWhatsAppSummary = async () => {
     try {
       if (!customer) {
@@ -152,10 +137,15 @@ export default function CustomerDetail() {
 
   const handleDeliverWater = async (e: React.MouseEvent) => {
     e.preventDefault();
+    console.log("Deliver button clicked");
+    console.log("currentUser:", currentUser);
+    console.log("customer:", customer);
+    console.log("pathname:", window.location.pathname);
+
     if (isDelivering) return; 
     setIsDelivering(true);
     
-    console.log("HandleDeliverWater called for customer:", customer.id);
+    console.log("HandleDeliverWater called for customer:", customer?.id);
     if (!currentUser) {
       console.error("No current user");
       alert("Please login");
@@ -164,7 +154,7 @@ export default function CustomerDetail() {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const existing = deliveries.find(d => d.customerId === customer.id && d.date === today);
+    const existing = deliveries.find(d => d.customerId === customer?.id && d.date === today);
     console.log("Existing delivery found:", existing);
 
     try {
@@ -173,14 +163,14 @@ export default function CustomerDetail() {
         setCookie('userRole', currentUser.role, 3600 * 24 * 30);
         router.push(`/staff/delivery/${existing.id}`);
       } else {
-        console.log("Creating new delivery for:", customer.id);
+        console.log("Creating new delivery for:", customer?.id);
         const currentStaffId = currentUser.uid;
         const currentStaffName = currentUser.name || 'Owner/Manager';
 
         const newDelivery = {
           id: getUniqueId(),
-          customerId: customer.id,
-          customerName: customer.name || '',
+          customerId: customer?.id,
+          customerName: customer?.name || '',
           date: today,
           status: 'Pending',
           staffId: currentStaffId,
@@ -198,11 +188,13 @@ export default function CustomerDetail() {
         console.log("New delivery created with IDs:", ids);
         if (ids && ids.length > 0) {
           setCookie('userRole', currentUser.role, 3600 * 24 * 30);
+          console.log("Navigating to:", `/staff/delivery/${ids[0]}`);
           router.push(`/staff/delivery/${ids[0]}`);
         }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to create delivery", e);
+      console.error(e.stack);
       alert("Failed to create delivery: " + e);
     } finally {
       setIsDelivering(false);
@@ -334,11 +326,7 @@ export default function CustomerDetail() {
         </div>
 
         {/* Invoice Actions */}
-        <div className="grid grid-cols-4 gap-3 mb-6">
-          <button onClick={() => handleGeneratePdfSafe()} className="bg-emerald-100 text-emerald-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-emerald-200">
-            <FileText className="w-5 h-5 text-emerald-600" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-center">Gen PDF</span>
-          </button>
+        <div className="grid grid-cols-3 gap-3 mb-6">
           <button onClick={() => handleGenerateBill()} className="bg-emerald-100 text-emerald-700 rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border border-emerald-200">
             <FileText className="w-5 h-5 text-emerald-600" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-center">PDF Bill</span>

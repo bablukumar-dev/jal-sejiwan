@@ -147,7 +147,10 @@ export default function DeliveryEntry() {
           paymentMode: paymentType,
           rate: currentRate
         };
-        console.log("Updating delivery...");
+        console.log("Updating delivery with ID:", deliveryId);
+        console.log("Current User:", currentUser);
+        console.log("Customer:", customer);
+        console.log("Delivery Data:", deliveryData);
         try {
           await updateDelivery(deliveryId, deliveryData, currentUser);
         } catch (e) {

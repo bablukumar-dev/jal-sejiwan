@@ -47,8 +47,8 @@ export const createWithAudit = async (collectionName: string, data: any, current
   const { db } = getFirebase();
   if (!db) throw new Error("Firestore not initialized");
 
-  const businessId = currentUser?.businessId;
-  if (!businessId) throw new Error("Missing businessId in user context");
+  const businessId = currentUser?.businessId || (typeof window !== 'undefined' ? localStorage.getItem('businessId') : null);
+  if (!businessId) throw new Error("Missing businessId in user context or local storage");
 
   const auditData = {
     ...data,
@@ -68,8 +68,8 @@ export const updateWithAudit = async (collectionName: string, docId: string, dat
   const { db } = getFirebase();
   if (!db) throw new Error("Firestore not initialized");
 
-  const businessId = currentUser?.businessId;
-  if (!businessId) throw new Error("Missing businessId in user context");
+  const businessId = currentUser?.businessId || (typeof window !== 'undefined' ? localStorage.getItem('businessId') : null);
+  if (!businessId) throw new Error("Missing businessId in user context or local storage");
 
   const auditData = {
     ...data,

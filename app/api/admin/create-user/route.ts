@@ -134,7 +134,23 @@ export async function POST(req: NextRequest) {
     }
     
     const { email, password, name, role, business_id } = body;
+    console.log("EMAIL:", email);
+    console.log("PASSWORD:", password);
+    console.log("ROLE:", role);
+    console.log("BUSINESS ID:", business_id);
+    console.log("DISPLAY NAME:", name);
+    console.log("REQUEST BODY:", body);
     logStep(11, 'Body content check', 'PASS', `Email: ${email}, Role: ${role}, Business: ${business_id}`);
+
+    // Verify Firebase Admin SDK initialization
+    const firebaseAdmin = await import('../../../../src/lib/firebase-admin');
+    console.log("firebaseAdmin.apps.length:", firebaseAdmin.getAdminAuth().app.name);
+    console.log("Firebase Admin initialized successfully");
+
+    // Verify environment variables
+    console.log("FIREBASE_PROJECT_ID Exists:", !!process.env.FIREBASE_PROJECT_ID);
+    console.log("FIREBASE_CLIENT_EMAIL Exists:", !!process.env.FIREBASE_CLIENT_EMAIL);
+    console.log("FIREBASE_PRIVATE_KEY Exists:", !!process.env.FIREBASE_PRIVATE_KEY);
 
     if (!email || !password || !role || !business_id) {
       logStep(12, 'Input validation', 'FAIL', 'Missing required fields');
