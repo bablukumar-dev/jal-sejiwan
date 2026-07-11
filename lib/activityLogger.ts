@@ -168,6 +168,30 @@ export async function logActivity(
     console.log("[WRITE PATH]", path);
     console.log("[WRITE PAYLOAD]", JSON.stringify(logData, null, 2));
 
+    // If in browser, try server-side logging first for better reliability and bypass client network issues
+    if (typeof window !== 'undefined') {
+      console.log("--- TRACE: Executing in BROWSER. Attempting API logging... ---");
+      try {
+        const idToken = await user.getIdToken();
+        const response = await fetch('/api/activity-log', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ logData, businessId })
+        });
+        
+        if (response.ok) {
+           console.log("[API LOG SUCCESS]");
+           return;
+        }
+        console.warn("[API LOG FAILED] Falling back to direct Firestore");
+      } catch (e) {
+        console.warn("[API LOG ERROR]", e);
+      }
+    }
+
     // Write to /businesses/{businessId}/activityLogs subcollection
     addDoc(collection(db, 'businesses', businessId, 'activityLogs'), logData)
       .then((docRef) => {

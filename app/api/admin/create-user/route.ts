@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAdminAuth, getAdminDb, checkAdminStatus } from '../../../../src/lib/firebase-admin';
 
 export async function GET() {
   console.log("[HEALTH CHECK] GET /api/admin/create-user");
   try {
-    const { checkAdminStatus, getAdminDb } = await import('../../../../src/lib/firebase-admin');
-    
     console.log("[HEALTH CHECK] Verifying environment variables...");
     const envStatus = {
       FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID ? 'SET' : 'MISSING',
@@ -39,19 +38,15 @@ export async function POST(req: NextRequest) {
   console.log("[SERVER START] /api/admin/create-user");
   console.log("-----------------------------------------");
 
-  // Add a global timeout of 10 seconds for the entire operation
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased to 15s
 
   try {
     let body: any;
-    let adminAuth: any;
-    let adminDb: any;
+    const adminAuth = getAdminAuth();
+    const adminDb = getAdminDb();
     let userRecord: any;
     let decodedToken: any;
-
-    // REQUEST RECEIVED
-    console.log("[REQUEST RECEIVED]");
 
     // STEP 1: Incoming request body
     console.log("STEP 1: Parsing body...");
@@ -88,16 +83,7 @@ export async function POST(req: NextRequest) {
     console.log("[ENV LOADED] SUCCESS");
 
     // STEP 4: Firebase Admin initialization
-    console.log("[FIREBASE ADMIN INIT] Starting...");
-    try {
-      const { getAdminAuth, getAdminDb } = await import('../../../../src/lib/firebase-admin');
-      adminAuth = getAdminAuth();
-      adminDb = getAdminDb();
-      console.log("[FIREBASE ADMIN INIT] SUCCESS");
-    } catch (error: any) {
-      console.error("[FIREBASE ADMIN INIT] FAILED:", error.message);
-      return NextResponse.json({ error: "Firebase Admin Initialization Failed", details: error.message }, { status: 500 });
-    }
+    console.log("[FIREBASE ADMIN INIT] Already initialized at top level");
 
     // STEP 5: Auth verification
     console.log("[AUTH VERIFIED] Checking requester...");

@@ -170,17 +170,48 @@ export const updateBusiness = (docId: string, data: any, currentUser: any) => up
 
 export const batchAddDeliveries = async (deliveries: any[], currentUser: any) => {
   console.log("--- TRACE: batchAddDeliveries START ---");
+  
+  const businessId = currentUser?.businessId || (typeof window !== 'undefined' ? localStorage.getItem('businessId') : null);
+  if (!businessId) {
+    console.error("--- TRACE FAILURE: No businessId in batchAddDeliveries ---");
+    throw new Error("Missing businessId in user context or local storage");
+  }
+
+  // If in browser, use API route to avoid client-side Firestore network issues
+  if (typeof window !== 'undefined') {
+    console.log("--- TRACE: Executing in BROWSER. Using API route /api/deliver-water ---");
+    try {
+      const { getAuth } = await import('firebase/auth');
+      const auth = getAuth();
+      if (auth.currentUser) {
+        const idToken = await auth.currentUser.getIdToken();
+        const response = await fetch('/api/deliver-water', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ deliveries, businessId })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Server-side delivery failed");
+        }
+
+        const data = await response.json();
+        console.log("--- TRACE: batchAddDeliveries SUCCESS via API. IDs:", data.ids);
+        return data.ids;
+      }
+    } catch (apiError: any) {
+      console.error("--- TRACE FAILURE: API delivery failed, falling back to client-side Firestore ---", apiError.message);
+    }
+  }
+
   const { db } = getFirebase();
   if (!db) {
     console.error("--- TRACE FAILURE: Firestore not initialized in batchAddDeliveries ---");
     throw new Error("Firestore not initialized");
-  }
-
-  const businessId = currentUser?.businessId || (typeof window !== 'undefined' ? localStorage.getItem('businessId') : null);
-  console.log("--- TRACE: Resolved BusinessId:", businessId);
-  if (!businessId) {
-    console.error("--- TRACE FAILURE: No businessId in batchAddDeliveries ---");
-    throw new Error("Missing businessId in user context or local storage");
   }
 
   const batch = writeBatch(db);
@@ -200,19 +231,16 @@ export const batchAddDeliveries = async (deliveries: any[], currentUser: any) =>
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    console.log(`--- TRACE: Batch Item [${index}] Path: businesses/${businessId}/deliveries/${docRef.id}`);
-    console.log(`--- TRACE: Batch Item [${index}] Payload:`, JSON.stringify(auditData, null, 2));
     batch.set(docRef, auditData);
     results.push(docRef.id);
   });
 
   try {
-    console.log("--- TRACE: Committing Batch... ---");
+    console.log("--- TRACE: Committing Client-side Batch... ---");
     await batch.commit();
-    console.log("--- TRACE: Batch Commit SUCCESS ---");
+    console.log("--- TRACE: Client-side Batch Commit SUCCESS ---");
   } catch (e: any) {
-    console.error("--- TRACE FAILURE: Batch Commit Failed ---");
-    console.error(e);
+    console.error("--- TRACE FAILURE: Client-side Batch Commit Failed ---");
     throw e;
   }
 
@@ -226,7 +254,6 @@ export const batchAddDeliveries = async (deliveries: any[], currentUser: any) =>
     newValue: { count: deliveries.length, ids: results }
   }).catch(err => console.error("--- TRACE: Batch delivery logging failed:", err));
 
-  console.log("--- TRACE: batchAddDeliveries END. Returning IDs:", results);
   return results;
 };
 
