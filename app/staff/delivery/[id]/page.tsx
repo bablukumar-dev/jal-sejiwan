@@ -83,8 +83,15 @@ export default function DeliveryEntry() {
     : (paymentType === 'Due' ? '0' : subtotal.toString());
 
   const handleConfirm = async () => {
+    console.log("--- TRACE: Confirm Delivery Start ---");
+    console.log("Current User:", JSON.stringify(currentUser, null, 2));
+    console.log("Customer Data:", JSON.stringify(customer, null, 2));
+    console.log("Inputs - Delivered:", delivered, "Empties:", empties, "Damaged:", damagedQty, "Rate:", currentRate);
+    console.log("Payment Mode:", paymentType, "Amount String:", amountToDisplayStr);
+
     try {
         if (!currentUser) {
+          console.error("--- TRACE FAILURE: No current user ---");
           alert('Session expired. Please login again.');
           return;
         }
@@ -92,49 +99,59 @@ export default function DeliveryEntry() {
         // Enforce validations before otp/confirm cycle
         const deliveredVal = validateQuantity(delivered, true, 500);
         if (!deliveredVal.valid) {
+          console.error("--- TRACE FAILURE: Delivered Qty Validation ---", deliveredVal.error);
           alert(`Delivered Qty Error: ${deliveredVal.error}`);
           return;
         }
 
         const emptiesVal = validateQuantity(empties, true, 500);
         if (!emptiesVal.valid) {
+          console.error("--- TRACE FAILURE: Empties Qty Validation ---", emptiesVal.error);
           alert(`Empty Cans Error: ${emptiesVal.error}`);
           return;
         }
 
         const damagedVal = validateQuantity(damagedQty, true, 100);
         if (!damagedVal.valid) {
+          console.error("--- TRACE FAILURE: Damaged Qty Validation ---", damagedVal.error);
           alert(`Damaged Cans Error: ${damagedVal.error}`);
           return;
         }
 
         const rateVal = validateAmount(currentRate, false, 10000);
         if (!rateVal.valid) {
+          console.error("--- TRACE FAILURE: Rate Validation ---", rateVal.error);
           alert(`Rate error: ${rateVal.error}`);
           return;
         }
 
         if (!otpSent) {
+           console.log("--- TRACE: OTP not sent, generating OTP... ---");
            const randomOtp = Math.floor(1000 + Math.random() * 9000).toString();
            setGeneratedOtp(randomOtp);
            setOtpSent(true);
            setOtpInput('');
+           console.log("--- TRACE: Generated OTP:", randomOtp);
            alert(`OTP Sent to Customer: ${randomOtp} (Simulation)`);
            return;
         }
 
+        console.log("--- TRACE: OTP Verification. Expected:", generatedOtp, "Input:", otpInput);
         if (otpInput !== generatedOtp) {
+            console.error("--- TRACE FAILURE: Invalid OTP ---");
             alert('Invalid OTP. Please try again.');
             return;
         }
 
         const collectedAmountVal = validateAmount(amountToDisplayStr, true, 1000000);
         if (!collectedAmountVal.valid) {
+          console.error("--- TRACE FAILURE: Collected Amount Validation ---", collectedAmountVal.error);
           alert(`Payment amount error: ${collectedAmountVal.error}`);
           return;
         }
 
         const parsedAmount = collectedAmountVal.value;
+        console.log("--- TRACE: Parsed Collected Amount:", parsedAmount);
 
         // 1. Update delivery in Firestore
         const deliveryData = {
@@ -147,29 +164,33 @@ export default function DeliveryEntry() {
           paymentMode: paymentType,
           rate: currentRate
         };
-        console.log("Updating delivery with ID:", deliveryId);
-        console.log("Current User:", currentUser);
-        console.log("Customer:", customer);
-        console.log("Delivery Data:", deliveryData);
+        console.log("--- TRACE: Updating delivery ID:", deliveryId);
+        console.log("--- TRACE: Delivery Payload:", JSON.stringify(deliveryData, null, 2));
+        
         try {
           await updateDelivery(deliveryId, deliveryData, currentUser);
-        } catch (e) {
-          console.error("Failed to update delivery:", e);
-          throw new Error(`Delivery update failed: ${e}`);
+          console.log("--- TRACE: updateDelivery SUCCESS ---");
+        } catch (e: any) {
+          console.error("--- TRACE FAILURE: updateDelivery failed ---");
+          console.error(e);
+          throw new Error(`Delivery update failed: ${e.message || e}`);
         }
-        console.log("Delivery updated.");
 
         // 2. Update inventory
-        console.log("Updating inventory...");
+        console.log("--- TRACE: Updating inventory... ---");
+        const inventoryChanges = {
+          cansWithCustomers: increment(delivered - empties)
+        };
+        console.log("--- TRACE: Inventory Changes:", JSON.stringify(inventoryChanges, null, 2));
+        
         try {
-          await updateInventory(currentUser.uid, {
-            cansWithCustomers: increment(delivered - empties)
-          } as any, currentUser);
-        } catch (e) {
-          console.error("Failed to update inventory:", e);
-          throw new Error(`Inventory update failed: ${e}`);
+          await updateInventory(currentUser.uid, inventoryChanges as any, currentUser);
+          console.log("--- TRACE: updateInventory SUCCESS ---");
+        } catch (e: any) {
+          console.error("--- TRACE FAILURE: updateInventory failed ---");
+          console.error(e);
+          throw new Error(`Inventory update failed: ${e.message || e}`);
         }
-        console.log("Inventory updated.");
 
         // 3. Update customer
         let newDue = customer.due;
@@ -185,14 +206,17 @@ export default function DeliveryEntry() {
           lastDelivery: date,
           rate: currentRate 
         };
-        console.log("Updating customer...");
+        console.log("--- TRACE: Updating Customer ID:", customer.id);
+        console.log("--- TRACE: Customer Update Payload:", JSON.stringify(customerUpdate, null, 2));
+        
         try {
           await updateCustomer(customer.id, customerUpdate, currentUser);
-        } catch (e) {
-          console.error("Failed to update customer:", e);
-          throw new Error(`Customer update failed: ${e}`);
+          console.log("--- TRACE: updateCustomer SUCCESS ---");
+        } catch (e: any) {
+          console.error("--- TRACE FAILURE: updateCustomer failed ---");
+          console.error(e);
+          throw new Error(`Customer update failed: ${e.message || e}`);
         }
-        console.log("Customer updated.");
 
         // 4. Record payment if collected
         if (parsedAmount > 0) {
@@ -205,16 +229,18 @@ export default function DeliveryEntry() {
             collectedBy: currentUser.name || 'Staff',
             note: `DEL-${deliveryId}`
           };
-          console.log("Recording payment...");
+          console.log("--- TRACE: Recording Payment. Payload:", JSON.stringify(paymentData, null, 2));
           try {
-            await addPayment(paymentData, currentUser);
-          } catch (e) {
-            console.error("Failed to add payment:", e);
-            throw new Error(`Payment update failed: ${e}`);
+            const paymentDoc = await addPayment(paymentData, currentUser);
+            console.log("--- TRACE: addPayment SUCCESS. Doc ID:", paymentDoc.id);
+          } catch (e: any) {
+            console.error("--- TRACE FAILURE: addPayment failed ---");
+            console.error(e);
+            throw new Error(`Payment update failed: ${e.message || e}`);
           }
-          console.log("Payment recorded.");
         }
         
+        console.log("--- TRACE: Logging activity... ---");
         logActivity({
           module: 'Water Management',
           action: 'Delivery Completed',
@@ -233,10 +259,13 @@ export default function DeliveryEntry() {
         });
 
         alert("Delivery Recorded Successfully!");
+        console.log("--- TRACE: Confirm Delivery SUCCESS. Navigating back. ---");
         router.back();
-    } catch (e) {
-        console.error("Failed to record delivery", e);
-        alert("Failed to record delivery. Please try again.");
+    } catch (e: any) {
+        console.error("--- TRACE CRITICAL FAILURE: handleConfirm crashed ---");
+        console.error("Error Message:", e.message);
+        console.error("Error Stack:", e.stack);
+        alert("Failed to record delivery: " + (e.message || e));
     }
   };
 

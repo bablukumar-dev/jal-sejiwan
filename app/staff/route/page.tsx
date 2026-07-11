@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { sendReminderWhatsApp } from '@/lib/whatsappUtils';
+import { addDelivery } from '@/lib/firestore-service';
 
 export default function MyRoute() {
   const router = useRouter();
@@ -91,17 +92,38 @@ export default function MyRoute() {
     };
   }, [customers, today, currentStaffId, staff]);
 
-  const handleRecordDelivery = useCallback((customerId: string, e?: React.MouseEvent) => {
+  const handleRecordDelivery = useCallback(async (customerId: string, e?: React.MouseEvent) => {
     if (e) e.preventDefault();
+    console.log("--- TRACE (Staff Route): Record Delivery Clicked for", customerId);
+    
     const existing = deliveries.find(d => d.customerId === customerId && d.date === today);
     if (existing) {
+      console.log("--- TRACE (Staff Route): Found existing delivery:", existing.id);
       router.push(`/staff/delivery/${existing.id}`);
     } else {
-      const newDelivery = generateDelivery(customerId);
-      setDeliveries([...deliveries, newDelivery]);
-      router.push(`/staff/delivery/${newDelivery.id}`);
+      try {
+        console.log("--- TRACE (Staff Route): Creating new delivery for", customerId);
+        const newDeliveryBase = generateDelivery(customerId);
+        
+        // Remove the temporary ID as Firestore will generate a real one
+        const { id: _, ...deliveryPayload } = newDeliveryBase;
+        
+        console.log("--- TRACE (Staff Route): Saving to Firestore. Payload:", JSON.stringify(deliveryPayload, null, 2));
+        const docRef = await addDelivery(deliveryPayload, currentUser);
+        console.log("--- TRACE (Staff Route): Firestore Save SUCCESS. New ID:", docRef.id);
+        
+        const finalDelivery = { ...newDeliveryBase, id: docRef.id };
+        setDeliveries([...deliveries, finalDelivery]);
+        
+        console.log("--- TRACE (Staff Route): Navigating to:", `/staff/delivery/${docRef.id}`);
+        router.push(`/staff/delivery/${docRef.id}`);
+      } catch (err: any) {
+        console.error("--- TRACE (Staff Route) FAILURE: Failed to create delivery ---");
+        console.error(err);
+        alert("Failed to initiate delivery: " + (err.message || err));
+      }
     }
-  }, [deliveries, today, router, setDeliveries, generateDelivery]);
+  }, [deliveries, today, router, setDeliveries, generateDelivery, currentUser]);
 
   const handleSkipDelivery = useCallback((customerId: string, e?: React.MouseEvent) => {
     if (e) e.preventDefault();

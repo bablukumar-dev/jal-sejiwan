@@ -137,22 +137,25 @@ export default function CustomerDetail() {
 
   const handleDeliverWater = async (e: React.MouseEvent) => {
     e.preventDefault();
-    console.log("Deliver Water button clicked");
-    console.log("currentUser UID:", currentUser?.uid);
-    console.log("currentUser Role:", currentUser?.role);
-    console.log("customer ID:", customer?.id);
-    console.log("isDelivering:", isDelivering);
+    console.log("--- TRACE: Deliver Water Initiation Start ---");
+    console.log("Event Type:", e.type);
+    console.log("Current User UID:", currentUser?.uid);
+    console.log("Current User Role:", currentUser?.role);
+    console.log("Current User BusinessId:", currentUser?.businessId);
+    console.log("Customer ID:", customer?.id);
+    console.log("Customer Name:", customer?.name);
+    console.log("isDelivering state:", isDelivering);
     
     if (isDelivering) {
-        console.warn("Already delivering, ignoring click");
+        console.warn("--- TRACE: Already delivering, ignoring click ---");
         return;
     }
     
     setIsDelivering(true);
-    console.log("setIsDelivering set to true");
+    console.log("--- TRACE: setIsDelivering(true) executed ---");
 
     if (!currentUser) {
-      console.error("No current user");
+      console.error("--- TRACE FAILURE: No current user in context ---");
       alert("Please login");
       setIsDelivering(false);
       return;
@@ -160,15 +163,16 @@ export default function CustomerDetail() {
 
     try {
       const today = new Date().toISOString().split('T')[0];
-      console.log("Today:", today);
+      console.log("--- TRACE: Date calculated:", today);
+      
       const existing = deliveries.find(d => d.customerId === customer?.id && d.date === today);
-      console.log("Existing delivery found:", existing);
+      console.log("--- TRACE: Existing delivery check:", existing ? "FOUND ID " + existing.id : "NOT FOUND");
 
       if (existing) {
-        console.log("Routing to existing delivery:", `/staff/delivery/${existing.id}`);
+        console.log("--- TRACE: Navigating to existing delivery:", `/staff/delivery/${existing.id}`);
         router.push(`/staff/delivery/${existing.id}`);
       } else {
-        console.log("Creating new delivery for:", customer?.id);
+        console.log("--- TRACE: Creating new delivery object for customer:", customer?.id);
         const newDelivery = {
           customerId: customer?.id,
           customerName: customer?.name || '',
@@ -184,21 +188,24 @@ export default function CustomerDetail() {
           note: ''
         };
 
-        console.log("Creating new delivery:", newDelivery);
+        console.log("--- TRACE: Final Delivery Payload:", JSON.stringify(newDelivery, null, 2));
+        console.log("--- TRACE: Calling batchAddDeliveries... ---");
+        
         const ids = await batchAddDeliveries([newDelivery], currentUser);
-        console.log("New delivery created with IDs:", ids);
+        console.log("--- TRACE: batchAddDeliveries SUCCESS. Returned IDs:", ids);
         
         if (ids && ids.length > 0) {
-          console.log("Navigating to new delivery:", `/staff/delivery/${ids[0]}`);
+          console.log("--- TRACE: Navigating to new delivery route:", `/staff/delivery/${ids[0]}`);
           router.push(`/staff/delivery/${ids[0]}`);
         } else {
-            console.error("No delivery ID returned from batchAddDeliveries");
-            throw new Error("Failed to create delivery: No ID returned");
+            console.error("--- TRACE FAILURE: No delivery ID returned from batchAddDeliveries ---");
+            throw new Error("Failed to create delivery: No ID returned from Firestore batch write");
         }
       }
     } catch (e: any) {
-      console.error("Failed to create delivery", e);
-      console.error("Error stack:", e.stack);
+      console.error("--- TRACE CRITICAL FAILURE: handleDeliverWater crashed ---");
+      console.error("Error Message:", e.message);
+      console.error("Error Stack:", e.stack);
       
       const { logActivity } = await import('@/lib/activityLogger');
       logActivity({
@@ -207,12 +214,12 @@ export default function CustomerDetail() {
         description: `Failed to initiate delivery for ${customer?.name}: ${e.message || e}`,
         status: 'error',
         failureReason: e.message || String(e)
-      }).catch(err => console.error("Error logging failed:", err));
+      }).catch(err => console.error("TRACE: Activity Logging Failed:", err));
 
       alert("Failed to create delivery: " + (e.message || e));
     } finally {
       setIsDelivering(false);
-      console.log("setIsDelivering set to false");
+      console.log("--- TRACE: Deliver Water Initiation End (Finally) ---");
     }
   };
 
@@ -284,7 +291,11 @@ export default function CustomerDetail() {
           </Link>
           {['owner', 'manager', 'staff'].includes(userRole) && (
             <button 
-              onClick={handleDeliverWater}
+              id="DeliverWaterButton"
+              onClick={(e) => {
+                console.log("--- TRACE: DeliverWaterButton DOM onClick Fired ---");
+                handleDeliverWater(e);
+              }}
               disabled={isDelivering}
               aria-label="Deliver water"
               className={`bg-blue-600 text-white rounded-xl py-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform ${isDelivering ? 'opacity-50 cursor-not-allowed' : ''}`}
