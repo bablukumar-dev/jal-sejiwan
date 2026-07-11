@@ -71,6 +71,14 @@ export async function POST(req: NextRequest) {
   console.log("[ADMIN INIT] Starting initialization...");
   try {
     console.log("Importing firebase-admin helper...");
+    // DEBUG: Check environment variables
+    const envCheck = {
+      PROJECT_ID: process.env.FIREBASE_PROJECT_ID ? 'SET' : 'MISSING',
+      CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL ? 'SET' : 'MISSING',
+      PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY ? 'SET' : 'MISSING'
+    };
+    console.log("[ADMIN INIT] Env Var Check:", JSON.stringify(envCheck));
+
     // Using dynamic import to avoid top-level failures and respect ESM/CJS boundaries
     const { getAdminAuth, getAdminDb } = await import('../../../../src/lib/firebase-admin');
     

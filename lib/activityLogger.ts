@@ -164,19 +164,19 @@ export async function logActivity(
     }
 
     const path = `businesses/${businessId}/activityLogs`;
+    console.log("[ACTIVITY WRITE START] Writing log for action:", finalParams.action);
     console.log("--- TRACE: Writing to Firestore path:", path);
     console.log("--- TRACE: Log Data Payload:", JSON.stringify(logData, null, 2));
 
     // Write to /businesses/{businessId}/activityLogs subcollection
     addDoc(collection(db, 'businesses', businessId, 'activityLogs'), logData)
       .then((docRef) => {
+        console.log("[ACTIVITY WRITE SUCCESS] Log written successfully to businesses/" + businessId + "/activityLogs");
         console.log("--- TRACE SUCCESS: Activity log written with ID:", docRef.id);
       })
       .catch(err => {
+        console.error("[ACTIVITY WRITE FAILED] Failed to write activity log:", err.message);
         console.error("--- TRACE FAILURE: Failed to write activity log:", err);
-        console.error(err.code);
-        console.error(err.message);
-        console.error(err.stack);
       });
 
   } catch (error: any) {

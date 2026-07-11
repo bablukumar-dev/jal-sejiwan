@@ -101,14 +101,15 @@ export default function ActivityLogDashboard() {
     }
 
     const unsubscribe = onSnapshot(logsQuery, (snapshot) => {
-      console.log("--- TRACE: onSnapshot triggered ---");
-      console.log("--- TRACE: Snapshot size:", snapshot.size);
+      console.log("[SNAPSHOT CONNECTED] Received activity log snapshot");
+      console.log("[SNAPSHOT SIZE] Total documents:", snapshot.size);
       console.log("--- TRACE: Snapshot empty:", snapshot.empty);
       
       const newLogs = snapshot.docs.map(doc => {
-        console.log("--- TRACE: Found Log Doc ID:", doc.id);
+        const data = doc.data();
+        console.log("[SNAPSHOT DOC] ID:", doc.id, "Action:", data.action);
         return {
-          ...doc.data(),
+          ...data,
           log_id: doc.id
         };
       }) as ActivityLog[];
@@ -314,6 +315,7 @@ export default function ActivityLogDashboard() {
     }
   };
 
+  console.log("[UI RENDER] Activity Log Dashboard. Logs count:", finalLogs.length);
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
       <TopAppBar title="Audit Trail" subtitle="System Transparency" showBack={true} />

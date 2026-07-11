@@ -28,8 +28,10 @@ function validateCredentials() {
   if (!privateKey) errors.push('FIREBASE_PRIVATE_KEY');
 
   if (errors.length > 0) {
+    const envKeys = Object.keys(process.env).filter(k => k.includes('FIREBASE'));
     console.error('[ADMIN INIT] Missing environment variables:', errors.join(', '));
-    throw new Error(`Missing required Firebase environment variables: ${errors.join(', ')}`);
+    console.log('[ADMIN INIT] Available FIREBASE_* env keys:', JSON.stringify(envKeys));
+    throw new Error(`Missing required Firebase environment variables: ${errors.join(', ')}. Available keys: ${envKeys.join(', ')}`);
   }
 
   return { projectId, clientEmail, privateKey };

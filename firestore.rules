@@ -87,12 +87,16 @@ service cloud.firestore {
         allow delete: if isSignedIn() && isMemberOfBusiness(businessId) && getUserRole() == 'owner';
       }
 
-      // --- Activity Logs subcollection ---
-      match /activityLogs/{logId} {
-        allow read: if isSignedIn() && isMemberOfBusiness(businessId);
-        allow create: if isSignedIn() && isMemberOfBusiness(businessId);
-        allow update, delete: if false; // immutable logs
-      }
+    // --- Activity Logs subcollection ---
+    match /activityLogs/{logId} {
+      allow read: if isSignedIn() && (isMemberOfBusiness(businessId) || getUserRole() == 'owner');
+      // More permissive create for logs to ensure they are always written
+      allow create: if isSignedIn() && (
+        request.resource.data.userId == request.auth.uid || 
+        isMemberOfBusiness(businessId)
+      );
+      allow update, delete: if false; // immutable logs
+    }
 
       // --- Notifications subcollection ---
       match /notifications/{notificationId} {
