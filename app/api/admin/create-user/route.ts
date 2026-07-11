@@ -154,9 +154,9 @@ export async function POST(req: NextRequest) {
     const ownerId = decodedToken.uid;
     
     // 1. users collection doc
-    console.log("Adding users doc to batch...");
+    console.log(`Adding users doc to batch (UID: ${userRecord.uid})...`);
     const userRef = adminDb.collection('users').doc(userRecord.uid);
-    batch.set(userRef, {
+    const userData = {
       email,
       name,
       role,
@@ -166,12 +166,14 @@ export async function POST(req: NextRequest) {
       active: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    });
+    };
+    console.log("User Data Payload:", JSON.stringify(userData, null, 2));
+    batch.set(userRef, userData);
 
     // 2. staff sub-collection doc
-    console.log("Adding staff doc to batch...");
+    console.log(`Adding staff doc to batch (Path: businesses/${business_id}/staff/${userRecord.uid})...`);
     const staffRef = adminDb.collection('businesses').doc(business_id).collection('staff').doc(userRecord.uid);
-    batch.set(staffRef, {
+    const staffData = {
       name,
       role,
       active: true,
@@ -180,13 +182,18 @@ export async function POST(req: NextRequest) {
       createdBy: ownerId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    });
+    };
+    console.log("Staff Data Payload:", JSON.stringify(staffData, null, 2));
+    batch.set(staffRef, staffData);
 
     console.log("Committing Firestore batch...");
     await batch.commit();
     console.log("Firestore batch committed successfully");
   } catch (error: any) {
     console.error("STEP 6 FAILED: Firestore write error");
+    console.error("Error Code:", error.code);
+    console.error("Error Message:", error.message);
+    console.error("Error Details:", JSON.stringify(error, null, 2));
     console.error(error.stack);
     
     console.log("Attempting ROLLBACK: Deleting Auth user...");
@@ -197,7 +204,7 @@ export async function POST(req: NextRequest) {
       console.error("Rollback FAILED", rbError.message);
     }
     
-    return NextResponse.json({ error: "Database write failed", details: error.message, stack: error.stack }, { status: 500 });
+    return NextResponse.json({ error: "Database write failed", details: error.message, code: error.code, stack: error.stack }, { status: 500 });
   }
 
   // STEP 7: Custom Claims

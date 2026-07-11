@@ -245,10 +245,11 @@ export default function OnboardingPage() {
         const oId = currentUser.uid;
 
         // 1. Create Business Document
-        const businessDocRef = doc(db, 'businesses', oId);
+        const businessDocRef = doc(db, 'businesses', bId);
         const businessData = {
           name: ownerOrg.orgName,
           ownerId: oId,
+          businessId: bId,
           userId: oId,
           address: ownerOrg.officeAddress,
           phone: ownerOrg.contactNumber,

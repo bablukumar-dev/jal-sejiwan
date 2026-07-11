@@ -61,9 +61,10 @@ export async function logActivity(
   legacyMetadata?: any
 ): Promise<void> {
   try {
+    console.log("--- TRACE: logActivity START ---");
     const { auth, db } = getFirebase();
     if (!auth || !db || !auth.currentUser) {
-      console.warn("Activity Logger: No auth or db available, or user not logged in.");
+      console.warn("--- TRACE FAILURE: Activity Logger: No auth or db available, or user not logged in. ---");
       return;
     }
 
@@ -81,27 +82,46 @@ export async function logActivity(
       finalParams = paramsOrAction;
     }
 
+    console.log("--- TRACE: Final Params:", JSON.stringify(finalParams, null, 2));
+
     const user = auth.currentUser;
     const role = localStorage.getItem('userRole') || 'unknown';
     // Use businessId from finalParams if provided, else fallback to localStorage
     let businessId = finalParams.businessId || localStorage.getItem('businessId') || '';
+    
+    console.log("--- TRACE: Initial businessId from params/localStorage:", businessId);
+
+    // CRITICAL FIX: If businessId is still missing, attempt to fetch it from the user document synchronously if possible,
+    // but we can't do sync fetch in JS easily. We rely on the existing async fetch below.
+
     if (!businessId && user) {
       try {
+        console.log("--- TRACE: businessId missing, fetching from users/" + user.uid + " ---");
         const { doc, getDoc } = await import('firebase/firestore');
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
-          businessId = userDoc.data()?.businessId || '';
+          const userData = userDoc.data();
+          businessId = userData?.businessId || userData?.organizationId || '';
+          console.log("--- TRACE: Fetched businessId from Firestore:", businessId);
           if (businessId && typeof window !== 'undefined') {
             localStorage.setItem('businessId', businessId);
           }
+        } else {
+          console.warn("--- TRACE FAILURE: User document not found in Firestore for businessId lookup. Is the collection correct? ---");
         }
-      } catch (err) {
-        console.error("Activity Logger failed to fetch user businessId:", err);
+      } catch (err: any) {
+        console.error("--- TRACE FAILURE: Activity Logger failed to fetch user businessId:", err.message);
       }
     }
     const userName = user.displayName || localStorage.getItem('userName') || 'User';
 
-    console.log("[ActivityLogger] Logging activity. businessId:", businessId, "user:", user.uid);
+    if (!businessId) {
+      console.warn("--- TRACE FAILURE: Activity Logger: businessId still not found after lookup. Log Data:", JSON.stringify(finalParams));
+      return;
+    }
+
+    console.log("--- TRACE: businessId used for write:", businessId);
+    console.log("--- TRACE: user UID:", user.uid);
 
     const activityId = crypto.randomUUID();
     
@@ -123,7 +143,7 @@ export async function logActivity(
       status: finalParams.status || 'success',
       success: finalParams.status !== 'error',
       failureReason: finalParams.failureReason,
-      description: finalParams.description,
+      description: finalParams.description || finalParams.action,
       action_type: finalParams.action.toLowerCase().replace(/\s+/g, '_'),
       device: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
       browser: typeof navigator !== 'undefined' ? navigator.appName : 'unknown',
@@ -139,16 +159,28 @@ export async function logActivity(
     };
 
     if (!businessId) {
-      console.warn("Activity Logger: businessId not found in localStorage, cannot log to subcollection.");
+      console.warn("--- TRACE FAILURE: Activity Logger: businessId not found, cannot log to subcollection. ---");
       return;
     }
 
-    // Write to /businesses/{businessId}/activityLogs subcollection
-    addDoc(collection(db, 'businesses', businessId, 'activityLogs'), logData).catch(err => {
-      console.error("Failed to write activity log:", err);
-    });
+    const path = `businesses/${businessId}/activityLogs`;
+    console.log("--- TRACE: Writing to Firestore path:", path);
+    console.log("--- TRACE: Log Data Payload:", JSON.stringify(logData, null, 2));
 
-  } catch (error) {
-    console.error("Activity Logger Error:", error);
+    // Write to /businesses/{businessId}/activityLogs subcollection
+    addDoc(collection(db, 'businesses', businessId, 'activityLogs'), logData)
+      .then((docRef) => {
+        console.log("--- TRACE SUCCESS: Activity log written with ID:", docRef.id);
+      })
+      .catch(err => {
+        console.error("--- TRACE FAILURE: Failed to write activity log:", err);
+        console.error(err.code);
+        console.error(err.message);
+        console.error(err.stack);
+      });
+
+  } catch (error: any) {
+    console.error("--- TRACE FAILURE: Activity Logger Exception:", error);
+    console.error(error.stack);
   }
 }

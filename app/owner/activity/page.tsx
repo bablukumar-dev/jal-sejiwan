@@ -101,17 +101,27 @@ export default function ActivityLogDashboard() {
     }
 
     const unsubscribe = onSnapshot(logsQuery, (snapshot) => {
-      const newLogs = snapshot.docs.map(doc => ({
-        ...doc.data(),
-        log_id: doc.id
-      })) as ActivityLog[];
+      console.log("--- TRACE: onSnapshot triggered ---");
+      console.log("--- TRACE: Snapshot size:", snapshot.size);
+      console.log("--- TRACE: Snapshot empty:", snapshot.empty);
+      
+      const newLogs = snapshot.docs.map(doc => {
+        console.log("--- TRACE: Found Log Doc ID:", doc.id);
+        return {
+          ...doc.data(),
+          log_id: doc.id
+        };
+      }) as ActivityLog[];
       
       setLogs(newLogs);
       setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
       setHasMore(snapshot.docs.length === 50);
       setIsLoading(false);
     }, (error) => {
-      console.error("Firestore onSnapshot error:", error);
+      console.error("--- TRACE FAILURE: Firestore onSnapshot error ---");
+      console.error(error.code);
+      console.error(error.message);
+      console.error(error.stack);
       setIsLoading(false);
     });
 
@@ -424,7 +434,7 @@ export default function ActivityLogDashboard() {
                 {[
                   { value: 'ALL', label: 'All Modules' },
                   { value: 'Authentication', label: 'Auth' },
-                  { value: 'Customer', label: 'Customers' },
+                  { value: 'Customers', label: 'Customers' },
                   { value: 'Payments', label: 'Payments' },
                   { value: 'Water Management', label: 'Water' },
                   { value: 'Organization', label: 'Org' },
