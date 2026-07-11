@@ -173,19 +173,26 @@ export async function logActivity(
       console.log("--- TRACE: Executing in BROWSER. Attempting API logging... ---");
       try {
         const idToken = await user.getIdToken();
+        
+        // CRITICAL: Remove timestamp sentinel before stringifying for API
+        // The API route handles setting the server-side timestamp
+        const { timestamp, ...logDataForApi } = logData;
+
         const response = await fetch('/api/activity-log', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${idToken}`
           },
-          body: JSON.stringify({ logData, businessId })
+          body: JSON.stringify({ logData: logDataForApi, businessId })
         });
         
         if (response.ok) {
            console.log("[API LOG SUCCESS]");
            return;
         }
+        const errText = await response.text();
+        console.warn("[API LOG FAILED] Status:", response.status, "Error:", errText);
         console.warn("[API LOG FAILED] Falling back to direct Firestore");
       } catch (e) {
         console.warn("[API LOG ERROR]", e);

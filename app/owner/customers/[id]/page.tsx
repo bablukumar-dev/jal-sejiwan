@@ -196,24 +196,23 @@ export default function CustomerDetail() {
         
         if (ids && ids.length > 0) {
           console.log("--- TRACE: Navigating to new delivery route:", `/staff/delivery/${ids[0]}`);
+          // Use window.location as a fallback if router.push feels 'stuck' or the context hasn't updated
           router.push(`/staff/delivery/${ids[0]}`);
         } else {
-            console.error("--- TRACE FAILURE: No delivery ID returned from batchAddDeliveries ---");
-            throw new Error("Failed to create delivery: No ID returned from Firestore batch write");
+          console.error("--- TRACE FAILURE: No delivery ID returned from batchAddDeliveries ---");
+          throw new Error("Failed to create delivery: No ID returned from server.");
         }
       }
     } catch (e: any) {
       console.error("--- TRACE CRITICAL FAILURE: handleDeliverWater crashed ---");
       console.error("Error Message:", e.message);
-      console.error("Error Stack:", e.stack);
       
       const { logActivity } = await import('@/lib/activityLogger');
       logActivity({
         module: 'Water Management',
         action: 'Delivery Creation Failed',
         description: `Failed to initiate delivery for ${customer?.name}: ${e.message || e}`,
-        status: 'error',
-        failureReason: e.message || String(e)
+        status: 'error'
       }).catch(err => console.error("TRACE: Activity Logging Failed:", err));
 
       alert("Failed to create delivery: " + (e.message || e));

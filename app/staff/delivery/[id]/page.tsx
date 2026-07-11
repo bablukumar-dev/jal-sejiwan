@@ -73,7 +73,19 @@ export default function DeliveryEntry() {
   }, [customer, businessInfo, hasInitializedRate]);
 
   if (!delivery || !customer) {
-    return <div className="p-4">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4 mx-auto"></div>
+        <h2 className="text-xl font-bold text-slate-900">Loading Delivery...</h2>
+        <p className="text-slate-500 mt-2 max-w-xs mx-auto">Please wait while we sync the delivery record.</p>
+        <button 
+          onClick={() => router.push('/staff/dashboard')}
+          className="mt-8 text-blue-600 font-bold"
+        >
+          Go Back to Dashboard
+        </button>
+      </div>
+    );
   }
 
   const subtotal = delivered * currentRate;

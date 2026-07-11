@@ -106,7 +106,9 @@ export default function ActivityLogDashboard() {
 
     // Basic query to verify data existence
     let logsQuery = query(
-      collection(db, 'businesses', stableWorkspaceId, 'activityLogs')
+      collection(db, 'businesses', stableWorkspaceId, 'activityLogs'),
+      orderBy('timestamp', 'desc'),
+      limit(50)
     );
 
     const unsubscribe = onSnapshot(logsQuery, (snapshot) => {
@@ -133,7 +135,9 @@ export default function ActivityLogDashboard() {
       });
       
       setLogs(sortedLogs.slice(0, 50));
-      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+      if (snapshot.docs.length > 0) {
+        setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+      }
       setHasMore(snapshot.docs.length >= 50);
       setIsLoading(false);
     }, (error) => {

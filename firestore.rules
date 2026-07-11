@@ -89,12 +89,13 @@ service cloud.firestore {
 
     // --- Activity Logs subcollection ---
     match /activityLogs/{logId} {
-      allow read: if isSignedIn() && (isMemberOfBusiness(businessId) || getUserRole() == 'owner');
-      // More permissive create for logs to ensure they are always written
-      allow create: if isSignedIn() && (
-        request.resource.data.userId == request.auth.uid || 
-        isMemberOfBusiness(businessId)
+      // Allow read if user is part of the business or is the specific owner of the logs
+      allow read: if isSignedIn() && (
+        isMemberOfBusiness(businessId) || 
+        getUserRole() == 'owner'
       );
+      // More permissive create for logs to ensure they are always written
+      allow create: if isSignedIn(); 
       allow update, delete: if false; // immutable logs
     }
 

@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   console.log("-----------------------------------------");
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased to 15s
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
   try {
     let body: any;
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     }
 
     // STEP 2: Validation
-    const { email, password, name, role, business_id } = body;
+    const { email, password, name, role, business_id, route } = body;
     if (!email || !password || !role || !business_id) {
       console.error("[VALIDATION] FAILED: Missing fields");
       return NextResponse.json({ error: "Missing required fields: email, password, role, or business_id" }, { status: 400 });
@@ -134,12 +134,14 @@ export async function POST(req: NextRequest) {
       const userRef = adminDb.collection('users').doc(userRecord.uid);
       batch.set(userRef, {
         email, name, role, businessId: business_id, createdBy: ownerId, active: true,
+        route: route || '',
         createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
       });
 
       const staffRef = adminDb.collection('businesses').doc(business_id).collection('staff').doc(userRecord.uid);
       batch.set(staffRef, {
         name, role, active: true, businessId: business_id, createdBy: ownerId,
+        route: route || '',
         createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
       });
 
@@ -170,7 +172,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     if (error.name === 'AbortError') {
-      console.error("[API TIMEOUT] Operation exceeded 10 seconds");
+      console.error("[API TIMEOUT] Operation exceeded 15 seconds");
       return NextResponse.json({ error: "Request timed out on server" }, { status: 504 });
     }
     console.error("[UNEXPECTED ERROR]", error);

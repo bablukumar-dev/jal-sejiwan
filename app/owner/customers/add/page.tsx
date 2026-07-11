@@ -49,6 +49,10 @@ export default function AddCustomer() {
   const userRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') || '' : '';
 
   const [errors, setErrors] = useState<{name?: string, phone?: string}>({});
+  const [isAddingArea, setIsAddingArea] = useState(false);
+  const [newAreaInput, setNewAreaInput] = useState('');
+  const [isAddingRoute, setIsAddingRoute] = useState(false);
+  const [newRouteInput, setNewRouteInput] = useState('');
 
   useEffect(() => {
     // Proactively request camera permission to ensure "Capture" works smoothly
@@ -102,6 +106,32 @@ export default function AddCustomer() {
         setTempImage(canvas.toDataURL('image/jpeg'));
         stopCamera();
       }
+    }
+  };
+
+  const handleAddArea = () => {
+    const trimmed = newAreaInput.trim();
+    if (trimmed !== '') {
+      const areasArr = Array.isArray(areas) ? areas : [];
+      if (!areasArr.includes(trimmed)) {
+        setAreas([...areasArr, trimmed]);
+      }
+      setArea(trimmed);
+      setNewAreaInput('');
+      setIsAddingArea(false);
+    }
+  };
+
+  const handleAddRoute = () => {
+    const trimmed = newRouteInput.trim();
+    if (trimmed !== '') {
+      const routesArr = Array.isArray(routes) ? routes : [];
+      if (!routesArr.includes(trimmed)) {
+        setRoutes([...routesArr, trimmed]);
+      }
+      setRoute(trimmed);
+      setNewRouteInput('');
+      setIsAddingRoute(false);
     }
   };
 
@@ -368,94 +398,79 @@ export default function AddCustomer() {
               <div className="flex justify-between items-center mb-2">
                 <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">Area / Ilaaka</label>
               </div>
-              <div className="flex gap-2">
-                <select 
-                  className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 appearance-none font-medium text-slate-900"
-                  value={area}
-                  onChange={(e) => setArea(e.target.value)}
-                >
-                  <option value="">Select Area...</option>
-                  {Array.isArray(areas) && areas.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newAreaPrompt = prompt('Enter new Area / Ilaaka name:');
-                    if (newAreaPrompt && newAreaPrompt.trim() !== '') {
-                      const newAreaName = newAreaPrompt.trim();
-                      const areasArr = Array.isArray(areas) ? areas : [];
-                      if (!areasArr.includes(newAreaName)) {
-                        setAreas([...areasArr, newAreaName]);
-                      }
-                      setArea(newAreaName);
-                    }
-                  }}
-                  className="bg-slate-200 text-blue-700 px-4 rounded-xl font-bold whitespace-nowrap active:scale-95"
-                >+ Add</button>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <select 
+                    className="w-full bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 appearance-none font-medium text-slate-900"
+                    value={area}
+                    onChange={(e) => setArea(e.target.value)}
+                  >
+                    <option value="">Select Area...</option>
+                    {Array.isArray(areas) && areas.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                  {!isAddingArea && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingArea(true)}
+                      className="bg-slate-200 text-blue-700 px-4 rounded-xl font-bold whitespace-nowrap active:scale-95"
+                    >
+                      + Add
+                    </button>
+                  )}
+                </div>
+                {isAddingArea && (
+                  <div className="flex gap-2 animate-in fade-in slide-in-from-top-1">
+                    <input 
+                      type="text"
+                      placeholder="Area name"
+                      className="flex-1 bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900 text-sm"
+                      value={newAreaInput}
+                      onChange={(e) => setNewAreaInput(e.target.value)}
+                      autoFocus
+                    />
+                    <button type="button" onClick={handleAddArea} className="bg-blue-600 text-white font-bold px-4 rounded-xl text-xs whitespace-nowrap active:scale-95">OK</button>
+                    <button type="button" onClick={() => setIsAddingArea(false)} className="bg-slate-200 text-slate-600 font-bold px-4 rounded-xl text-xs whitespace-nowrap active:scale-95">Cancel</button>
+                  </div>
+                )}
               </div>
             </div>
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">Route</label>
               </div>
-              <div className="flex gap-2">
-                <select 
-                  className="flex-1 bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 appearance-none font-medium text-slate-900"
-                  value={route}
-                  onChange={(e) => setRoute(e.target.value)}
-                >
-                  <option value="">Select Route...</option>
-                  {Array.isArray(routes) && routes.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newRoutePrompt = prompt('Enter new Route name:');
-                    if (newRoutePrompt && newRoutePrompt.trim() !== '') {
-                      const newRouteName = newRoutePrompt.trim();
-                      const routesArr = Array.isArray(routes) ? routes : [];
-                      if (!routesArr.includes(newRouteName)) {
-                        setRoutes([...routesArr, newRouteName]);
-                      }
-                      setRoute(newRouteName);
-                    }
-                  }}
-                  className="bg-slate-200 hover:bg-slate-300 text-blue-700 font-bold px-4 rounded-xl text-xs whitespace-nowrap active:scale-95 transition-all shrink-0"
-                >
-                  + Add
-                </button>
-                {route && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const oldRoute = route;
-                      const updatedRoutePrompt = prompt(`Rename route "${oldRoute}" to:`, oldRoute);
-                      if (updatedRoutePrompt && updatedRoutePrompt.trim() !== '' && updatedRoutePrompt.trim() !== oldRoute) {
-                        const newRouteName = updatedRoutePrompt.trim();
-                        
-                        // 1. Update routes list
-                        const routesArr = Array.isArray(routes) ? routes : [];
-                        const updatedRoutes = routesArr.map(r => r === oldRoute ? newRouteName : r);
-                        setRoutes(updatedRoutes);
-                        
-                        // 2. Update dropdown selected value
-                        setRoute(newRouteName);
-                        
-                        // 3. Update all customers
-                        if (customers && setCustomers) {
-                          setCustomers(customers.map(c => c.route === oldRoute ? { ...c, route: newRouteName } : c));
-                        }
-                        
-                        // 4. Update all other staff members
-                        if (staff && setStaff) {
-                          setStaff(staff.map(s => s.route === oldRoute ? { ...s, route: newRouteName } : s));
-                        }
-                      }
-                    }}
-                    className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-bold px-4 rounded-xl text-xs whitespace-nowrap active:scale-95 transition-all shrink-0"
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <select 
+                    className="flex-1 bg-slate-100 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 appearance-none font-medium text-slate-900"
+                    value={route}
+                    onChange={(e) => setRoute(e.target.value)}
                   >
-                    ✏️ Edit
-                  </button>
+                    <option value="">Select Route...</option>
+                    {Array.isArray(routes) && routes.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  {!isAddingRoute && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingRoute(true)}
+                      className="bg-slate-200 hover:bg-slate-300 text-blue-700 font-bold px-4 rounded-xl text-xs whitespace-nowrap active:scale-95 transition-all shrink-0"
+                    >
+                      + Add
+                    </button>
+                  )}
+                </div>
+                {isAddingRoute && (
+                  <div className="flex gap-2 animate-in fade-in slide-in-from-top-1">
+                    <input 
+                      type="text"
+                      placeholder="Route name"
+                      className="flex-1 bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl outline-none focus:ring-2 focus:ring-blue-600 font-medium text-slate-900 text-sm"
+                      value={newRouteInput}
+                      onChange={(e) => setNewRouteInput(e.target.value)}
+                      autoFocus
+                    />
+                    <button type="button" onClick={handleAddRoute} className="bg-blue-600 text-white font-bold px-4 rounded-xl text-xs whitespace-nowrap active:scale-95">OK</button>
+                    <button type="button" onClick={() => setIsAddingRoute(false)} className="bg-slate-200 text-slate-600 font-bold px-4 rounded-xl text-xs whitespace-nowrap active:scale-95">Cancel</button>
+                  </div>
                 )}
               </div>
             </div>
