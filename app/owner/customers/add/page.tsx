@@ -106,10 +106,12 @@ export default function AddCustomer() {
   };
 
   const handleSave = async () => {
+    console.log("--- TRACE: AddCustomer handleSave START ---");
     try {
         const newErrors: {name?: string, phone?: string} = {};
         
         // Use our sanitization / validation layer
+        console.log("--- TRACE: Validating inputs: Name:", name, "Phone:", phone);
         const nameVal = validateName(name);
         const phoneVal = validatePhone(phone);
         const rateVal = validateAmount(rate, true, 10000);
@@ -120,18 +122,23 @@ export default function AddCustomer() {
         const walletBalanceVal = validateAmount(walletBalance, true, 1000000);
 
         if (!nameVal.valid) {
+          console.warn("--- TRACE FAILURE: Invalid Name:", nameVal.error);
           newErrors.name = nameVal.error || 'Invalid name';
         }
         if (!phoneVal.valid) {
+          console.warn("--- TRACE FAILURE: Invalid Phone:", phoneVal.error);
           newErrors.phone = phoneVal.error || 'Invalid phone pattern';
         }
 
         if (Object.keys(newErrors).length > 0) {
+          console.warn("--- TRACE FAILURE: Validation Errors present ---");
           setErrors(newErrors);
           return;
         }
 
+        console.log("--- TRACE: Current User:", JSON.stringify(currentUser, null, 2));
         if (!currentUser) {
+          console.error("--- TRACE FAILURE: No currentUser in AddCustomer handleSave ---");
           setToast({ message: 'Session expired. Please login again.', type: 'error', onClose: () => setToast(null) });
           return;
         }
@@ -145,7 +152,7 @@ export default function AddCustomer() {
         
         let uploadedImageURL = '';
         if (selectedImage) {
-            // Auth system removed - Storage upload simulated
+            console.log("--- TRACE: Image selected, simulating upload ---");
             uploadedImageURL = URL.createObjectURL(selectedImage);
         }
 
@@ -171,7 +178,9 @@ export default function AddCustomer() {
           imageURL: uploadedImageURL
         };
 
+        console.log("--- TRACE: Calling addCustomer with Payload:", JSON.stringify(customerData, null, 2));
         const docRef = await addCustomer(customerData, currentUser);
+        console.log("--- TRACE: addCustomer SUCCESS. Doc ID:", docRef.id);
         
         // ================= EVIDENCE DEBUGGING: STEP 1 & 2 =================
         const bId = currentUser.businessId;
@@ -212,6 +221,7 @@ export default function AddCustomer() {
           newValue: customerData
         });
 
+        console.log("--- TRACE: AddCustomer SUCCESS ---");
         setToast({ message: 'Customer Successfully Added', type: 'success', onClose: () => setToast(null) });
         const role = currentUser.role;
         setTimeout(() => {
@@ -222,7 +232,8 @@ export default function AddCustomer() {
           }
         }, 1500);
     } catch (e: any) {
-        console.error("Failed to add customer", e);
+        console.error("--- TRACE FAILURE: AddCustomer handleSave Error ---");
+        console.error(e);
         logActivity({
           module: 'Customers',
           action: 'Customer Creation Failed',

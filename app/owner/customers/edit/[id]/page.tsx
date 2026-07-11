@@ -47,10 +47,12 @@ export default function EditCustomer() {
   }
 
   const handleSave = async () => {
+    console.log("--- TRACE: EditCustomer handleSave START ---");
     try {
         const newErrors: {name?: string, phone?: string} = {};
         
         // Input validation checks via central layer
+        console.log("--- TRACE: Validating inputs: Name:", name, "Phone:", phone);
         const nameVal = validateName(name);
         const phoneVal = validatePhone(phone);
         const rateVal = validateAmount(rate, true, 10000);
@@ -61,13 +63,16 @@ export default function EditCustomer() {
         const walletBalanceVal = validateAmount(walletBalance, true, 1000000);
 
         if (!nameVal.valid) {
+          console.warn("--- TRACE FAILURE: Invalid Name:", nameVal.error);
           newErrors.name = nameVal.error || 'Invalid name';
         }
         if (!phoneVal.valid) {
+          console.warn("--- TRACE FAILURE: Invalid Phone:", phoneVal.error);
           newErrors.phone = phoneVal.error || 'Invalid phone pattern';
         }
 
         if (Object.keys(newErrors).length > 0) {
+          console.warn("--- TRACE FAILURE: Validation Errors present ---");
           setErrors(newErrors);
           return;
         }
@@ -81,6 +86,7 @@ export default function EditCustomer() {
         
         let uploadedImageURL = customer?.imageURL || '';
         if (selectedImage) {
+            console.log("--- TRACE: New image selected ---");
             uploadedImageURL = URL.createObjectURL(selectedImage);
         } else if (imagePreview === null) {
           uploadedImageURL = '';
@@ -107,8 +113,15 @@ export default function EditCustomer() {
           imageURL: uploadedImageURL
         };
 
-        if (!currentUser) return;
+        console.log("--- TRACE: Current User:", JSON.stringify(currentUser, null, 2));
+        if (!currentUser) {
+          console.error("--- TRACE FAILURE: No currentUser in EditCustomer handleSave ---");
+          return;
+        }
+
+        console.log("--- TRACE: Calling updateCustomer with Payload:", JSON.stringify(updatedCustomerData, null, 2));
         await updateCustomer(customerId, updatedCustomerData, currentUser);
+        console.log("--- TRACE: updateCustomer SUCCESS ---");
 
         logActivity({
           module: 'Customers',
@@ -121,27 +134,40 @@ export default function EditCustomer() {
           newValue: updatedCustomerData
         });
 
+        console.log("--- TRACE: EditCustomer SUCCESS ---");
         alert('Customer Successfully Updated');
         router.push(`/owner/customers/${customerId}`);
-    } catch (e) {
-        console.error("Failed to update customer", e);
-        alert("Failed to update customer. Please try again.");
+    } catch (e: any) {
+        console.error("--- TRACE FAILURE: EditCustomer handleSave Error ---");
+        console.error(e);
+        alert("Failed to update customer: " + (e.message || e));
     }
   };
 
   const handleDelete = async () => {
+    console.log("--- TRACE: EditCustomer handleDelete START ---");
     try {
-      if (!currentUser) return;
+      console.log("--- TRACE: Current User:", JSON.stringify(currentUser, null, 2));
+      if (!currentUser) {
+        console.error("--- TRACE FAILURE: No currentUser in handleDelete ---");
+        return;
+      }
       if (currentUser.role !== 'owner') {
+        console.warn("--- TRACE FAILURE: Not an owner ---");
         alert("Only owners are permitted to delete customer profiles.");
         return;
       }
 
       const confirmText = `Are you sure you want to permanently delete customer "${customer?.name}"?\nThis action is irreversible and will delete their document from the database.`;
-      if (!confirm(confirmText)) return;
+      if (!confirm(confirmText)) {
+        console.log("--- TRACE: Delete cancelled by user ---");
+        return;
+      }
 
+      console.log("--- TRACE: Calling deleteWithAudit for customerId:", customerId);
       const { deleteWithAudit } = await import('@/lib/firestore-service');
       await deleteWithAudit('customers', customerId, currentUser);
+      console.log("--- TRACE: deleteWithAudit SUCCESS ---");
 
       await logActivity({
         module: 'Customers',
@@ -153,10 +179,12 @@ export default function EditCustomer() {
         resourceName: name
       }).catch(err => console.error("Activity logging failed during deletion:", err));
 
+      console.log("--- TRACE: EditCustomer handleDelete SUCCESS ---");
       alert('Customer successfully deleted.');
       router.push('/owner/customers');
     } catch (e: any) {
-      console.error("Failed to delete customer", e);
+      console.error("--- TRACE FAILURE: EditCustomer handleDelete Error ---");
+      console.error(e);
       alert(`Deletion Failed: ${e.message || 'Please try again.'}`);
     }
   };

@@ -38,15 +38,15 @@ function AddStaff() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("--- TRACE: AddStaff handleSave START ---");
     setErrorMessage(null);
     setSuccessMessage(null);
     setIsSubmitting(true);
     
-    
     try {
-        
+        console.log("--- TRACE: Current User:", JSON.stringify(currentUser, null, 2));
         if (currentUser?.role !== 'owner' && currentUser?.role !== 'manager') {
-           console.error("[DEBUG] AddStaff: Permission Denied");
+           console.error("--- TRACE FAILURE: Permission Denied for AddStaff ---");
            setErrorMessage("Permission Denied: Only owners/managers can create staff/manager accounts.");
            setIsSubmitting(false);
            return;
@@ -54,6 +54,7 @@ function AddStaff() {
 
         const nameVal = validateName(name);
         if (!nameVal.valid) {
+          console.warn("--- TRACE FAILURE: Invalid Name:", nameVal.error);
           setErrorMessage(`Name Error: ${nameVal.error}`);
           setIsSubmitting(false);
           return;
@@ -61,6 +62,7 @@ function AddStaff() {
 
         const emailVal = validateEmail(email);
         if (!emailVal.valid) {
+          console.warn("--- TRACE FAILURE: Invalid Email:", emailVal.error);
           setErrorMessage(`Email Error: ${emailVal.error}`);
           setIsSubmitting(false);
           return;
@@ -68,23 +70,22 @@ function AddStaff() {
 
         const cleanPin = sanitizeString(pin);
         if (!cleanPin) {
+          console.warn("--- TRACE FAILURE: PIN missing ---");
           setErrorMessage("PIN is required");
           setIsSubmitting(false);
           return;
         }
 
         if (cleanPin.length < 6) {
+          console.warn("--- TRACE FAILURE: PIN too short ---");
           setErrorMessage('Password/PIN must be at least 6 characters');
           setIsSubmitting(false);
           return;
         }
 
-        const creatorId = 'owner';
-        const sanitizedRoute = sanitizeString(route);
-
         const currentBusinessId = currentUser?.businessId;
-        
         if (!currentBusinessId) {
+             console.error("--- TRACE FAILURE: businessId missing in session ---");
              throw new Error("Action Blocked: businessId is missing from session.");
         }
         
@@ -92,12 +93,14 @@ function AddStaff() {
 
         const { auth } = getFirebase();
         if (!auth.currentUser) {
+          console.error("--- TRACE FAILURE: No authenticated user in SDK ---");
           throw new Error("No authenticated user");
         }
+        console.log("--- TRACE: Getting ID Token ---");
         const idToken = await auth.currentUser.getIdToken();
 
         // 2. Call the admin API to create the user
-        console.log("[DEBUG] AddStaff: Calling /api/admin/create-user");
+        console.log("--- TRACE: Calling /api/admin/create-user with Payload ---");
         const response = await fetch('/api/admin/create-user', {
           method: 'POST',
           headers: {
@@ -105,7 +108,7 @@ function AddStaff() {
             'Authorization': `Bearer ${idToken}`
           },
           body: JSON.stringify({
-            email: emailVal.value, // Using the email field for identifier
+            email: emailVal.value,
             password: cleanPin,
             name: nameVal.value,
             role: dbRole,
@@ -114,27 +117,31 @@ function AddStaff() {
         });
 
         const text = await response.text();
+        console.log("--- TRACE: API Response Raw:", text);
         let apiResult;
         try {
             apiResult = JSON.parse(text);
         } catch (e) {
-            console.error("[DEBUG] AddStaff: Failed to parse JSON response:", text);
+            console.error("--- TRACE FAILURE: Failed to parse JSON response ---", text);
             throw new Error("Server returned an invalid response.");
         }
         
         if (!response.ok) {
+          console.error("--- TRACE FAILURE: API responded with error:", apiResult.error);
           throw new Error(apiResult.error || 'Failed to create staff account');
         }
+
+        console.log("--- TRACE: API SUCCESS. Result:", JSON.stringify(apiResult, null, 2));
 
         const newStaffMember = {
           id: apiResult.userId,
           name: nameVal.value,
           phone: emailVal.value,
           role: sanitizeString(role),
-          route: sanitizedRoute,
+          route: sanitizeString(route),
           pin: 'HIDDEN',
           active: true,
-          createdBy: creatorId,
+          createdBy: 'owner',
           failedPinAttempts: 0,
           permissions: role === 'Manager' ? permissions : undefined,
           businessId: currentUser?.businessId || ''
@@ -142,7 +149,6 @@ function AddStaff() {
 
         setStaff([...staff, newStaffMember]);
         
-        // Log activity silently in background
         logActivity({
           module: 'Organization',
           action: 'Staff Created',
@@ -154,26 +160,17 @@ function AddStaff() {
           newValue: newStaffMember
         });
 
-        console.log("[DEBUG] AddStaff: Staff added successfully");
+        console.log("--- TRACE: AddStaff SUCCESS ---");
         setSuccessMessage("Staff Added Successfully!");
         
-        // Redirect after a short delay
         setTimeout(() => {
           router.push('/owner/staff');
         }, 2000);
 
     } catch (err: any) {
-        console.error("[DEBUG] AddStaff: handleSave error", err);
+        console.error("--- TRACE FAILURE: AddStaff Error ---", err);
+        console.error(err.stack);
         let msg = err.message || "Failed to add staff. Please try again.";
-        if (err.message) {
-          if (err.message.includes("email-already-in-use") || err.message.toLowerCase().includes("already in use") || err.message.toLowerCase().includes("already exists")) {
-            msg = "This email is already registered. Please use another email.";
-          } else if (err.message.includes("weak-password") || err.message.toLowerCase().includes("at least 6 characters")) {
-            msg = "Password/PIN must be at least 6 characters.";
-          } else if (err.message.includes("invalid-email") || err.message.toLowerCase().includes("invalid email")) {
-            msg = "Please enter a valid email address.";
-          }
-        }
         setErrorMessage(msg);
     } finally {
         setIsSubmitting(false);

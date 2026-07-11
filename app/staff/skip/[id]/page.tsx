@@ -25,12 +25,18 @@ export default function SkipDelivery() {
   }
 
   const handleSkip = () => {
+    console.log("--- TRACE: handleSkip START ---");
     try {
+        console.log("--- TRACE: Reason:", reason, "Remarks:", remarks);
+        console.log("--- TRACE: Delivery ID:", deliveryId, "Customer ID:", customer.id);
+        
         const updatedDeliveries = deliveries.map(d => 
         d.id === deliveryId ? { ...d, status: 'Skipped' as const, skipReason: reason, skipRemarks: remarks } : d
         );
+        console.log("--- TRACE: Updating Context State ---");
         setDeliveries(updatedDeliveries);
         
+        console.log("--- TRACE: Logging Activity ---");
         logActivity({
           module: 'Water Management',
           action: 'Delivery Skipped',
@@ -45,10 +51,12 @@ export default function SkipDelivery() {
           }
         });
 
+        console.log("--- TRACE: handleSkip SUCCESS ---");
         alert("Delivery marked as skipped.");
         router.back();
-    } catch (e) {
-        console.error("Failed to skip delivery", e);
+    } catch (e: any) {
+        console.error("--- TRACE FAILURE: handleSkip Error ---", e);
+        console.error(e.stack);
         alert("Failed to skip. Please try again.");
     }
   };

@@ -26,6 +26,7 @@ function Reports() {
   const pendingTasks = customers.filter(c => c.due > 0).length;
 
   const handleExport = (reportName: string) => {
+    console.log(`--- TRACE: handleExport START for ${reportName} ---`);
     alert(`Exporting ${reportName}...`);
   };
 

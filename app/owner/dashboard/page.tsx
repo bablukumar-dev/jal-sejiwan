@@ -69,33 +69,36 @@ function OwnerDashboard() {
   }, [businessInfo, pendingCustomers]);
 
   const handleRemindAll = async () => {
-    console.log('[DEBUG] OwnerDashboard: handleRemindAll triggered');
+    console.log("--- TRACE: handleRemindAll START ---");
     // Implement Max 1 time per day constraint tracking lastSentDate
     const todayStr = new Date().toISOString().split('T')[0];
     const lastSentDate = localStorage.getItem('lastSentDateRemindAll');
     
     if (lastSentDate === todayStr) {
-      console.warn('[DEBUG] OwnerDashboard: Reminders already sent today');
+      console.warn("--- TRACE: Reminders already sent today ---");
       alert('🔔 WhatsApp reminders have already been sent today! Limit is max 1 time per day.');
       return;
     }
 
     const limitStatus = checkClientRateLimit('bulk_reminders', 2, 600); // 2 times per 10 minutes
     if (limitStatus.limited) {
-      console.warn('[DEBUG] OwnerDashboard: Rate limited', limitStatus.msg);
+      console.warn("--- TRACE FAILURE: Rate limited ---", limitStatus.msg);
       alert(limitStatus.msg || 'Too many bulk reminder attempts. Please try again later.');
       return;
     }
 
     if (!confirm(`Are you sure you want to send reminders to ${pendingCustomers} customers?`)) {
-      console.log('[DEBUG] OwnerDashboard: User cancelled confirmation');
+      console.log("--- TRACE: Cancelled by user ---");
       return;
     }
     
     setIsReminding(true);
     try {
-      console.log('[DEBUG] OwnerDashboard: Calling runBulkReminder');
+      console.log("--- TRACE: Business Info:", JSON.stringify(businessInfo, null, 2));
+      console.log("--- TRACE: Calling runBulkReminder ---");
       const result = await runBulkReminder(customers, businessInfo);
+      console.log("--- TRACE: runBulkReminder Result:", JSON.stringify(result, null, 2));
+      
       if (result.success) {
         localStorage.setItem('lastSentDateRemindAll', todayStr);
         logActivity({
@@ -105,10 +108,10 @@ function OwnerDashboard() {
           status: 'success',
           metadata: { count: result.count }
         });
-        console.log(`[DEBUG] OwnerDashboard: Successfully sent reminders to ${result.count} customers`);
+        console.log("--- TRACE: handleRemindAll SUCCESS ---");
         alert(`Successfully sent reminders to ${result.count} customers!`);
       } else {
-        console.error('[DEBUG] OwnerDashboard: runBulkReminder returned failure');
+        console.error("--- TRACE FAILURE: runBulkReminder success=false ---");
         logActivity({
           module: 'Communication',
           action: 'Bulk Reminders Failed',
@@ -117,9 +120,10 @@ function OwnerDashboard() {
         });
         alert('Failed to send some reminders.');
       }
-    } catch (e) {
-      console.error('[DEBUG] OwnerDashboard: handleRemindAll exception', e);
-      alert('Failed to send some reminders.');
+    } catch (e: any) {
+      console.error("--- TRACE FAILURE: handleRemindAll Error ---", e);
+      console.error(e.stack);
+      alert('Failed to send some reminders: ' + (e.message || e));
     } finally {
       setIsReminding(false);
     }

@@ -217,11 +217,18 @@ export default function SettingsPage() {
   );
 
   const handleSaveProfile = async () => {
+    console.log("--- TRACE: handleSaveProfile START ---");
     try {
-      if (!currentUser) return;
+      console.log("--- TRACE: Current User:", JSON.stringify(currentUser, null, 2));
+      if (!currentUser) {
+        console.error("--- TRACE FAILURE: No currentUser in handleSaveProfile ---");
+        return;
+      }
       const { validateName } = await import('@/lib/validation');
+      console.log("--- TRACE: Validating Name:", newName);
       const nameVal = validateName(newName);
       if (!nameVal.valid) {
+        console.warn("--- TRACE FAILURE: Invalid Name:", nameVal.error);
         alert(nameVal.error || 'Invalid name');
         return;
       }
@@ -229,7 +236,7 @@ export default function SettingsPage() {
       const cleanName = nameVal.value;
       const { db } = getFirebase();
       if (db) {
-        await updateDoc(doc(db, 'users', currentUser.uid), {
+        const payload = {
           ownerName: cleanName,
           businessName: editBusinessName,
           phone: editPhone,
@@ -240,13 +247,19 @@ export default function SettingsPage() {
           pincode: editPincode,
           gstNumber: editGstNumber,
           updatedAt: new Date().toISOString()
-        });
-        console.log("Profile Updated. Firestore Path: users/" + currentUser.uid);
+        };
+        console.log("--- TRACE: Updating users/" + currentUser.uid + " with Payload:", JSON.stringify(payload, null, 2));
+        await updateDoc(doc(db, 'users', currentUser.uid), payload);
+        console.log("--- TRACE: Profile Updated SUCCESS. Firestore Path: users/" + currentUser.uid);
+      } else {
+        console.error("--- TRACE FAILURE: Firestore DB undefined ---");
       }
+      console.log("--- TRACE: handleSaveProfile SUCCESS ---");
       setIsEditingProfile(false);
-    } catch (e) {
-      console.error("Failed to update profile", e);
-      alert("Failed to update profile. Please try again.");
+    } catch (e: any) {
+      console.error("--- TRACE FAILURE: handleSaveProfile Error ---", e);
+      console.error(e.stack);
+      alert("Failed to update profile: " + (e.message || e));
     }
   };
 

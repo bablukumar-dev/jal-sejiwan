@@ -84,20 +84,27 @@ export default function RecordPayment() {
   };
 
   const handleSave = async () => {
+    console.log("--- TRACE: RecordPayment handleSave START ---");
     try {
+      console.log("--- TRACE: Validating Amount:", amount);
       const parsedAmount = validateAmount(amount, false, 1000000);
       if (!parsedAmount.valid) {
+        console.warn("--- TRACE FAILURE: Invalid Amount:", parsedAmount.error);
         alert(parsedAmount.error || 'Invalid amount entered');
         return;
       }
       
       const numAmount = parsedAmount.value;
+      console.log("--- TRACE: Selected Customer ID:", selectedCustomerId);
       if (!selectedCustomerId || !selectedCustomer) {
+        console.warn("--- TRACE FAILURE: No customer selected ---");
         alert('Please select a customer');
         return;
       }
 
+      console.log("--- TRACE: Current User:", JSON.stringify(currentUser, null, 2));
       if (!currentUser) {
+        console.error("--- TRACE FAILURE: No currentUser in handleSave ---");
         alert('Session expired. Please login again.');
         return;
       }
@@ -113,12 +120,16 @@ export default function RecordPayment() {
         note: '',
       };
 
+      console.log("--- TRACE: Calling addPayment with Payload:", JSON.stringify(paymentData, null, 2));
       const docRef = await addPayment(paymentData, currentUser);
+      console.log("--- TRACE: addPayment SUCCESS. Doc ID:", docRef.id);
 
       // 2. Update customer due balance
+      console.log("--- TRACE: Updating Customer Due Balance. Previous Due:", selectedCustomer.due, "New Due:", Math.max(0, selectedCustomer.due - numAmount));
       await updateCustomer(selectedCustomerId, {
         due: Math.max(0, selectedCustomer.due - numAmount)
       }, currentUser);
+      console.log("--- TRACE: updateCustomer SUCCESS ---");
 
       logActivity({
         module: 'Payments',
@@ -131,9 +142,11 @@ export default function RecordPayment() {
         newValue: { ...paymentData, id: docRef.id }
       });
 
+      console.log("--- TRACE: RecordPayment handleSave SUCCESS ---");
       alert('Payment Recorded Successfully');
       router.back();
     } catch (e: any) {
+      console.error("--- TRACE FAILURE: RecordPayment handleSave Error ---");
       console.error(e);
       logActivity({
         module: 'Payments',

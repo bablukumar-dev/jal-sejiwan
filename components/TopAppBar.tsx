@@ -27,13 +27,17 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
   }, [inventory.fullCans, customers]);
 
   const handleSignOut = async () => {
+    console.log("--- TRACE: handleSignOut START ---");
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
+      console.log("--- TRACE: Calling logout from AppContext ---");
       await logout();
+      console.log("--- TRACE: Logout SUCCESS, redirecting to /login ---");
       router.replace('/login');
-    } catch (e) {
-      console.error('Logout failed:', e);
+    } catch (e: any) {
+      console.error('--- TRACE FAILURE: Logout failed ---', e);
+      console.error(e.stack);
       // Fallback redirect
       window.location.href = '/login';
     } finally {
