@@ -80,49 +80,64 @@ export default function ActivityLogDashboard() {
   // Load real activity logs with real-time updates
   useEffect(() => {
     const { db } = getFirebase();
-    console.log("[ActivityLogDashboard] useEffect setup. workspaceId:", workspaceId, "db:", !!db);
-    if (!db || !workspaceId) {
-        console.log("[ActivityLogDashboard] Listener skipped. Missing db or workspaceId.");
+    
+    // Resolve stable values for the listener
+    const rawBId = currentUser?.businessId || null;
+    const stableWorkspaceId = typeof rawBId === 'string' ? rawBId.trim() : rawBId;
+    const stableUserId = currentUser?.uid || null;
+    const stableRole = currentUser?.role || 'staff';
+
+    console.log("[ActivityLogDashboard] useEffect setup", {
+      stableWorkspaceId,
+      stableUserId,
+      stableRole,
+      hasDb: !!db
+    });
+
+    if (!db || !stableWorkspaceId) {
+        console.log("[ActivityLogDashboard] Listener deferred. Waiting for businessId...");
         return;
     }
 
     setIsLoading(true);
 
-    let logsQuery = query(
-      collection(db, 'businesses', workspaceId, 'activityLogs'),
-      orderBy('timestamp', 'desc'),
-      limit(50)
-    );
-    console.log("[ActivityLogDashboard] Firestore query created:", logsQuery);
+    const collectionPath = `businesses/${stableWorkspaceId}/activityLogs`;
+    console.log("[READ PATH]", collectionPath);
 
-    // Apply RBAC filters at query level for security and performance
-    if (userRole === 'staff') {
-      logsQuery = query(logsQuery, where('userId', '==', currentUserId));
-    }
+    // Basic query to verify data existence
+    let logsQuery = query(
+      collection(db, 'businesses', stableWorkspaceId, 'activityLogs')
+    );
 
     const unsubscribe = onSnapshot(logsQuery, (snapshot) => {
-      console.log("[SNAPSHOT CONNECTED] Received activity log snapshot");
-      console.log("[SNAPSHOT SIZE] Total documents:", snapshot.size);
-      console.log("--- TRACE: Snapshot empty:", snapshot.empty);
+      console.log("[SNAPSHOT CONNECTED]", { size: snapshot.size, empty: snapshot.empty });
       
-      const newLogs = snapshot.docs.map(doc => {
+      const rawLogs = snapshot.docs.map(doc => {
         const data = doc.data();
-        console.log("[SNAPSHOT DOC] ID:", doc.id, "Action:", data.action);
         return {
           ...data,
           log_id: doc.id
         };
       }) as ActivityLog[];
+
+      // In-memory RBAC and Sorting
+      let filtered = rawLogs;
+      if (stableRole === 'staff') {
+        filtered = rawLogs.filter(log => String(log.userId) === String(stableUserId));
+      }
+
+      const sortedLogs = [...filtered].sort((a, b) => {
+        const timeA = a.timestamp?.toDate?.()?.getTime() || (a.timestamp ? new Date(a.timestamp).getTime() : 0);
+        const timeB = b.timestamp?.toDate?.()?.getTime() || (b.timestamp ? new Date(b.timestamp).getTime() : 0);
+        return timeB - timeA;
+      });
       
-      setLogs(newLogs);
+      setLogs(sortedLogs.slice(0, 50));
       setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-      setHasMore(snapshot.docs.length === 50);
+      setHasMore(snapshot.docs.length >= 50);
       setIsLoading(false);
     }, (error) => {
-      console.error("--- TRACE FAILURE: Firestore onSnapshot error ---");
-      console.error(error.code);
-      console.error(error.message);
-      console.error(error.stack);
+      console.error("[SNAPSHOT ERROR]", error);
       setIsLoading(false);
     });
 

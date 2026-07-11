@@ -1,5 +1,6 @@
-import { collection, addDoc, updateDoc, doc, deleteDoc, setDoc, increment, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, deleteDoc, setDoc, increment, writeBatch, getDoc } from 'firebase/firestore';
 import { getFirebase } from '@/src/lib/firebase';
+import { logActivity } from './activityLogger';
 
 export interface AuditFields {
   businessId: string;
@@ -61,7 +62,22 @@ export const createWithAudit = async (collectionName: string, data: any, current
   };
 
   const colRef = getSubcollectionRef(db, businessId, collectionName);
-  return await addDoc(colRef, auditData);
+  const docRef = await addDoc(colRef, auditData);
+
+  // Background log
+  logActivity({
+    module: collectionName.charAt(0).toUpperCase() + collectionName.slice(1),
+    action: `${collectionName.slice(0, -1)} Created`,
+    description: `Created ${collectionName.slice(0, -1)}: ${data.name || data.customerName || docRef.id}`,
+    status: 'success',
+    resourceType: collectionName,
+    resourceId: docRef.id,
+    resourceName: data.name || data.customerName,
+    businessId,
+    newValue: auditData
+  }).catch(e => console.warn("Background log failed:", e));
+
+  return docRef;
 };
 
 export const updateWithAudit = async (collectionName: string, docId: string, data: any, currentUser: any) => {
@@ -71,13 +87,39 @@ export const updateWithAudit = async (collectionName: string, docId: string, dat
   const businessId = currentUser?.businessId || (typeof window !== 'undefined' ? localStorage.getItem('businessId') : null);
   if (!businessId) throw new Error("Missing businessId in user context or local storage");
 
+  const docRef = getDocRef(db, businessId, collectionName, docId);
+  
+  // Try to fetch previous data for logging
+  let previousValue = null;
+  try {
+    const snap = await getDoc(docRef);
+    if (snap.exists()) previousValue = snap.data();
+  } catch (e) {
+    console.warn("Failed to fetch previous value for audit log", e);
+  }
+
   const auditData = {
     ...data,
     updatedAt: new Date().toISOString(),
   };
 
-  const docRef = getDocRef(db, businessId, collectionName, docId);
-  return await updateDoc(docRef, auditData);
+  await updateDoc(docRef, auditData);
+
+  // Background log
+  logActivity({
+    module: collectionName.charAt(0).toUpperCase() + collectionName.slice(1),
+    action: `${collectionName.slice(0, -1)} Updated`,
+    description: `Updated ${collectionName.slice(0, -1)}: ${previousValue?.name || previousValue?.customerName || docId}`,
+    status: 'success',
+    resourceType: collectionName,
+    resourceId: docId,
+    resourceName: previousValue?.name || previousValue?.customerName,
+    businessId,
+    previousValue,
+    newValue: auditData
+  }).catch(e => console.warn("Background log failed:", e));
+
+  return docRef;
 };
 
 export const deleteWithAudit = async (collectionName: string, docId: string, currentUser?: any) => {
@@ -88,7 +130,32 @@ export const deleteWithAudit = async (collectionName: string, docId: string, cur
   if (!businessId) throw new Error("Cannot delete without businessId context");
 
   const docRef = getDocRef(db, businessId, collectionName, docId);
-  return await deleteDoc(docRef);
+  
+  // Try to fetch previous data for logging
+  let previousValue = null;
+  try {
+    const snap = await getDoc(docRef);
+    if (snap.exists()) previousValue = snap.data();
+  } catch (e) {
+    console.warn("Failed to fetch previous value for audit log", e);
+  }
+
+  await deleteDoc(docRef);
+
+  // Background log
+  logActivity({
+    module: collectionName.charAt(0).toUpperCase() + collectionName.slice(1),
+    action: `${collectionName.slice(0, -1)} Deleted`,
+    description: `Deleted ${collectionName.slice(0, -1)}: ${previousValue?.name || previousValue?.customerName || docId}`,
+    status: 'warning',
+    resourceType: collectionName,
+    resourceId: docId,
+    resourceName: previousValue?.name || previousValue?.customerName,
+    businessId,
+    previousValue
+  }).catch(e => console.warn("Background log failed:", e));
+
+  return true;
 };
 
 // Specialized helpers

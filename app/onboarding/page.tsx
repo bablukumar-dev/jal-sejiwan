@@ -26,6 +26,7 @@ import { useAppContext } from '@/app/context/AppContext';
 import { getFirebase } from '@/src/lib/firebase';
 import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import { setCookie } from '@/lib/authHelper';
+import { logActivity } from '@/lib/activityLogger';
 
 // --- ZOD SCHEMAS FOR VALIDATION ---
 
@@ -301,6 +302,16 @@ export default function OnboardingPage() {
         // Update local context/state
         setBusinessInfo(businessData as any);
         localStorage.setItem('businessInfo', JSON.stringify(businessData));
+        localStorage.setItem('businessId', bId);
+
+        // Activity Log
+        logActivity({
+          module: 'System',
+          action: 'Business Onboarding',
+          description: `Business onboarding completed: ${ownerOrg.orgName}`,
+          status: 'success',
+          businessId: bId
+        });
         
         // Reload from Firestore is handled by onSnapshot in AppContext
 
@@ -324,6 +335,15 @@ export default function OnboardingPage() {
         // Update Firestore Document for Manager (User)
         await setDoc(userDocRef, managerData, { merge: true });
         console.log("Onboarding Save Success. Firestore Path: users/" + currentUser.uid);
+
+        // Activity Log
+        logActivity({
+          module: 'System',
+          action: 'Manager Onboarding',
+          description: `Manager profile onboarding completed for ${managerProfile.name}`,
+          status: 'success',
+          businessId: bId
+        });
 
         // Also update staff subcollection document
         const staffDocRef = doc(db, 'businesses', bId, 'staff', currentUser.uid);
@@ -351,6 +371,15 @@ export default function OnboardingPage() {
         // Update Firestore Document for Staff (User)
         await setDoc(userDocRef, staffData, { merge: true });
         console.log("Onboarding Save Success. Firestore Path: users/" + currentUser.uid);
+
+        // Activity Log
+        logActivity({
+          module: 'System',
+          action: 'Staff Onboarding',
+          description: `Staff profile onboarding completed for ${staffProfile.name}`,
+          status: 'success',
+          businessId: bId
+        });
 
         // Also update staff subcollection document
         const staffDocRef = doc(db, 'businesses', bId, 'staff', currentUser.uid);
