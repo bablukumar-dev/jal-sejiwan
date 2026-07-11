@@ -1,31 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET() {
+  console.log("[HEALTH CHECK] GET /api/admin/create-user");
   try {
     const { checkAdminStatus, getAdminDb } = await import('../../../../src/lib/firebase-admin');
-    const adminStatus = checkAdminStatus();
     
-    console.log("Health Check: Attempting to initialize Admin DB...");
+    console.log("[HEALTH CHECK] Verifying environment variables...");
+    const envStatus = {
+      FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID ? 'SET' : 'MISSING',
+      FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL ? 'SET' : 'MISSING',
+      FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY ? `SET (Length: ${process.env.FIREBASE_PRIVATE_KEY.length})` : 'MISSING',
+    };
+    
+    console.log("[HEALTH CHECK] Attempting Admin DB initialization...");
     const db = getAdminDb();
-    console.log("Health Check: Admin DB initialized successfully");
+    const adminStatus = checkAdminStatus();
 
     return NextResponse.json({ 
       status: 'online', 
       api: 'create-user',
       adminStatus,
-      dbInitialized: true,
+      envStatus,
       timestamp: new Date().toISOString(),
-      env_check: {
-        projectId: process.env.FIREBASE_PROJECT_ID ? 'SET' : 'MISSING',
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL ? 'SET' : 'MISSING',
-        privateKey: process.env.FIREBASE_PRIVATE_KEY ? `SET (length: ${process.env.FIREBASE_PRIVATE_KEY.length})` : 'MISSING',
-      }
     });
   } catch (e: any) {
-    console.error("Health Check Failed:", e);
+    console.error("[HEALTH CHECK] FAILED:", e.message);
     return NextResponse.json({ 
       status: 'error', 
-      api: 'create-user',
       error: e.message,
       stack: e.stack,
       timestamp: new Date().toISOString()
@@ -35,184 +36,160 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   console.log("-----------------------------------------");
-  console.log("TRACE START: /api/admin/create-user");
+  console.log("[SERVER START] /api/admin/create-user");
   console.log("-----------------------------------------");
 
-  let body: any;
-  let adminAuth: any;
-  let adminDb: any;
-  let userRecord: any;
-  let decodedToken: any;
+  // Add a global timeout of 10 seconds for the entire operation
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-  // STEP 1: Incoming request body
-  console.log("STEP 1: Incoming request body");
   try {
-    body = await req.json();
-    console.log("Payload:", JSON.stringify(body, null, 2));
-  } catch (error: any) {
-    console.error("STEP 1 FAILED: Body parsing error", error.message);
-    return NextResponse.json({ error: "Invalid JSON body", details: error.message }, { status: 400 });
-  }
+    let body: any;
+    let adminAuth: any;
+    let adminDb: any;
+    let userRecord: any;
+    let decodedToken: any;
 
-  // STEP 2: Validation result
-  console.log("STEP 2: Validation result");
-  const { email, password, name, role, business_id } = body;
-  try {
-    if (!email || !password || !role || !business_id) {
-      throw new Error("Missing required fields: email, password, role, or business_id");
-    }
-    console.log("Validation PASS");
-  } catch (error: any) {
-    console.error("STEP 2 FAILED: Validation error", error.message);
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
+    // REQUEST RECEIVED
+    console.log("[REQUEST RECEIVED]");
 
-  // STEP 3: Firebase Admin initialization
-  console.log("[ADMIN INIT] Starting initialization...");
-  try {
-    console.log("Importing firebase-admin helper...");
-    // DEBUG: Check environment variables
-    const envCheck = {
-      PROJECT_ID: process.env.FIREBASE_PROJECT_ID ? 'SET' : 'MISSING',
-      CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL ? 'SET' : 'MISSING',
-      PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY ? 'SET' : 'MISSING'
-    };
-    console.log("[ADMIN INIT] Env Var Check:", JSON.stringify(envCheck));
-
-    // Using dynamic import to avoid top-level failures and respect ESM/CJS boundaries
-    const { getAdminAuth, getAdminDb } = await import('../../../../src/lib/firebase-admin');
-    
-    console.log("Initializing Auth and Firestore...");
-    adminAuth = getAdminAuth();
-    adminDb = getAdminDb();
-    console.log("[ADMIN INIT] SUCCESS: Firebase Admin SDK ready");
-  } catch (error: any) {
-    console.error("[ADMIN INIT] FAILED: Firebase Admin initialization error");
-    console.error(error.stack);
-    return NextResponse.json({ error: "Internal Server Error during Admin Init", details: error.message }, { status: 500 });
-  }
-
-  // STEP 4: Auth token check
-  console.log("[AUTH VERIFY] Verifying requester permissions...");
-  try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new Error("Missing or invalid Authorization header");
-    }
-    const idToken = authHeader.split('Bearer ')[1];
-    
-    console.log("Calling verifyIdToken...");
-    decodedToken = await adminAuth.verifyIdToken(idToken);
-    console.log("[AUTH VERIFY] SUCCESS: Token verified for UID:", decodedToken.uid);
-    
-    console.log("Checking owner document in Firestore...");
-    const requesterDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
-    if (!requesterDoc.exists) {
-      console.warn("Requester document does not exist in users collection");
-      throw new Error("Unauthorized: Requester profile not found");
-    }
-    const requesterData = requesterDoc.data();
-    console.log("Requester role:", requesterData?.role);
-    if (requesterData?.role !== 'owner') {
-      throw new Error("Unauthorized: Only owners can create users via this API");
-    }
-    console.log("[AUTH VERIFY] SUCCESS: Requester verified as OWNER");
-  } catch (error: any) {
-    console.error("[AUTH VERIFY] FAILED: Permission check failed", error.message);
-    return NextResponse.json({ error: "Unauthorized", details: error.message }, { status: 401 });
-  }
-
-  // STEP 5: admin.auth().createUser()
-  console.log("[AUTH CREATE] Creating Auth user...");
-  try {
-    userRecord = await adminAuth.createUser({
-      email,
-      password: String(password),
-      displayName: name,
-    });
-    console.log("[AUTH CREATE] SUCCESS: Auth user created. UID:", userRecord.uid);
-  } catch (error: any) {
-    console.error("[AUTH CREATE] FAILED: admin.auth().createUser() error");
-    console.error(error.stack);
-    return NextResponse.json({ 
-      error: error.code === 'auth/email-already-exists' ? 'Email already in use' : "Auth user creation failed", 
-      details: error.message,
-      code: error.code 
-    }, { status: error.code === 'auth/email-already-exists' ? 409 : 500 });
-  }
-
-  // STEP 6: Firestore write
-  console.log("[FIRESTORE WRITE] Preparing Firestore records...");
-  try {
-    const batch = adminDb.batch();
-    const ownerId = decodedToken.uid;
-    
-    // 1. users collection doc
-    console.log(`Adding users doc to batch (UID: ${userRecord.uid})...`);
-    const userRef = adminDb.collection('users').doc(userRecord.uid);
-    const userData = {
-      email,
-      name,
-      role,
-      businessId: business_id,
-      ownerId: ownerId,
-      createdBy: ownerId,
-      active: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    batch.set(userRef, userData);
-
-    // 2. staff sub-collection doc
-    console.log(`Adding staff doc to batch (Path: businesses/${business_id}/staff/${userRecord.uid})...`);
-    const staffRef = adminDb.collection('businesses').doc(business_id).collection('staff').doc(userRecord.uid);
-    const staffData = {
-      name,
-      role,
-      active: true,
-      businessId: business_id,
-      ownerId: ownerId,
-      createdBy: ownerId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    batch.set(staffRef, staffData);
-
-    console.log("Committing Firestore batch...");
-    await batch.commit();
-    console.log("[FIRESTORE WRITE] SUCCESS: Database records committed");
-  } catch (error: any) {
-    console.error("[FIRESTORE WRITE] FAILED: Firestore write error");
-    console.error("Error Message:", error.message);
-    
-    console.log("[ROLLBACK] Deleting Auth user...");
+    // STEP 1: Incoming request body
+    console.log("STEP 1: Parsing body...");
     try {
-      await adminAuth.deleteUser(userRecord.uid);
-      console.log("[ROLLBACK] SUCCESS");
-    } catch (rbError: any) {
-      console.error("[ROLLBACK] FAILED", rbError.message);
+      body = await req.json();
+      console.log("[BODY PARSED] Payload:", JSON.stringify({ ...body, password: '***' }));
+    } catch (error: any) {
+      console.error("[BODY PARSED] FAILED:", error.message);
+      return NextResponse.json({ error: "Invalid JSON body", details: error.message }, { status: 400 });
     }
-    
-    return NextResponse.json({ error: "Database write failed", details: error.message, code: error.code }, { status: 500 });
-  }
 
-  // STEP 7: Custom Claims
-  console.log("[STAFF CREATED] Finalizing with custom claims...");
-  try {
-    await adminAuth.setCustomUserClaims(userRecord.uid, {
-      role: role,
-      businessId: business_id
-    });
-    console.log("[STAFF CREATED] Custom claims set successfully");
+    // STEP 2: Validation
+    const { email, password, name, role, business_id } = body;
+    if (!email || !password || !role || !business_id) {
+      console.error("[VALIDATION] FAILED: Missing fields");
+      return NextResponse.json({ error: "Missing required fields: email, password, role, or business_id" }, { status: 400 });
+    }
+    console.log("[VALIDATION] PASS");
+
+    // STEP 3: Verify environment variables
+    console.log("[ENV LOADED] Checking variables...");
+    const missingVars = [];
+    if (!process.env.FIREBASE_PROJECT_ID) missingVars.push('FIREBASE_PROJECT_ID');
+    if (!process.env.FIREBASE_CLIENT_EMAIL) missingVars.push('FIREBASE_CLIENT_EMAIL');
+    if (!process.env.FIREBASE_PRIVATE_KEY) missingVars.push('FIREBASE_PRIVATE_KEY');
+
+    if (missingVars.length > 0) {
+      console.error("[ENV LOADED] FAILED: Missing", missingVars.join(', '));
+      return NextResponse.json({ 
+        error: "Missing required environment variables", 
+        missing: missingVars 
+      }, { status: 500 });
+    }
+    console.log("[ENV LOADED] SUCCESS");
+
+    // STEP 4: Firebase Admin initialization
+    console.log("[FIREBASE ADMIN INIT] Starting...");
+    try {
+      const { getAdminAuth, getAdminDb } = await import('../../../../src/lib/firebase-admin');
+      adminAuth = getAdminAuth();
+      adminDb = getAdminDb();
+      console.log("[FIREBASE ADMIN INIT] SUCCESS");
+    } catch (error: any) {
+      console.error("[FIREBASE ADMIN INIT] FAILED:", error.message);
+      return NextResponse.json({ error: "Firebase Admin Initialization Failed", details: error.message }, { status: 500 });
+    }
+
+    // STEP 5: Auth verification
+    console.log("[AUTH VERIFIED] Checking requester...");
+    try {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        throw new Error("Missing Authorization header");
+      }
+      const idToken = authHeader.split('Bearer ')[1];
+      decodedToken = await adminAuth.verifyIdToken(idToken);
+      
+      const requesterDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
+      if (!requesterDoc.exists) throw new Error("Requester profile not found");
+      
+      const requesterData = requesterDoc.data();
+      if (requesterData?.role !== 'owner' && requesterData?.role !== 'manager') {
+        throw new Error("Unauthorized: Insufficient permissions");
+      }
+      console.log("[AUTH VERIFIED] SUCCESS for UID:", decodedToken.uid);
+    } catch (error: any) {
+      console.error("[AUTH VERIFIED] FAILED:", error.message);
+      return NextResponse.json({ error: "Unauthorized", details: error.message }, { status: 401 });
+    }
+
+    // STEP 6: Create Auth User
+    console.log("[CREATE AUTH USER] Creating...");
+    try {
+      userRecord = await adminAuth.createUser({
+        email,
+        password: String(password),
+        displayName: name,
+      });
+      console.log("[CREATE AUTH USER] SUCCESS: UID", userRecord.uid);
+    } catch (error: any) {
+      console.error("[CREATE AUTH USER] FAILED:", error.message);
+      return NextResponse.json({ 
+        error: error.code === 'auth/email-already-exists' ? 'Email already in use' : "Auth user creation failed", 
+        details: error.message 
+      }, { status: error.code === 'auth/email-already-exists' ? 409 : 500 });
+    }
+
+    // STEP 7: Write Firestore
+    console.log("[WRITE FIRESTORE] Writing records...");
+    try {
+      const batch = adminDb.batch();
+      const ownerId = decodedToken.uid;
+      
+      const userRef = adminDb.collection('users').doc(userRecord.uid);
+      batch.set(userRef, {
+        email, name, role, businessId: business_id, createdBy: ownerId, active: true,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      });
+
+      const staffRef = adminDb.collection('businesses').doc(business_id).collection('staff').doc(userRecord.uid);
+      batch.set(staffRef, {
+        name, role, active: true, businessId: business_id, createdBy: ownerId,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      });
+
+      await batch.commit();
+      console.log("[WRITE FIRESTORE] SUCCESS");
+    } catch (error: any) {
+      console.error("[WRITE FIRESTORE] FAILED:", error.message);
+      // Cleanup auth user on firestore failure
+      await adminAuth.deleteUser(userRecord.uid).catch(() => {});
+      return NextResponse.json({ error: "Database write failed", details: error.message }, { status: 500 });
+    }
+
+    // STEP 8: Custom Claims
+    try {
+      await adminAuth.setCustomUserClaims(userRecord.uid, { role, businessId: business_id });
+      console.log("[STAFF CREATED] Claims set");
+    } catch (e: any) {
+      console.warn("[STAFF CREATED] Claims warning:", e.message);
+    }
+
+    // RETURN RESPONSE
+    console.log("[RETURN RESPONSE] SUCCESS 200");
+    return NextResponse.json({
+      success: true,
+      userId: userRecord.uid,
+      message: "User created successfully"
+    }, { status: 200 });
+
   } catch (error: any) {
-    console.error("[STAFF CREATED] WARNING: Setting custom claims error", error.message);
+    if (error.name === 'AbortError') {
+      console.error("[API TIMEOUT] Operation exceeded 10 seconds");
+      return NextResponse.json({ error: "Request timed out on server" }, { status: 504 });
+    }
+    console.error("[UNEXPECTED ERROR]", error);
+    return NextResponse.json({ error: "Unexpected error", details: error.message }, { status: 500 });
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  // STEP 8: Final Response
-  console.log("[API RESPONSE] User creation process completed SUCCESSFULLY");
-  return NextResponse.json({
-    success: true,
-    userId: userRecord.uid,
-    message: "User created and initialized successfully"
-  }, { status: 200 });
 }
