@@ -91,6 +91,7 @@ export default function ActivityLogDashboard() {
       stableWorkspaceId,
       stableUserId,
       stableRole,
+      selectedUserFilter,
       hasDb: !!db
     });
 
@@ -101,31 +102,25 @@ export default function ActivityLogDashboard() {
 
     setIsLoading(true);
 
-    const collectionPath = `businesses/${stableWorkspaceId}/activityLogs`;
-    console.log("[READ PATH]", collectionPath);
+    // Base query constraints
+    const queryConstraints: any[] = [orderBy('timestamp', 'desc'), limit(50)];
 
-    // Verify existence independently
-    const checkQuery = query(
-        collection(db, 'businesses', stableWorkspaceId, 'activityLogs'),
-        orderBy('timestamp', 'desc'),
-        limit(1)
-    );
-    getDocs(checkQuery).then(snapshot => {
-        console.log("[DEBUG] Pre-snapshot check:", { empty: snapshot.empty, count: snapshot.size });
-    }).catch(err => {
-        console.error("[DEBUG] Pre-snapshot check failed:", err);
-    });
+    // If staff, force filter by self. 
+    // If owner/manager and specific user selected, filter by that user.
+    if (stableRole === 'staff') {
+      queryConstraints.push(where('userId', '==', stableUserId));
+    } else if (selectedUserFilter !== 'ALL') {
+      const filterId = selectedUserFilter === 'ME' ? stableUserId : selectedUserFilter;
+      queryConstraints.push(where('userId', '==', filterId));
+    }
 
-    // Basic query to verify data existence
-    let logsQuery = query(
+    const logsQuery = query(
       collection(db, 'businesses', stableWorkspaceId, 'activityLogs'),
-      orderBy('timestamp', 'desc'),
-      limit(50)
+      ...queryConstraints
     );
 
     const unsubscribe = onSnapshot(logsQuery, (snapshot) => {
       console.log("[DEBUG] SNAPSHOT FIRED", snapshot.docs.length);
-      console.log("[SNAPSHOT CONNECTED]", { size: snapshot.size, empty: snapshot.empty });
       
       const rawLogs = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -135,19 +130,7 @@ export default function ActivityLogDashboard() {
         };
       }) as ActivityLog[];
 
-      // In-memory RBAC and Sorting
-      let filtered = rawLogs;
-      if (stableRole === 'staff') {
-        filtered = rawLogs.filter(log => String(log.userId) === String(stableUserId));
-      }
-
-      const sortedLogs = [...filtered].sort((a, b) => {
-        const timeA = a.timestamp?.toDate?.()?.getTime() || (a.timestamp ? new Date(a.timestamp).getTime() : 0);
-        const timeB = b.timestamp?.toDate?.()?.getTime() || (b.timestamp ? new Date(b.timestamp).getTime() : 0);
-        return timeB - timeA;
-      });
-      
-      setLogs(sortedLogs.slice(0, 50));
+      setLogs(rawLogs);
       if (snapshot.docs.length > 0) {
         setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
       }
@@ -159,7 +142,7 @@ export default function ActivityLogDashboard() {
     });
 
     return () => unsubscribe();
-  }, [workspaceId, userRole, currentUserId, refreshKey]);
+  }, [workspaceId, userRole, currentUserId, refreshKey, selectedUserFilter]);
 
   const loadMore = async () => {
     if (!hasMore || isLoading || !lastDoc) return;
@@ -177,6 +160,9 @@ export default function ActivityLogDashboard() {
 
     if (userRole === 'staff') {
       logsQuery = query(logsQuery, where('userId', '==', currentUserId));
+    } else if (selectedUserFilter !== 'ALL') {
+      const filterId = selectedUserFilter === 'ME' ? currentUserId : selectedUserFilter;
+      logsQuery = query(logsQuery, where('userId', '==', filterId));
     }
 
     try {

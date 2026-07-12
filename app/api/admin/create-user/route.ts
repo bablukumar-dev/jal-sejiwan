@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb, checkAdminStatus } from '../../../../src/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import crypto from 'crypto';
 
 export async function GET() {
   console.log("[HEALTH CHECK] GET /api/admin/create-user");
