@@ -68,23 +68,10 @@ export async function POST(req: NextRequest) {
 
     // STEP 3: Verify environment variables
     console.log("[ENV LOADED] Checking variables...");
-    const missingVars = [];
-    if (!process.env.FIREBASE_PROJECT_ID) missingVars.push('FIREBASE_PROJECT_ID');
-    if (!process.env.FIREBASE_CLIENT_EMAIL) missingVars.push('FIREBASE_CLIENT_EMAIL');
-    if (!process.env.FIREBASE_PRIVATE_KEY) missingVars.push('FIREBASE_PRIVATE_KEY');
-
-    if (missingVars.length > 0) {
-      console.error("[ENV LOADED] FAILED: Missing", missingVars.join(', '));
-      console.log("[ENV LOADED] Available keys:", Object.keys(process.env).join(', '));
-      return NextResponse.json({ 
-        error: "Missing required environment variables", 
-        missing: missingVars 
-      }, { status: 500 });
-    }
-    console.log("[ENV LOADED] SUCCESS");
+    // Firebase Admin SDK will validate credentials upon initialization in STEP 4
+    console.log("[ENV LOADED] Proceeding to initialization...");
 
     // STEP 4: Firebase Admin initialization
-    console.log("[FIREBASE ADMIN INIT] Already initialized at top level");
 
     // STEP 5: Auth verification
     console.log("[AUTH VERIFIED] Checking requester...");
