@@ -2,6 +2,11 @@ import { initializeApp, getApps, cert, getApp, App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
+import * as dotenv from 'dotenv';
+import path from 'path';
+
+// Force load .env.local if not already loaded
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 /**
  * Validates the firebase-admin configuration and credentials.
