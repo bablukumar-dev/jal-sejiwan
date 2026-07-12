@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '../../../src/lib/firebase-admin';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
+import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   console.log("-----------------------------------------");
@@ -45,8 +47,8 @@ export async function POST(req: NextRequest) {
       
       const finalLog = {
         ...logData,
-        timestamp: adminDb.firestore.Timestamp.fromDate(timestamp),
-        serverTimestamp: adminDb.firestore.FieldValue.serverTimestamp(),
+        timestamp: Timestamp.fromDate(timestamp),
+        serverTimestamp: FieldValue.serverTimestamp(),
         requestId: crypto.randomUUID(),
         performedByUID: decodedToken.uid,
         ip: req.ip || '0.0.0.0'

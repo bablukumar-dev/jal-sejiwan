@@ -189,7 +189,7 @@ export async function POST(req: NextRequest) {
     }
     console.error("[UNEXPECTED ERROR]", error);
     return NextResponse.json({ 
-      error: "Unexpected error", 
+      error: `Unexpected error: ${error.message}`, 
       details: error.message,
       stack: error.stack
     }, { status: 500 });

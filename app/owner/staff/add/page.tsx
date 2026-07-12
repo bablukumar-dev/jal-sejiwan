@@ -140,8 +140,9 @@ function AddStaff() {
         }
         
         if (!response.ok) {
-          console.error("--- TRACE FAILURE: API responded with error:", apiResult.error);
-          throw new Error(apiResult.error || 'Failed to create staff account');
+          console.error("--- TRACE FAILURE: API responded with error:", apiResult);
+          const errorMsg = apiResult.details ? `${apiResult.error}: ${apiResult.details}` : (apiResult.error || 'Failed to create staff account');
+          throw new Error(errorMsg);
         }
 
         console.log("--- TRACE: API SUCCESS. Result:", JSON.stringify(apiResult, null, 2));
