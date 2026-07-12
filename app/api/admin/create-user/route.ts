@@ -187,7 +187,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Request timed out on server" }, { status: 504 });
     }
     console.error("[UNEXPECTED ERROR]", error);
-    return NextResponse.json({ error: "Unexpected error", details: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Unexpected error", 
+      details: error.message,
+      stack: error.stack
+    }, { status: 500 });
   } finally {
     clearTimeout(timeoutId);
   }
