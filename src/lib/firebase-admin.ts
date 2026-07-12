@@ -8,18 +8,31 @@ import firebaseConfig from '../../firebase-applet-config.json';
  * Throws a descriptive error if something is missing.
  */
 function validateCredentials() {
+  console.log('[DEBUG] process.cwd():', process.cwd());
+  console.log('[DEBUG] FIREBASE keys in process.env:', Object.keys(process.env).filter(k => k.startsWith('FIREBASE')));
+  
   const projectId = process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   let privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
+  console.log('[DEBUG] projectId:', !!projectId, projectId);
+  console.log('[DEBUG] clientEmail:', !!clientEmail);
+  console.log('[DEBUG] privateKeyExists:', !!privateKey);
+
   if (privateKey) {
-    // Crucial: Handle literal \n strings (common in env vars)
+    // 1. Unescape literal \n
     privateKey = privateKey.replace(/\\n/g, '\n');
     
-    // Handle escaped quotes if present
-    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-      privateKey = privateKey.substring(1, privateKey.length - 1);
-    }
+    // 2. Trim whitespace
+    privateKey = privateKey.trim();
+
+    // 3. Remove surrounding quotes if they exist
+    privateKey = privateKey.replace(/^["']|["']$/g, '');
+
+    // Debugging as requested
+    console.log('[DEBUG] Private Key Length:', privateKey.length);
+    console.log('[DEBUG] Private Key Start:', privateKey.substring(0, 30));
+    console.log('[DEBUG] Private Key End:', privateKey.substring(privateKey.length - 30));
   }
 
   const errors: string[] = [];
@@ -52,12 +65,15 @@ function initAdmin() {
   try {
     const { projectId, clientEmail, privateKey } = validateCredentials();
 
+    const credentials = {
+        project_id: projectId as string,
+        client_email: clientEmail as string,
+        private_key: privateKey as string,
+    };
+    console.log('[DEBUG] Credential keys:', Object.keys(credentials));
+    
     adminApp = initializeApp({
-      credential: cert({
-        projectId,
-        clientEmail,
-        privateKey,
-      }),
+      credential: cert(credentials),
     });
 
     console.log('[ADMIN INIT] Firebase Admin SDK initialized successfully for project:', projectId);
