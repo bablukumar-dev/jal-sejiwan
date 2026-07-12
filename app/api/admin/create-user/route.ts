@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
 
     if (missingVars.length > 0) {
       console.error("[ENV LOADED] FAILED: Missing", missingVars.join(', '));
+      console.log("[ENV LOADED] Available keys:", Object.keys(process.env).join(', '));
       return NextResponse.json({ 
         error: "Missing required environment variables", 
         missing: missingVars 
