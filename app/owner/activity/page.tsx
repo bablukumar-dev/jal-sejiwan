@@ -104,6 +104,18 @@ export default function ActivityLogDashboard() {
     const collectionPath = `businesses/${stableWorkspaceId}/activityLogs`;
     console.log("[READ PATH]", collectionPath);
 
+    // Verify existence independently
+    const checkQuery = query(
+        collection(db, 'businesses', stableWorkspaceId, 'activityLogs'),
+        orderBy('timestamp', 'desc'),
+        limit(1)
+    );
+    getDocs(checkQuery).then(snapshot => {
+        console.log("[DEBUG] Pre-snapshot check:", { empty: snapshot.empty, count: snapshot.size });
+    }).catch(err => {
+        console.error("[DEBUG] Pre-snapshot check failed:", err);
+    });
+
     // Basic query to verify data existence
     let logsQuery = query(
       collection(db, 'businesses', stableWorkspaceId, 'activityLogs'),
