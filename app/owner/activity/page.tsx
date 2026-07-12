@@ -112,6 +112,7 @@ export default function ActivityLogDashboard() {
     );
 
     const unsubscribe = onSnapshot(logsQuery, (snapshot) => {
+      console.log("[DEBUG] SNAPSHOT FIRED", snapshot.docs.length);
       console.log("[SNAPSHOT CONNECTED]", { size: snapshot.size, empty: snapshot.empty });
       
       const rawLogs = snapshot.docs.map(doc => {

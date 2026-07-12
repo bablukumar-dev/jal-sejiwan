@@ -49,6 +49,7 @@ function AddStaff() {
   };
 
   const handleSave = async (e: React.FormEvent) => {
+    alert("handleSave triggered");
     e.preventDefault();
     console.log("--- TRACE: AddStaff handleSave START ---");
     setErrorMessage(null);
