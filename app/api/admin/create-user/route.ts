@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb, checkAdminStatus } from '../../../../src/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export async function GET() {
   console.log("[HEALTH CHECK] GET /api/admin/create-user");
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
 
     // STEP 5: Auth verification
     console.log("[AUTH VERIFIED] Checking requester...");
+    let requesterData: any;
     try {
       const authHeader = req.headers.get('Authorization');
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -86,7 +88,7 @@ export async function POST(req: NextRequest) {
       const requesterDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
       if (!requesterDoc.exists) throw new Error("Requester profile not found");
       
-      const requesterData = requesterDoc.data();
+      requesterData = requesterDoc.data();
       if (requesterData?.role !== 'owner' && requesterData?.role !== 'manager') {
         throw new Error("Unauthorized: Insufficient permissions");
       }
@@ -135,6 +137,27 @@ export async function POST(req: NextRequest) {
 
       await batch.commit();
       console.log("[WRITE FIRESTORE] SUCCESS");
+
+      // ADDED: Log the activity
+      try {
+        await adminDb.collection('businesses').doc(business_id).collection('activityLogs').add({
+          activityId: crypto.randomUUID(),
+          timestamp: FieldValue.serverTimestamp(),
+          userId: decodedToken.uid,
+          userName: requesterData?.name || 'Admin',
+          email: decodedToken.email || '',
+          role: requesterData?.role || 'owner',
+          businessId: business_id,
+          module: 'Organization',
+          action: 'Create Staff',
+          description: `Staff created: ${email} (${role})`,
+          status: 'success',
+          success: true,
+        });
+        console.log("[LOG ACTIVITY] SUCCESS");
+      } catch (logError: any) {
+        console.error("[LOG ACTIVITY] FAILED:", logError.message);
+      }
     } catch (error: any) {
       console.error("[WRITE FIRESTORE] FAILED:", error.message);
       // Cleanup auth user on firestore failure
