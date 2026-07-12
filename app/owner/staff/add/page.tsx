@@ -4,7 +4,7 @@ import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAppContext } from '@/app/context/AppContext';
+import { useAppContext, Staff } from '@/app/context/AppContext';
 import { getFirebase } from '@/src/lib/firebase';
 import { hashPin } from '@/lib/authHelper';
 import { logActivity } from '@/lib/activityLogger';
@@ -32,6 +32,9 @@ function AddStaff() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isAddingRoute, setIsAddingRoute] = useState(false);
   const [newRouteInput, setNewRouteInput] = useState('');
+
+  // Derive currentUserRole from currentUser or fallback to stored role
+  const currentUserRole = currentUser?.role || (typeof window !== 'undefined' ? localStorage.getItem('userRole') : 'owner');
 
   const handleAddRoute = () => {
     const trimmed = newRouteInput.trim();
@@ -143,21 +146,21 @@ function AddStaff() {
 
         console.log("--- TRACE: API SUCCESS. Result:", JSON.stringify(apiResult, null, 2));
 
-        const newStaffMember = {
+        const newStaffMember: Staff = {
           id: apiResult.userId,
           name: nameVal.value,
-          phone: emailVal.value,
-          role: sanitizeString(role),
+          phone: emailVal.value, // Email used as identifier
+          role: dbRole,
           route: sanitizeString(route),
           pin: 'HIDDEN',
           active: true,
-          createdBy: 'owner',
+          createdBy: currentUserRole,
           failedPinAttempts: 0,
-          permissions: role === 'Manager' ? permissions : undefined,
-          businessId: currentUser?.businessId || ''
+          permissions: dbRole === 'manager' ? permissions : undefined,
+          businessId: currentBusinessId
         };
 
-        setStaff([...staff, newStaffMember]);
+        setStaff(prev => [...prev, newStaffMember]);
         
         logActivity({
           module: 'Organization',
