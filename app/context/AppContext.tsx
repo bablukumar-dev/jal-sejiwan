@@ -307,7 +307,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsLoggingOut(false);
       console.log("Logout Complete");
     }
-  }, [setIsLoggingOut, currentUser]);
+  }, [setIsLoggingOut]);
 
   useEffect(() => {
     const { auth, db } = getFirebase();

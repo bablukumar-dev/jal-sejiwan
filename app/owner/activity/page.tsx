@@ -82,10 +82,9 @@ export default function ActivityLogDashboard() {
     const { db } = getFirebase();
     
     // Resolve stable values for the listener
-    const rawBId = currentUser?.businessId || null;
-    const stableWorkspaceId = typeof rawBId === 'string' ? rawBId.trim() : rawBId;
-    const stableUserId = currentUser?.uid || null;
-    const stableRole = currentUser?.role || 'staff';
+    const stableWorkspaceId = typeof workspaceId === 'string' ? workspaceId.trim() : workspaceId;
+    const stableUserId = currentUserId;
+    const stableRole = userRole;
 
     console.log("[ActivityLogDashboard] useEffect setup", {
       stableWorkspaceId,
