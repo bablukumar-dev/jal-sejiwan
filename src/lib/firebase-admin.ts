@@ -1,5 +1,4 @@
-import { initializeApp, getApps, cert, getApp, App } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
+import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -49,12 +48,12 @@ function validateCredentials() {
   return { projectId, clientEmail, privateKey };
 }
 
-let adminApp: App | null = null;
+let adminApp: admin.app.App | null = null;
 
 function initAdmin() {
   if (adminApp) return adminApp;
 
-  const existingApps = getApps();
+  const existingApps = admin.apps;
   if (existingApps.length > 0) {
     console.log('[ADMIN INIT] Using existing Firebase Admin app');
     adminApp = existingApps[0];
@@ -72,8 +71,8 @@ function initAdmin() {
     };
     console.log('[DEBUG] Credential keys:', Object.keys(credentials));
     
-    adminApp = initializeApp({
-      credential: cert(credentials),
+    adminApp = admin.initializeApp({
+      credential: admin.credential.cert(credentials),
     });
 
     console.log('[ADMIN INIT] Firebase Admin SDK initialized successfully for project:', projectId);
@@ -86,23 +85,12 @@ function initAdmin() {
 
 export const getAdminAuth = () => {
   const app = initAdmin();
-  return getAuth(app);
+  return admin.auth(app);
 };
 
 export const getAdminDb = () => {
   const app = initAdmin();
-  const databaseId = firebaseConfig.firestoreDatabaseId;
-  
-  if (!databaseId || databaseId === '(default)') {
-    return getFirestore(app);
-  }
-  
-  try {
-    return getFirestore(app, databaseId);
-  } catch (err: any) {
-    console.error('[ADMIN INIT] Firestore init error with databaseId:', databaseId, err.message);
-    return getFirestore(app);
-  }
+  return getFirestore(app, firebaseConfig.firestoreDatabaseId);
 };
 
 export const checkAdminStatus = () => {

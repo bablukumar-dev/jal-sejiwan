@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '../../../src/lib/firebase-admin';
-import { Timestamp, FieldValue } from 'firebase-admin/firestore';
+import * as admin from 'firebase-admin';
 import crypto from 'crypto';
+
+const Timestamp = admin.firestore.Timestamp;
+const FieldValue = admin.firestore.FieldValue;
 
 export async function POST(req: NextRequest) {
   console.log("-----------------------------------------");

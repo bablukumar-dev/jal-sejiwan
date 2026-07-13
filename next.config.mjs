@@ -11,6 +11,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
+    serverComponentsExternalPackages: ['firebase-admin'],
     optimizePackageImports: ['lucide-react'],
   },
   // Allow access to remote image placeholder.

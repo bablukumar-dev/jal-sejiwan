@@ -256,7 +256,7 @@ const safeGet = (key: string): string | null => {
   }
 };
 
-// Lightweight caching layer for Supabase workspace queries to prevent redundant real-time listeners
+// Lightweight caching layer for workspace queries to prevent redundant real-time listeners
 let activeUnsubscribe: (() => void) | null = null;
 let activeWorkspaceId: string | null = null;
 

@@ -44,7 +44,8 @@ export async function POST(req: NextRequest) {
 
     // Process changes and convert custom serialized increments to Admin FieldValue.increment
     const adminChanges: any = {};
-    const { FieldValue } = await import('firebase-admin/firestore');
+    const admin = await import('firebase-admin');
+    const FieldValue = admin.firestore.FieldValue;
 
     for (const [key, val] of Object.entries(changes)) {
       if (val && typeof val === 'object' && (val as any)._type === 'increment') {

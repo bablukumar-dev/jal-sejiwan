@@ -12,29 +12,6 @@ export interface RateLimitResult {
   resetTime: number;
 }
 
-/**
- * Checks login rate limit in Supabase.
- * If there are more than 5 failed attempts in the last 10 minutes, blocks login.
- */
-export async function checkSupabaseLoginRateLimit(identifier: string): Promise<{ limited: boolean; msg?: string }> {
-  // Auth system removed - rate limiting disabled
-  return { limited: false };
-}
-
-/**
- * Records a failed login attempt in Supabase.
- */
-export async function recordFailedLoginAttempt(identifier: string): Promise<void> {
-  // Auth system removed - logging disabled
-}
-
-/**
- * Resets failed login attempts on successful login.
- */
-export async function resetFailedLoginAttempts(identifier: string): Promise<void> {
-  // Auth system removed - reset disabled
-}
-
 
 /**
  * Checks rate limits on server side or in-memory operations.
