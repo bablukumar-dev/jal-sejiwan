@@ -38,3 +38,29 @@ export function isPublicPath(pathname: string | null): boolean {
          pathname.startsWith('/signup') ||
          pathname === '/unauthorized';
 }
+
+export function getSafeNumber(val: any, fallback = 0): number {
+  if (val === undefined || val === null) return fallback;
+  if (typeof val === 'number') {
+    return isNaN(val) ? fallback : val;
+  }
+  if (typeof val === 'string') {
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? fallback : parsed;
+  }
+  if (typeof val === 'object') {
+    if ('value' in val && typeof val.value === 'number') {
+      return val.value;
+    }
+    if ('Pr' in val && typeof val.Pr === 'number') {
+      return val.Pr;
+    }
+    if ('operand' in val && typeof val.operand === 'number') {
+      return val.operand;
+    }
+    if ('_type' in val && val._type === 'increment' && typeof val.value === 'number') {
+      return val.value;
+    }
+  }
+  return fallback;
+}

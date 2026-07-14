@@ -1,6 +1,6 @@
 'use client';
 
-import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle, CheckCircle2, Search, ChevronDown, RefreshCcw, Database, AlertCircle } from 'lucide-react';
+import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle, CheckCircle2, Search, ChevronDown, RefreshCcw, Database, AlertCircle, Globe, Calendar, Shield, Building, Phone, Mail, MapPin, CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect, useCallback } from 'react';
@@ -302,292 +302,421 @@ export default function SettingsPage() {
       )}
       <TopAppBar title="Profile" showBack={true} showProfile={false} />
 
-      <main className="max-w-md mx-auto px-4 py-6">
-        {/* Profile Header (Instagram/FB Style) */}
-        <div className="flex flex-col items-center mt-2 mb-8 relative">
-          <div className="relative">
-            <div className="w-28 h-28 rounded-full bg-slate-200 overflow-hidden border-[5px] border-white shadow-xl flex items-center justify-center relative bg-gradient-to-tr from-blue-100 to-indigo-50">
-              {profileImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profileImage} alt={`${userRole === 'owner' ? (businessInfo?.ownerName || currentUser?.ownerName || 'Owner') : userName} - Registered Owner/Manager Profile on JalSejiwan`} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-4xl font-bold text-blue-400">
-                  {userRole === 'owner' ? (businessInfo?.ownerName || currentUser?.ownerName || 'O').charAt(0).toUpperCase() : (userName || 'U').charAt(0).toUpperCase()}
-                </span>
-              )}
+      <main className="max-w-6xl mx-auto px-4 py-8 md:px-8">
+        
+        {/* Profile SaaS-Style Header Banner */}
+        <div className="bg-white rounded-3xl border border-slate-100 p-6 md:p-8 shadow-sm mb-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-blue-50/40 to-transparent rounded-full pointer-events-none"></div>
+          
+          <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+            <div className="relative">
+              <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-slate-200 overflow-hidden border-[5px] border-white shadow-xl flex items-center justify-center relative bg-gradient-to-tr from-blue-100 to-indigo-50">
+                {profileImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img 
+                    src={profileImage} 
+                    alt={`${userRole === 'owner' ? (businessInfo?.ownerName || currentUser?.ownerName || 'Owner') : userName} - Registered Owner/Manager Profile on JalSejiwan`} 
+                    className="w-full h-full object-cover" 
+                  />
+                ) : (
+                  <span className="text-3xl md:text-4xl font-bold text-blue-500">
+                    {userRole === 'owner' ? (businessInfo?.ownerName || currentUser?.ownerName || 'O').charAt(0).toUpperCase() : (userName || 'U').charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <label className="absolute bottom-0 right-0 bg-blue-600 outline outline-4 outline-white text-white p-2 md:p-2.5 rounded-full shadow-lg cursor-pointer active:scale-95 transition-transform hover:bg-blue-700">
+                <Camera className="w-3.5 h-3.5" />
+                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} />
+              </label>
             </div>
-            <label className="absolute bottom-0 right-0 bg-blue-600 outline outline-4 outline-white text-white p-2.5 rounded-full shadow-lg cursor-pointer active:scale-95 transition-transform hover:bg-blue-700">
-              <Camera className="w-4 h-4" />
-              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} />
-            </label>
+            
+            <div className="text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight leading-none">
+                  {currentUser?.ownerName || 'User'}
+                </h1>
+                <button 
+                  onClick={() => { setNewName(currentUser?.ownerName || ''); setIsEditingProfile(true); }}
+                  className="p-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+                  title="Edit Profile"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p className="text-sm font-medium text-slate-500 mt-2 flex flex-wrap items-center justify-center md:justify-start gap-2">
+                <span className="font-semibold text-slate-700">{currentUser?.businessName || businessInfo?.name || 'Business'}</span>
+                <span className="text-slate-300">•</span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 capitalize border border-blue-100">
+                  {userRole}
+                </span>
+                <span className="text-slate-300">•</span>
+                <span className="text-slate-400 text-xs">ID: {currentUser?.businessId || 'N/A'}</span>
+              </p>
+            </div>
           </div>
-          <div className="mt-4 flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900 leading-none tracking-tight">
-              {currentUser?.ownerName || 'User'}
-            </h1>
-            <button 
-              onClick={() => { setNewName(currentUser?.ownerName || ''); setIsEditingProfile(true); }}
-              className="p-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <p className="text-sm font-medium text-slate-500 mt-1.5">
-            {currentUser?.businessName || businessInfo?.name || 'Business'} • {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-          </p>
-        </div>
 
-        {/* Profile Information Block */}
-        <div className="bg-white rounded-3xl border border-slate-100 p-5 mb-8 shadow-sm space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-50 pb-3">
-            <h3 className="text-sm font-bold text-slate-800">Profile Information</h3>
+          <div className="shrink-0 flex items-center gap-3">
             <button 
               onClick={() => setIsEditingProfile(true)}
-              className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full"
+              className="px-5 py-2.5 bg-blue-600 text-white font-semibold text-sm rounded-full shadow-md shadow-blue-600/10 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20 active:scale-98 transition-all flex items-center gap-2"
             >
-              <Edit2 className="w-3 h-3" /> Edit
+              <Edit2 className="w-4 h-4" /> Edit Profile
             </button>
-          </div>
-          <div className="grid grid-cols-1 gap-3 text-xs">
-            <div className="flex justify-between py-1 border-b border-slate-50/50">
-              <span className="text-slate-400 font-medium">Business ID</span>
-              <span className="text-slate-700 font-mono font-semibold">{currentUser?.businessId || 'N/A'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50">
-              <span className="text-slate-400 font-medium">System Role</span>
-              <span className="text-slate-700 font-semibold uppercase">{userRole}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50">
-              <span className="text-slate-400 font-medium">Full Name</span>
-              <span className="text-slate-800 font-bold">{currentUser?.ownerName || 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50">
-              <span className="text-slate-400 font-medium">Business Name</span>
-              <span className="text-slate-800 font-semibold">{currentUser?.businessName || businessInfo?.name || 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50">
-              <span className="text-slate-400 font-medium">Phone Number</span>
-              <span className="text-slate-800 font-semibold">{currentUser?.phone ? `+91 ${currentUser.phone}` : 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50">
-              <span className="text-slate-400 font-medium">Email Address</span>
-              <span className="text-slate-800 font-semibold">{currentUser?.email || 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50">
-              <span className="text-slate-400 font-medium">Office/Residential Address</span>
-              <span className="text-slate-800 font-semibold text-right max-w-[200px] truncate" title={currentUser?.address}>{currentUser?.address || 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50">
-              <span className="text-slate-400 font-medium">City / District</span>
-              <span className="text-slate-800 font-semibold">{currentUser?.city || 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50">
-              <span className="text-slate-400 font-medium">State</span>
-              <span className="text-slate-800 font-semibold">{currentUser?.state || 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50">
-              <span className="text-slate-400 font-medium">Pincode</span>
-              <span className="text-slate-800 font-semibold">{currentUser?.pincode || 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1">
-              <span className="text-slate-400 font-medium">GST Number</span>
-              <span className="text-slate-800 font-semibold uppercase">{currentUser?.gstNumber || 'Not configured'}</span>
-            </div>
           </div>
         </div>
 
-        {(userRole === 'owner' || userRole === 'manager') && (
-          <>
-            <div className="flex justify-between bg-white p-5 rounded-3xl border border-slate-100 mb-8 shadow-sm px-6">
-              <div className="text-center flex-1">
-                <div className="text-2xl font-bold text-slate-900 tracking-tight">{routes.length}</div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Routes</div>
+        {/* 2-Column Responsive Layout Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          
+          {/* LEFT PANEL: Profile Details + Operations + Config (Takes 2 Columns on large screens) */}
+          <div className="lg:col-span-2 space-y-8">
+            
+            {/* Profile Information Block */}
+            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-800">Profile Information</h3>
+                </div>
               </div>
-              <div className="w-px bg-slate-100 mx-2"></div>
-              <div className="text-center flex-1">
-                <div className="text-2xl font-bold text-slate-900 tracking-tight">{staff.filter(s => s.active).length}</div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Staff</div>
-              </div>
-              <div className="w-px bg-slate-100 mx-2"></div>
-              <div className="text-center flex-1">
-                <div className="text-2xl font-bold text-slate-900 tracking-tight">{deliveries.length > 1000 ? `${(deliveries.length / 1000).toFixed(1)}k` : deliveries.length}</div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Orders</div>
+
+              {/* Sub-sections of Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                
+                {/* Section A: Account & Personal Info */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-l-2 border-blue-600 pl-2">Personal Details</h4>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between py-1.5 border-b border-slate-50">
+                      <span className="text-slate-400 font-medium flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Full Name</span>
+                      <span className="text-slate-800 font-bold">{currentUser?.ownerName || 'Not configured'}</span>
+                    </div>
+                    
+                    <div className="flex justify-between py-1.5 border-b border-slate-50">
+                      <span className="text-slate-400 font-medium flex items-center gap-2"><Mail className="w-3.5 h-3.5" /> Email Address</span>
+                      <span className="text-slate-800 font-semibold">{currentUser?.email || 'Not configured'}</span>
+                    </div>
+
+                    <div className="flex justify-between py-1.5 border-b border-slate-50">
+                      <span className="text-slate-400 font-medium flex items-center gap-2"><Phone className="w-3.5 h-3.5" /> Phone Number</span>
+                      <span className="text-slate-800 font-semibold">{currentUser?.phone ? `+91 ${currentUser.phone}` : 'Not configured'}</span>
+                    </div>
+
+                    <div className="flex justify-between py-1.5 border-b border-slate-50">
+                      <span className="text-slate-400 font-medium flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Member Since</span>
+                      <span className="text-slate-800 font-semibold">
+                        {currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'July 2026'}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-slate-400 font-medium flex items-center gap-2"><Shield className="w-3.5 h-3.5" /> System Role</span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-700 uppercase">
+                        {userRole}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section B: Business Profile */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-l-2 border-indigo-600 pl-2">Business Settings</h4>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between py-1.5 border-b border-slate-50">
+                      <span className="text-slate-400 font-medium flex items-center gap-2"><Building className="w-3.5 h-3.5" /> Business Name</span>
+                      <span className="text-slate-800 font-bold text-right">{currentUser?.businessName || businessInfo?.name || 'Not configured'}</span>
+                    </div>
+
+                    <div className="flex justify-between py-1.5 border-b border-slate-50">
+                      <span className="text-slate-400 font-medium flex items-center gap-2"><Database className="w-3.5 h-3.5" /> Business ID</span>
+                      <span className="text-slate-700 font-mono font-semibold">{currentUser?.businessId || 'N/A'}</span>
+                    </div>
+
+                    <div className="flex justify-between py-1.5 border-b border-slate-50">
+                      <span className="text-slate-400 font-medium flex items-center gap-2"><CreditCard className="w-3.5 h-3.5" /> GST Number</span>
+                      <span className="text-slate-800 font-bold uppercase">{currentUser?.gstNumber || 'Not configured'}</span>
+                    </div>
+
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-slate-400 font-medium flex items-center gap-2"><Globe className="w-3.5 h-3.5" /> Country</span>
+                      <span className="text-slate-800 font-semibold">India</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section C: Address Details (Full Width of Grid) */}
+                <div className="md:col-span-2 space-y-4 border-t border-slate-100 pt-6">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-l-2 border-emerald-600 pl-2">Location & Billing Address</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="flex flex-col gap-1 py-1.5 border-b border-slate-50 md:border-b-0">
+                      <span className="text-slate-400 font-medium flex items-center gap-2"><MapPin className="w-3.5 h-3.5" /> Office Address</span>
+                      <span className="text-slate-800 font-semibold leading-relaxed mt-1">{currentUser?.address || 'Not configured'}</span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between py-1 border-b border-slate-50">
+                        <span className="text-slate-400 font-medium">City / District</span>
+                        <span className="text-slate-800 font-semibold">{currentUser?.city || 'Not configured'}</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-slate-50">
+                        <span className="text-slate-400 font-medium">State</span>
+                        <span className="text-slate-800 font-semibold">{currentUser?.state || 'Not configured'}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-slate-400 font-medium">Pincode</span>
+                        <span className="text-slate-800 font-semibold">{currentUser?.pincode || 'Not configured'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
 
-            {/* Premium Banner */}
-            {userRole === 'owner' && (
-              <div className="bg-gradient-to-r from-blue-700 to-indigo-700 rounded-3xl p-6 text-white mb-8 text-center relative overflow-hidden shadow-lg shadow-blue-900/20">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -mr-10 -mt-10 opacity-10 blur-2xl"></div>
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full -ml-8 -mb-8 opacity-10 blur-xl"></div>
-                <div className="relative z-10">
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
-                    <BadgeCheck className="w-6 h-6 text-white" />
-                  </div>
-                  <h2 className="text-lg font-bold mb-1">Premium Partner</h2>
-                  <p className="text-blue-100 text-sm mb-4">Status active until Oct 2025</p>
-                  <button className="bg-white text-blue-700 font-bold px-6 py-2.5 rounded-full text-sm active:scale-95 transition-transform hover:bg-slate-50">
-                    RENEW NOW
-                  </button>
+            {/* Operational Controls Block */}
+            {(userRole === 'owner' || userRole === 'manager') && (
+              <div>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Operational Control</h3>
+                <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                  <Link href="/owner/routes" className="w-full flex items-center justify-between p-5 border-b border-slate-50 active:bg-slate-50 transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                        <Route className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="font-bold text-slate-900">Route Management</h4>
+                        <p className="text-xs text-slate-500">Manage delivery sectors and timing</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                  {(userRole === 'owner' || userRole === 'manager') && (
+                    <>
+                      {userRole === 'owner' && (
+                        <Link href="/owner/dashboard/prices" className="w-full flex items-center justify-between p-5 border-b border-slate-50 active:bg-slate-50 transition-colors group">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
+                              <BadgeIndianRupee className="w-5 h-5" />
+                            </div>
+                            <div className="text-left">
+                              <h4 className="font-bold text-slate-900">Price Settings</h4>
+                              <p className="text-xs text-slate-500">Update bottle rates and discounts</p>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                      )}
+                      <Link href="/owner/staff" className="w-full flex items-center justify-between p-5 active:bg-slate-50 transition-colors group">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-purple-50 group-hover:text-purple-600 transition-colors">
+                            <Users className="w-5 h-5" />
+                          </div>
+                          <div className="text-left">
+                            <h4 className="font-bold text-slate-900">Staff Accounts</h4>
+                            <p className="text-xs text-slate-500">{staff.length} Active delivery partners</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Operational Control */}
-            <div className="mb-8">
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">Operational Control</h3>
+            {/* App Configuration Block */}
+            <div>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">App Configuration</h3>
               <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-                <Link href="/owner/routes" className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
+                <div className="w-full flex items-center justify-between p-5 border-b border-slate-50">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                      <Route className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center">
+                      <Bell className="w-5 h-5" />
                     </div>
                     <div className="text-left">
-                      <h4 className="font-bold text-slate-900">Route Management</h4>
-                      <p className="text-xs text-slate-500">Manage delivery sectors and timing</p>
+                      <h4 className="font-bold text-slate-900">Notifications</h4>
+                      <p className="text-xs text-slate-500">Alerts, Dues, and Delivery updates</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300" />
-                </Link>
-                {(userRole === 'owner' || userRole === 'manager') && (
-                  <>
-                    {userRole === 'owner' && (
-                      <Link href="/owner/dashboard/prices" className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
-                            <BadgeIndianRupee className="w-5 h-5" />
-                          </div>
-                          <div className="text-left">
-                            <h4 className="font-bold text-slate-900">Price Settings</h4>
-                            <p className="text-xs text-slate-500">Update bottle rates and discounts</p>
-                          </div>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-slate-300" />
-                      </Link>
-                    )}
-                    <Link href="/owner/staff" className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-purple-50 group-hover:text-purple-600 transition-colors">
-                          <Users className="w-5 h-5" />
-                        </div>
-                        <div className="text-left">
-                          <h4 className="font-bold text-slate-900">Staff Accounts</h4>
-                          <p className="text-xs text-slate-500">{staff.length} Active delivery partners</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-slate-300" />
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
-          </>
-        )}
+                  <button 
+                    onClick={toggleNotifications}
+                    className={`w-12 h-6 rounded-full relative transition-colors duration-300 ease-in-out cursor-pointer ${notificationsEnabled ? 'bg-blue-600' : 'bg-slate-200'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 ease-in-out ${notificationsEnabled ? 'right-1' : 'left-1'}`}></div>
+                  </button>
+                </div>
+                
+                <button 
+                  onClick={() => setIsLangModalOpen(true)}
+                  className="w-full flex items-center justify-between p-5 border-b border-slate-50 active:bg-slate-50 transition-colors group text-left"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-orange-50 group-hover:text-orange-600 transition-colors">
+                      <Languages className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-bold text-slate-900">Language Selection</h4>
+                      <p className="text-xs text-slate-500">Choose your preferred interface</p>
+                    </div>
+                  </div>
+                  <div className="flex bg-slate-50 border border-slate-100 rounded-xl p-1 items-center">
+                    <span className="text-slate-700 text-[10px] font-bold px-3 py-1">{selectedLanguage.split(' ')[0]}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 mr-1" />
+                  </div>
+                </button>
 
-        {/* App Configuration */}
-        <div className="mb-8">
-          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">App Configuration</h3>
-          <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-            <div className="w-full flex items-center justify-between p-4 border-b border-slate-50">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center">
-                  <Bell className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-slate-900">Notifications</h4>
-                  <p className="text-xs text-slate-500">Alerts, Dues, and Delivery updates</p>
-                </div>
+                <button 
+                  onClick={() => setIsSyncLogOpen(true)}
+                  className="w-full flex items-center justify-between p-5 active:bg-slate-50 transition-colors group text-left"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                      <RefreshCcw className={`w-5 h-5 ${pendingSyncs.length > 0 ? 'animate-spin-slow text-blue-600' : ''}`} />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-bold text-slate-900">Offline Sync Log</h4>
+                      <p className="text-xs text-slate-500">{pendingSyncs.length > 0 ? `${pendingSyncs.length} actions waiting to sync` : 'All data is up to date'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {pendingSyncs.length > 0 && (
+                      <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
+                        {pendingSyncs.length}
+                      </div>
+                    )}
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
               </div>
-              <button 
-                onClick={toggleNotifications}
-                className={`w-12 h-6 rounded-full relative transition-colors duration-300 ease-in-out ${notificationsEnabled ? 'bg-blue-600' : 'bg-slate-200'}`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 ease-in-out ${notificationsEnabled ? 'right-1' : 'left-1'}`}></div>
-              </button>
             </div>
-            <button 
-              onClick={() => setIsLangModalOpen(true)}
-              className="w-full flex items-center justify-between p-4 border-b border-slate-50 active:bg-slate-50 transition-colors group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-orange-50 group-hover:text-orange-600 transition-colors">
-                  <Languages className="w-5 h-5" />
+
+          </div>
+
+          {/* RIGHT PANEL: Subscription + Stats + Support (Takes 1 Column) */}
+          <div className="space-y-8">
+            
+            {/* Account & Subscription Card (REDESIGNED) */}
+            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-50/20 to-transparent rounded-full pointer-events-none"></div>
+              
+              <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-slate-500" /> Account Plan
+              </h3>
+              
+              <div className="space-y-4">
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Plan</span>
+                      <h4 className="text-lg font-bold text-blue-900 mt-0.5">JalSejiwan Enterprise</h4>
+                    </div>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-100">
+                      Active
+                    </span>
+                  </div>
+                  <div className="mt-4 flex justify-between text-xs text-slate-500 font-medium">
+                    <span>Renewal: October 2025</span>
+                    <span className="text-slate-700 font-bold">Annual Billing</span>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-slate-900">Language Selection</h4>
-                  <p className="text-xs text-slate-500">Choose your preferred interface</p>
-                </div>
-              </div>
-              <div className="flex bg-slate-50 border border-slate-100 rounded-xl p-1 items-center">
-                <span className="text-slate-700 text-[10px] font-bold px-3 py-1">{selectedLanguage.split(' ')[0]}</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400 mr-1" />
-              </div>
-            </button>
-            <button 
-              onClick={() => setIsSyncLogOpen(true)}
-              className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                  <RefreshCcw className={`w-5 h-5 ${pendingSyncs.length > 0 ? 'animate-spin-slow text-blue-600' : ''}`} />
-                </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-slate-900">Offline Sync Log</h4>
-                  <p className="text-xs text-slate-500">{pendingSyncs.length > 0 ? `${pendingSyncs.length} actions waiting to sync` : 'All data is up to date'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {pendingSyncs.length > 0 && (
-                  <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
-                    {pendingSyncs.length}
+
+                {/* Performance / Operations Statistics */}
+                {(userRole === 'owner' || userRole === 'manager') && (
+                  <div className="border-t border-slate-100 pt-4 mt-2">
+                    <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Operational Scale</h5>
+                    
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-100/50">
+                        <div className="text-xl font-extrabold text-slate-800 tracking-tight">{routes.length}</div>
+                        <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Routes</div>
+                      </div>
+                      <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-100/50">
+                        <div className="text-xl font-extrabold text-slate-800 tracking-tight">{staff.filter(s => s.active).length}</div>
+                        <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Staff</div>
+                      </div>
+                      <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-100/50">
+                        <div className="text-xl font-extrabold text-slate-800 tracking-tight">{deliveries.length > 1000 ? `${(deliveries.length / 1000).toFixed(1)}k` : deliveries.length}</div>
+                        <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Orders</div>
+                      </div>
+                    </div>
                   </div>
                 )}
-                <ChevronRight className="w-5 h-5 text-slate-300" />
+                
+                {/* Premium Banner (Owner Only) */}
+                {userRole === 'owner' && (
+                  <div className="bg-gradient-to-r from-blue-700 to-indigo-700 rounded-2xl p-5 text-white text-center relative overflow-hidden shadow-md shadow-blue-900/10 mt-4">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-white rounded-full -mr-8 -mt-8 opacity-10 blur-xl"></div>
+                    <div className="relative z-10 flex flex-col items-center">
+                      <BadgeCheck className="w-8 h-8 text-white mb-2" />
+                      <h2 className="text-sm font-bold mb-0.5">Premium Partner Status</h2>
+                      <p className="text-blue-100 text-xs mb-3">Priority 24/7 RO Plant Support Active</p>
+                      <button className="bg-white text-blue-700 font-extrabold px-4 py-1.5 rounded-full text-[10px] uppercase active:scale-95 transition-transform hover:bg-slate-50">
+                        Renew Now
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            </button>
+            </div>
+
+            {/* Support Block */}
+            <div>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Support & Help</h3>
+              <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                <a href="https://wa.me/917542018086" target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-between p-4.5 active:bg-slate-50 transition-colors group border-b border-slate-50 flex-row">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center">
+                      <MessageCircle className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-bold text-slate-900 text-sm">WhatsApp Support</h4>
+                      <p className="text-xs text-slate-500">+91 7542018086</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-0.5 transition-transform" />
+                </a>
+                
+                <button onClick={() => setIsFaqOpen(true)} className="w-full flex items-center justify-between p-4.5 active:bg-slate-50 transition-colors group text-left">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-slate-100 transition-colors">
+                      <HelpCircle className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-bold text-slate-900 text-sm">Help & FAQs</h4>
+                      <p className="text-xs text-slate-500">Read our guides and tips</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </div>
+            </div>
+
+            {/* Log Out Actions (Secondary/Accent styling) */}
+            <div className="pt-2">
+              <button 
+                onClick={handleLogout}
+                className="w-full bg-red-50 text-red-600 hover:bg-red-100 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 transition-all shadow-sm border border-red-100/50 cursor-pointer"
+              >
+                <LogOut className="w-5 h-5" /> LOG OUT
+              </button>
+              
+              <div className="mt-6 text-center">
+                <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-widest block">
+                  JalSejiwan Operations V2.4.0-BUILD88
+                </span>
+                <span className="text-[7px] text-slate-400 font-semibold mt-1 block uppercase">
+                  Connected to Production Cloud DB
+                </span>
+              </div>
+            </div>
+
           </div>
-        </div>
 
-        {/* Support */}
-        <div className="mb-8">
-          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">Support</h3>
-          <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-            <a href="https://wa.me/917542018086" target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group border-b border-slate-50">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center">
-                  <MessageCircle className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-slate-900">WhatsApp Support</h4>
-                  <p className="text-xs text-slate-500">+91 7542018086</p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-slate-300" />
-            </a>
-            <button onClick={() => setIsFaqOpen(true)} className="w-full flex items-center justify-between p-4 active:bg-slate-50 transition-colors group">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-slate-100 transition-colors">
-                  <HelpCircle className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-slate-900">Help & FAQs</h4>
-                  <p className="text-xs text-slate-500">Read our guides and tips</p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-slate-300" />
-            </button>
-          </div>
-        </div>
-
-        <button 
-          onClick={handleLogout}
-          className="w-full bg-red-50 text-red-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
-        >
-          <LogOut className="w-5 h-5" /> LOG OUT
-        </button>
-
-        <div className="mt-8 text-center">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">JalSejiwan Operations V2.4.0-BUILD88</span>
         </div>
 
       </main>

@@ -9,7 +9,7 @@ import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect, useMemo } from 'react';
 import { wrapRoute } from '@/lib/permissionGuard';
 import OnboardingOverlay from '@/components/OnboardingOverlay';
-import { safeGet } from '@/lib/utils';
+import { safeGet, getSafeNumber } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { checkClientRateLimit } from '@/lib/rateLimit';
 import { checkMonthlyAutoReminder, runBulkReminder } from '@/lib/reminderService';
@@ -185,28 +185,28 @@ function OwnerDashboard() {
                     <span className="text-[10px] font-bold uppercase tracking-wider text-blue-100">Full Stock</span>
                     <Droplet className="w-4 h-4" />
                 </div>
-                <div className="text-3xl font-bold">{inventory.fullCans}</div>
+                <div className="text-3xl font-bold">{getSafeNumber(inventory.fullCans)}</div>
               </div>
               <div className="bg-orange-500 rounded-2xl p-5 text-white shadow-sm flex flex-col justify-between h-28">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-orange-100">Empty Stock</span>
                     <Package className="w-4 h-4" />
                 </div>
-                <div className="text-3xl font-bold">{inventory.emptyCans}</div>
+                <div className="text-3xl font-bold">{getSafeNumber(inventory.emptyCans)}</div>
               </div>
               <div className="bg-blue-200 rounded-2xl p-5 text-blue-900 shadow-sm flex flex-col justify-between h-28">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">In Market</span>
                     <Truck className="w-4 h-4" />
                 </div>
-                <div className="text-3xl font-bold">{inventory.cansWithCustomers + inventory.cansInDelivery}</div>
+                <div className="text-3xl font-bold">{getSafeNumber(inventory.cansWithCustomers) + getSafeNumber(inventory.cansInDelivery)}</div>
               </div>
               <div className="bg-red-100 rounded-2xl p-5 text-red-900 shadow-sm flex flex-col justify-between h-28">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-red-700">Damaged</span>
                     <AlertTriangle className="w-4 h-4" />
                 </div>
-                <div className="text-3xl font-bold">{inventory.damagedCans}</div>
+                <div className="text-3xl font-bold">{getSafeNumber(inventory.damagedCans)}</div>
               </div>
           </div>
         </div>
