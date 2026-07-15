@@ -180,7 +180,7 @@ export default function DeliveryEntry() {
         console.log("--- TRACE: Delivery Payload:", JSON.stringify(deliveryData, null, 2));
         
         try {
-          await updateDelivery(deliveryId, deliveryData, currentUser);
+          await updateDelivery(deliveryId, deliveryData, currentUser, { skipAuditLog: true });
           console.log("--- TRACE: updateDelivery SUCCESS ---");
         } catch (e: any) {
           console.error("--- TRACE FAILURE: updateDelivery failed ---");
@@ -222,7 +222,7 @@ export default function DeliveryEntry() {
         console.log("--- TRACE: Customer Update Payload:", JSON.stringify(customerUpdate, null, 2));
         
         try {
-          await updateCustomer(customer.id, customerUpdate, currentUser);
+          await updateCustomer(customer.id, customerUpdate, currentUser, { skipAuditLog: true });
           console.log("--- TRACE: updateCustomer SUCCESS ---");
         } catch (e: any) {
           console.error("--- TRACE FAILURE: updateCustomer failed ---");
@@ -243,7 +243,7 @@ export default function DeliveryEntry() {
           };
           console.log("--- TRACE: Recording Payment. Payload:", JSON.stringify(paymentData, null, 2));
           try {
-            const paymentDoc = await addPayment(paymentData, currentUser);
+            const paymentDoc = await addPayment(paymentData, currentUser, { skipAuditLog: true });
             console.log("--- TRACE: addPayment SUCCESS. Doc ID:", paymentDoc.id);
           } catch (e: any) {
             console.error("--- TRACE FAILURE: addPayment failed ---");

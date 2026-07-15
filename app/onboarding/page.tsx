@@ -840,7 +840,7 @@ export default function OnboardingPage() {
                           />
                           <label htmlFor="criticalAlerts" className="select-none">
                             <p className="text-sm font-semibold text-slate-800">Critical System Alerts</p>
-                            <p className="text-xs text-slate-500 mt-0.5">Receive immediate push notifications for low cylinder stock levels, critical tank volumes, or pump station failures.</p>
+                            <p className="text-xs text-slate-500 mt-0.5">Receive immediate push notifications for low can inventory levels, payment collection anomalies, or dispatch updates.</p>
                           </label>
                         </div>
                       </div>

@@ -218,23 +218,27 @@ export default function CustomerService() {
           </div>
         </div>
 
-        {/* Filter Scroll */}
-        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-4 font-sans">
+        {/* Filter Navigation */}
+        <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-100 rounded-2xl mb-6 border border-slate-200/50 font-sans">
           {filterOptions.map(opt => {
             const count = counts[opt] || 0;
+            const isActive = filterType === opt;
             return (
               <button
                 type="button"
                 key={opt}
                 onClick={() => setFilterType(opt)}
-                className={`px-4 py-2 rounded-full font-sans font-bold text-xs whitespace-nowrap transition-colors flex items-center gap-1.5 ${
-                  filterType === opt 
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10' 
-                    : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                className={`h-11 rounded-xl font-sans font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer select-none outline-none ${
+                  isActive 
+                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/10' 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                 }`}
+                style={{ minHeight: '44px' }}
               >
                 <span>{opt}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${filterType === opt ? 'bg-blue-700 text-blue-100' : 'bg-slate-300 text-slate-700'}`}>
+                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md transition-colors ${
+                  isActive ? 'bg-blue-700 text-blue-100' : 'bg-slate-200 text-slate-700'
+                }`}>
                   {count}
                 </span>
               </button>

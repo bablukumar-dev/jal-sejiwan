@@ -285,13 +285,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     console.log("Starting Logout...");
     console.log("Writing Activity Log...");
+    
+    const role = currentUser?.role || 'user';
+    const name = currentUser?.name || 'User';
+    
     // Log logout before clearing session
     await logActivity({
       module: 'Authentication',
-      action: 'Logout',
-      description: 'User logged out',
+      action: role === 'staff' ? 'Staff Logout' : role === 'owner' ? 'Owner Logout' : 'Manager Logout',
+      description: `${role.charAt(0).toUpperCase() + role.slice(1)} ${name} logged out`,
       status: 'success',
-      
     }).catch(err => console.warn("Failed to log activity during logout:", err));
 
     setIsLoggingOut(true);
@@ -307,7 +310,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsLoggingOut(false);
       console.log("Logout Complete");
     }
-  }, [setIsLoggingOut]);
+  }, [setIsLoggingOut, currentUser]);
 
   useEffect(() => {
     const { auth, db } = getFirebase();
@@ -477,12 +480,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const isSaving = useRef(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [isOnline, setIsOnline] = useState<boolean>(() => {
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      return navigator.onLine;
+      const handleOnline = () => setIsOnline(true);
+      const handleOffline = () => setIsOnline(false);
+
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      // Defer synchronous setState on mount to prevent cascading renders
+      const timer = setTimeout(() => {
+        setIsOnline(navigator.onLine);
+      }, 0);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
     }
-    return true;
-  });
+  }, []);
+
   const [syncStatus, setSyncStatus] = useState<'synced' | 'pending' | 'syncing' | 'error'>('synced');
   const hasUnsyncedChangesRef = useRef<boolean>(false);
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Route, BadgeIndianRupee, Users, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle, CheckCircle2, Search, ChevronDown, RefreshCcw, Database, AlertCircle, Globe, Calendar, Shield, Building, Phone, Mail, MapPin, CreditCard } from 'lucide-react';
+import { Route, BadgeIndianRupee, Users, User, Bell, Languages, HelpCircle, LogOut, BadgeCheck, ChevronRight, Edit2, X, Camera, MessageCircle, CheckCircle2, Search, ChevronDown, RefreshCcw, Database, AlertCircle, Globe, Calendar, Shield, Building, Phone, Mail, MapPin, CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect, useCallback } from 'react';
@@ -98,6 +98,8 @@ export default function SettingsPage() {
   
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
 
   const [newName, setNewName] = useState(businessInfo?.ownerName || '');
   const [editBusinessName, setEditBusinessName] = useState('');
@@ -303,7 +305,7 @@ export default function SettingsPage() {
       <TopAppBar title="Profile" showBack={true} showProfile={false} />
 
       <main className="max-w-md mx-auto px-4 py-6">
-        {/* Profile Header (Instagram/FB Style) */}
+        {/* Profile Header (Professional App Style) */}
         <div className="flex flex-col items-center mt-2 mb-6 relative">
           <div className="relative">
             <div className="w-24 h-24 rounded-full bg-slate-200 overflow-hidden border-4 border-white shadow-lg flex items-center justify-center relative bg-gradient-to-tr from-blue-100 to-indigo-50">
@@ -327,238 +329,309 @@ export default function SettingsPage() {
           </div>
           
           <div className="mt-4 flex flex-col items-center gap-1.5 text-center">
-            <div className="flex items-center gap-1.5 justify-center">
-              <h1 className="text-xl font-bold text-slate-950 tracking-tight leading-none">
-                {currentUser?.ownerName || 'User'}
-              </h1>
-              <button 
-                onClick={() => { setNewName(currentUser?.ownerName || ''); setIsEditingProfile(true); }}
-                className="p-1 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
-                title="Edit Name"
-              >
-                <Edit2 className="w-3 h-3" />
-              </button>
-            </div>
-            
-            <p className="text-xs font-semibold text-slate-500">
-              {currentUser?.businessName || businessInfo?.name || 'Business'}
-            </p>
+            <h1 className="text-xl font-bold text-slate-950 tracking-tight leading-none">
+              {currentUser?.ownerName || 'User'}
+            </h1>
             
             <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 capitalize border border-blue-100/50">
               {userRole === 'owner' ? 'Owner' : userRole}
             </div>
-          </div>
-        </div>
 
-        {/* Profile Information Block */}
-        <div className="bg-white rounded-3xl border border-slate-100 p-5 mb-6 shadow-sm space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-1.5">
-              <Shield className="w-4 h-4 text-slate-400" />
-              <h3 className="text-sm font-bold text-slate-800">Profile Information</h3>
-            </div>
-            <button 
-              onClick={() => setIsEditingProfile(true)}
-              className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full transition-colors"
-            >
-              <Edit2 className="w-3 h-3" /> Edit
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-3 text-xs">
-            <div className="flex justify-between py-1 border-b border-slate-50/50 items-center">
-              <span className="text-slate-400 font-medium">Business Name</span>
-              <span className="text-slate-800 font-semibold">{currentUser?.businessName || businessInfo?.name || 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50 items-center">
-              <span className="text-slate-400 font-medium">Email Address</span>
-              <span className="text-slate-800 font-semibold">{currentUser?.email || 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50 items-center">
-              <span className="text-slate-400 font-medium">Phone Number</span>
-              <span className="text-slate-800 font-semibold">{currentUser?.phone ? `+91 ${currentUser.phone}` : 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50 items-center">
-              <span className="text-slate-400 font-medium">Office/Residential Address</span>
-              <span className="text-slate-800 font-semibold text-right max-w-[200px] truncate" title={currentUser?.address}>{currentUser?.address || 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50 items-center">
-              <span className="text-slate-400 font-medium">City / District</span>
-              <span className="text-slate-800 font-semibold">{currentUser?.city || 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50 items-center">
-              <span className="text-slate-400 font-medium">State</span>
-              <span className="text-slate-800 font-semibold">{currentUser?.state || 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50 items-center">
-              <span className="text-slate-400 font-medium">Pincode</span>
-              <span className="text-slate-800 font-semibold">{currentUser?.pincode || 'Not configured'}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-50/50 items-center">
-              <span className="text-slate-400 font-medium">Country</span>
-              <span className="text-slate-800 font-semibold">India</span>
-            </div>
-            <div className="flex justify-between py-1 items-center">
-              <span className="text-slate-400 font-medium">Member Since</span>
-              <span className="text-slate-800 font-semibold">
-                {currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'July 2026'}
-              </span>
+            {/* Green Online/Synced badge */}
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-[11px] font-semibold rounded-full border border-emerald-100/60 mt-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Online & Synced
             </div>
           </div>
         </div>
 
-        {/* Operational Control */}
-        {(userRole === 'owner' || userRole === 'manager') && (
-          <div className="mb-6">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5 px-1">Operational Control</h3>
-            <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-              <Link href="/owner/routes" className="w-full flex items-center justify-between p-4.5 border-b border-slate-50 active:bg-slate-50 transition-colors group">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                    <Route className="w-4.5 h-4.5" />
-                  </div>
-                  <div className="text-left">
-                    <h4 className="font-bold text-slate-900 text-sm">Route Management</h4>
-                    <p className="text-[11px] text-slate-400 font-medium">Manage delivery sectors and timing</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-              
-              {userRole === 'owner' && (
-                <Link href="/owner/dashboard/prices" className="w-full flex items-center justify-between p-4.5 border-b border-slate-50 active:bg-slate-50 transition-colors group">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-9 h-9 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
-                      <BadgeIndianRupee className="w-4.5 h-4.5" />
-                    </div>
-                    <div className="text-left">
-                      <h4 className="font-bold text-slate-900 text-sm">Price Settings</h4>
-                      <p className="text-[11px] text-slate-400 font-medium">Update bottle rates and discounts</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-0.5 transition-transform" />
-                </Link>
-              )}
-
-              <Link href="/owner/staff" className="w-full flex items-center justify-between p-4.5 active:bg-slate-50 transition-colors group">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-purple-50 group-hover:text-purple-600 transition-colors">
-                    <Users className="w-4.5 h-4.5" />
-                  </div>
-                  <div className="text-left">
-                    <h4 className="font-bold text-slate-900 text-sm">Staff Accounts</h4>
-                    <p className="text-[11px] text-slate-400 font-medium">{staff.length} Active delivery partners</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+        {/* Profile Card */}
+        <div className="bg-white rounded-[18px] border border-slate-100 p-5 mb-6 shadow-sm space-y-4">
+          {/* Full Name */}
+          <div className="flex items-center gap-3.5 py-1">
+            <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0">
+              <User className="w-4 h-4 text-slate-500" />
             </div>
-          </div>
-        )}
-
-        {/* App Configuration */}
-        <div className="mb-6">
-          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5 px-1">App Configuration</h3>
-          <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-            <div className="w-full flex items-center justify-between p-4.5 border-b border-slate-50">
-              <div className="flex items-center gap-3.5">
-                <div className="w-9 h-9 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center">
-                  <Bell className="w-4.5 h-4.5" />
-                </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-slate-900 text-sm">Notifications</h4>
-                  <p className="text-[11px] text-slate-400 font-medium">Alerts, Dues, and Delivery updates</p>
-                </div>
-              </div>
-              <button 
-                onClick={toggleNotifications}
-                className={`w-11 h-5.5 rounded-full relative transition-colors duration-300 ease-in-out cursor-pointer ${notificationsEnabled ? 'bg-blue-600' : 'bg-slate-200'}`}
-              >
-                <div className={`absolute top-0.5 w-4.5 h-4.5 bg-white rounded-full shadow-sm transition-all duration-300 ease-in-out ${notificationsEnabled ? 'right-0.5' : 'left-0.5'}`}></div>
-              </button>
-            </div>
-
-            <button 
-              onClick={() => setIsLangModalOpen(true)}
-              className="w-full flex items-center justify-between p-4.5 border-b border-slate-50 active:bg-slate-50 transition-colors group text-left"
-            >
-              <div className="flex items-center gap-3.5">
-                <div className="w-9 h-9 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-orange-50 group-hover:text-orange-600 transition-colors">
-                  <Languages className="w-4.5 h-4.5" />
-                </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-slate-900 text-sm">Language Selection</h4>
-                  <p className="text-[11px] text-slate-400 font-medium">Choose your preferred interface</p>
-                </div>
-              </div>
-              <div className="flex bg-slate-50 border border-slate-100 rounded-xl p-1 items-center">
-                <span className="text-slate-700 text-[10px] font-bold px-2.5 py-0.5">{selectedLanguage.split(' ')[0]}</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400 mr-1" />
-              </div>
-            </button>
-
-            <button 
-              onClick={() => setIsSyncLogOpen(true)}
-              className="w-full flex items-center justify-between p-4.5 active:bg-slate-50 transition-colors group text-left"
-            >
-              <div className="flex items-center gap-3.5">
-                <div className="w-9 h-9 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                  <RefreshCcw className={`w-4.5 h-4.5 ${pendingSyncs.length > 0 ? 'animate-spin-slow text-blue-600' : ''}`} />
-                </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-slate-900 text-sm">Offline Sync Log</h4>
-                  <p className="text-[11px] text-slate-400 font-medium">{pendingSyncs.length > 0 ? `${pendingSyncs.length} actions waiting to sync` : 'All data is up to date'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {pendingSyncs.length > 0 && (
-                  <div className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
-                    {pendingSyncs.length}
-                  </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Full Name</p>
+              <p className="text-sm font-semibold text-slate-800 truncate">
+                {currentUser?.ownerName ? (
+                  currentUser.ownerName
+                ) : (
+                  <span className="text-slate-400 font-normal italic">Not configured</span>
                 )}
-                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </button>
+              </p>
+            </div>
+          </div>
+
+          {/* Email */}
+          <div className="flex items-center gap-3.5 py-1">
+            <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0">
+              <Mail className="w-4 h-4 text-slate-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email</p>
+              <p className="text-sm font-semibold text-slate-800 truncate">
+                {currentUser?.email ? (
+                  currentUser.email
+                ) : (
+                  <span className="text-slate-400 font-normal italic">Not configured</span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* Phone Number */}
+          <div className="flex items-center gap-3.5 py-1">
+            <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0">
+              <Phone className="w-4 h-4 text-slate-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Phone Number</p>
+              <p className="text-sm font-semibold text-slate-800 truncate">
+                {currentUser?.phone ? (
+                  `+91 ${currentUser.phone}`
+                ) : (
+                  <span className="text-slate-400 font-normal italic">Not configured</span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* Business Name */}
+          <div className="flex items-center gap-3.5 py-1">
+            <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0">
+              <Building className="w-4 h-4 text-slate-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Business Name</p>
+              <p className="text-sm font-semibold text-slate-800 truncate">
+                {(currentUser?.businessName || businessInfo?.name) ? (
+                  currentUser?.businessName || businessInfo?.name
+                ) : (
+                  <span className="text-slate-400 font-normal italic">Not configured</span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* Business ID */}
+          <div className="flex items-center gap-3.5 py-1">
+            <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0">
+              <Database className="w-4 h-4 text-slate-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Business ID</p>
+              <p className="text-sm font-mono font-semibold text-slate-800 truncate">
+                {currentUser?.businessId ? (
+                  currentUser.businessId
+                ) : (
+                  <span className="text-slate-400 font-normal italic">Not configured</span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* Address */}
+          <div className="flex items-start gap-3.5 py-1">
+            <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 mt-0.5">
+              <MapPin className="w-4 h-4 text-slate-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Address</p>
+              <p className="text-sm font-semibold text-slate-800 leading-relaxed break-words">
+                {currentUser?.address ? (
+                  currentUser.address
+                ) : (
+                  <span className="text-slate-400 font-normal italic">Not configured</span>
+                )}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Support & Help */}
-        <div className="mb-6">
-          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5 px-1">Support & Help</h3>
-          <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-            <a href="https://wa.me/917542018086" target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-between p-4.5 border-b border-slate-50 active:bg-slate-50 transition-colors group flex-row">
-              <div className="flex items-center gap-3.5">
-                <div className="w-9 h-9 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center">
-                  <MessageCircle className="w-4.5 h-4.5" />
-                </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-slate-900 text-sm">WhatsApp Support</h4>
-                  <p className="text-[11px] text-slate-400 font-medium">+91 7542018086</p>
-                </div>
+        {/* Quick Actions Menus */}
+        <div className="bg-white rounded-[18px] border border-slate-100 p-2 shadow-sm space-y-0.5 mb-6">
+          {/* Edit Profile */}
+          <button 
+            onClick={() => setIsEditingProfile(true)}
+            className="w-full flex items-center justify-between p-3.5 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-all group text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <User className="w-4.5 h-4.5" />
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-0.5 transition-transform" />
-            </a>
-            
-            <button onClick={() => setIsFaqOpen(true)} className="w-full flex items-center justify-between p-4.5 active:bg-slate-50 transition-colors group text-left">
-              <div className="flex items-center gap-3.5">
-                <div className="w-9 h-9 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-slate-100 transition-colors">
-                  <HelpCircle className="w-4.5 h-4.5" />
-                </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-slate-900 text-sm">Help & FAQs</h4>
-                  <p className="text-[11px] text-slate-400 font-medium">Read our guides and tips</p>
-                </div>
+              <span className="font-semibold text-slate-800 text-sm">Edit Profile</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          {/* Business Settings */}
+          <button 
+            onClick={() => setIsEditingProfile(true)}
+            className="w-full flex items-center justify-between p-3.5 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-all group text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Building className="w-4.5 h-4.5" />
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-0.5 transition-transform" />
+              <span className="font-semibold text-slate-800 text-sm">Business Settings</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          {/* Route Management (Conditional on Owner/Manager) */}
+          {(userRole === 'owner' || userRole === 'manager') && (
+            <Link 
+              href="/owner/routes"
+              className="w-full flex items-center justify-between p-3.5 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-all group text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Route className="w-4.5 h-4.5" />
+                </div>
+                <span className="font-semibold text-slate-800 text-sm">Route Management</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          )}
+
+          {/* Price Settings (Conditional on Owner) */}
+          {userRole === 'owner' && (
+            <Link 
+              href="/owner/dashboard/prices"
+              className="w-full flex items-center justify-between p-3.5 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-all group text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <BadgeIndianRupee className="w-4.5 h-4.5" />
+                </div>
+                <span className="font-semibold text-slate-800 text-sm">Price Settings</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          )}
+
+          {/* Staff Members (Conditional on Owner/Manager) */}
+          {(userRole === 'owner' || userRole === 'manager') && (
+            <Link 
+              href="/owner/staff"
+              className="w-full flex items-center justify-between p-3.5 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-all group text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Users className="w-4.5 h-4.5" />
+                </div>
+                <span className="font-semibold text-slate-800 text-sm">Staff Members</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          )}
+
+          {/* Notifications */}
+          <div className="w-full flex items-center justify-between p-3.5 rounded-xl text-left">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Bell className="w-4.5 h-4.5" />
+              </div>
+              <span className="font-semibold text-slate-800 text-sm">Notifications</span>
+            </div>
+            <button 
+              onClick={toggleNotifications}
+              className={`w-11 h-6 rounded-full relative transition-colors duration-300 ease-in-out cursor-pointer ${notificationsEnabled ? 'bg-blue-600' : 'bg-slate-200'}`}
+            >
+              <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-300 ease-in-out ${notificationsEnabled ? 'right-0.5' : 'left-0.5'}`}></div>
             </button>
           </div>
+
+          {/* Language Selection */}
+          <button 
+            onClick={() => setIsLangModalOpen(true)}
+            className="w-full flex items-center justify-between p-3.5 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-all group text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Languages className="w-4.5 h-4.5" />
+              </div>
+              <span className="font-semibold text-slate-800 text-sm">Language Selection</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md font-bold text-slate-600">
+                {selectedLanguage.split(' ')[0]}
+              </span>
+              <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </button>
+
+          {/* Offline Sync Log */}
+          <button 
+            onClick={() => setIsSyncLogOpen(true)}
+            className="w-full flex items-center justify-between p-3.5 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-all group text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <RefreshCcw className={`w-4.5 h-4.5 ${pendingSyncs.length > 0 ? 'animate-spin-slow' : ''}`} />
+              </div>
+              <span className="font-semibold text-slate-800 text-sm">Offline Sync Log</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {pendingSyncs.length > 0 && (
+                <span className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded-full">
+                  {pendingSyncs.length}
+                </span>
+              )}
+              <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </button>
+
+          {/* Help & Support */}
+          <button 
+            onClick={() => setIsFaqOpen(true)}
+            className="w-full flex items-center justify-between p-3.5 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-all group text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <HelpCircle className="w-4.5 h-4.5" />
+              </div>
+              <span className="font-semibold text-slate-800 text-sm">Help & Support</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          {/* Privacy Policy */}
+          <button 
+            onClick={() => setIsPrivacyModalOpen(true)}
+            className="w-full flex items-center justify-between p-3.5 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-all group text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Shield className="w-4.5 h-4.5" />
+              </div>
+              <span className="font-semibold text-slate-800 text-sm">Privacy Policy</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          {/* About App */}
+          <button 
+            onClick={() => setIsAboutModalOpen(true)}
+            className="w-full flex items-center justify-between p-3.5 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-all group text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Globe className="w-4.5 h-4.5" />
+              </div>
+              <span className="font-semibold text-slate-800 text-sm">About App</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+          </button>
         </div>
 
-        {/* Log Out button */}
-        <div className="pt-2">
+        {/* Bottom Section - Log Out Button */}
+        <div className="pt-2 mb-8">
           <button 
             onClick={handleLogout}
-            className="w-full bg-red-50 text-red-600 hover:bg-red-100 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-98 transition-all shadow-sm border border-red-100/30 cursor-pointer text-sm"
+            className="w-full bg-red-50 text-red-600 hover:bg-red-100 font-bold py-4 rounded-[18px] flex items-center justify-center gap-2 active:scale-98 transition-all shadow-sm border border-red-100/30 cursor-pointer text-sm uppercase tracking-wider"
           >
             <LogOut className="w-4.5 h-4.5" /> LOG OUT
           </button>
@@ -956,6 +1029,125 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Privacy Policy Modal */}
+      <AnimatePresence>
+        {isPrivacyModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm"
+               onClick={() => setIsPrivacyModalOpen(false)}>
+            <motion.div 
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-sm shadow-xl max-h-[85vh] flex flex-col"
+            >
+              <div className="flex justify-between items-center mb-2 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <Shield className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900">Privacy Policy</h2>
+                </div>
+                <button onClick={() => setIsPrivacyModalOpen(false)} className="p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-slate-500 mb-4 shrink-0">Your privacy is important to us.</p>
+              
+              <div className="overflow-y-auto pr-2 space-y-4 flex-1 overscroll-contain pb-4 text-xs text-slate-600 leading-relaxed">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm mb-1">1. Local & Offline Storage</h3>
+                  <p>
+                    JalSejiwan stores temporary transaction records, customer details, and delivery coordinates locally using IndexedDB. This ensures seamless functionality even without an internet connection.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm mb-1">2. Cloud Data Storage</h3>
+                  <p>
+                    When you are online, all logged transaction records, delivery metrics, staff details, and routes are automatically synchronized and safely stored in Google Cloud Firestore database.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm mb-1">3. Personal & Business Information</h3>
+                  <p>
+                    We collect your full name, business name, phone number, email address, address, and GST registration purely to generate clean invoice reports, receipts, and maintain secure staff profiles.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm mb-1">4. Security Measures</h3>
+                  <p>
+                    Access to your account and records is secured by Google Authentication, standard encryption, and role-based access control rules to prevent unauthorized changes.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* About App Modal */}
+      <AnimatePresence>
+        {isAboutModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm"
+               onClick={() => setIsAboutModalOpen(false)}>
+            <motion.div 
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-t-3xl sm:rounded-3xl p-6 w-full max-w-sm shadow-xl max-h-[85vh] flex flex-col"
+            >
+              <div className="flex justify-between items-center mb-2 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900">About App</h2>
+                </div>
+                <button onClick={() => setIsAboutModalOpen(false)} className="p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-slate-500 mb-4 shrink-0">Water Delivery Management System</p>
+              
+              <div className="overflow-y-auto pr-2 space-y-4 flex-1 overscroll-contain pb-4 text-xs text-slate-600 leading-relaxed text-center">
+                <div className="py-4">
+                  <div className="w-16 h-16 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center shadow-md mb-2">
+                    <span className="text-white text-2xl font-black">JS</span>
+                  </div>
+                  <h3 className="font-bold text-slate-800 text-base">JalSejiwan Operations</h3>
+                  <p className="text-[10px] text-slate-400 font-mono">v2.4.0 (Build 88)</p>
+                </div>
+                
+                <div className="text-left bg-slate-50 border border-slate-100 p-3.5 rounded-2xl space-y-2">
+                  <p>
+                    <strong>JalSejiwan</strong> is a modern, high-performance offline-first water delivery and RO supply management application.
+                  </p>
+                  <p>
+                    <strong>Key Features:</strong>
+                  </p>
+                  <ul className="list-disc pl-4 space-y-1 text-[11px]">
+                    <li>20L Water Can delivery tracking</li>
+                    <li>Empty jar collection & deposit records</li>
+                    <li>Auto-sync offline IndexedDB log</li>
+                    <li>Digital billing and dues tracking</li>
+                    <li>Staff accounts & multi-route control</li>
+                  </ul>
+                </div>
+                
+                <div className="text-[10px] text-slate-400 font-medium">
+                  Designed & Developed with precision.
+                  <br />
+                  All Rights Reserved © 2026 JalSejiwan.
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

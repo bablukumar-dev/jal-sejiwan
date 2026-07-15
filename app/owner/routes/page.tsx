@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { wrapRoute } from '@/lib/permissionGuard';
 import { updateBusiness } from '@/lib/firestore-service';
+import { logActivity } from '@/lib/activityLogger';
 
 function RouteManagement() {
   const { routes, currentUser } = useAppContext();
@@ -20,7 +21,19 @@ function RouteManagement() {
         if (trimmed && !routes.includes(trimmed)) {
           await updateBusiness(currentUser.businessId, {
             routes: [...routes, trimmed]
-          }, currentUser);
+          }, currentUser, { skipAuditLog: true });
+          
+          logActivity({
+            module: 'Organization',
+            action: 'Route Created',
+            description: `Created new route: ${trimmed}`,
+            status: 'success',
+            resourceType: 'Route',
+            resourceId: trimmed,
+            resourceName: trimmed,
+            newValue: trimmed
+          });
+
           setNewRoute('');
         }
     } catch (err) {
@@ -34,7 +47,18 @@ function RouteManagement() {
         if (!currentUser) return;
         await updateBusiness(currentUser.businessId, {
           routes: routes.filter(r => r !== route)
-        }, currentUser);
+        }, currentUser, { skipAuditLog: true });
+
+        logActivity({
+          module: 'Organization',
+          action: 'Route Deleted',
+          description: `Deleted route: ${route}`,
+          status: 'warning',
+          resourceType: 'Route',
+          resourceId: route,
+          resourceName: route,
+          previousValue: route
+        });
     } catch (err) {
         console.error(err);
         alert("Failed to remove route.");

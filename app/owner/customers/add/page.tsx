@@ -209,7 +209,7 @@ export default function AddCustomer() {
         };
 
         console.log("--- TRACE: Calling addCustomer with Payload:", JSON.stringify(customerData, null, 2));
-        const docRef = await addCustomer(customerData, currentUser);
+        const docRef = await addCustomer(customerData, currentUser, { skipAuditLog: true });
         console.log("--- TRACE: addCustomer SUCCESS. Doc ID:", docRef.id);
         
         // ================= EVIDENCE DEBUGGING: STEP 1 & 2 =================

@@ -121,14 +121,14 @@ export default function RecordPayment() {
       };
 
       console.log("--- TRACE: Calling addPayment with Payload:", JSON.stringify(paymentData, null, 2));
-      const docRef = await addPayment(paymentData, currentUser);
+      const docRef = await addPayment(paymentData, currentUser, { skipAuditLog: true });
       console.log("--- TRACE: addPayment SUCCESS. Doc ID:", docRef.id);
 
       // 2. Update customer due balance
       console.log("--- TRACE: Updating Customer Due Balance. Previous Due:", selectedCustomer.due, "New Due:", Math.max(0, selectedCustomer.due - numAmount));
       await updateCustomer(selectedCustomerId, {
         due: Math.max(0, selectedCustomer.due - numAmount)
-      }, currentUser);
+      }, currentUser, { skipAuditLog: true });
       console.log("--- TRACE: updateCustomer SUCCESS ---");
 
       logActivity({

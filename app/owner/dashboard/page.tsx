@@ -177,7 +177,7 @@ function OwnerDashboard() {
         )}
 
         {/* Inventory Status */}
-        <div>
+        <div id="onboarding-inventory-status">
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Inventory Status</h3>
           <div className="grid grid-cols-2 gap-3">
               <div className="bg-blue-700 rounded-2xl p-5 text-white shadow-sm flex flex-col justify-between h-28">
@@ -330,6 +330,7 @@ function OwnerDashboard() {
           )}
           {(userRole === 'owner' || userRole === 'manager') && (
             <Link 
+              id="onboarding-reports"
               href="/owner/reports" 
               className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full"
             >
@@ -339,6 +340,7 @@ function OwnerDashboard() {
           )}
           {userRole === 'owner' && (
             <Link 
+              id="onboarding-staff"
               href="/owner/staff" 
               className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors w-full"
             >

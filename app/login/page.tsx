@@ -103,7 +103,7 @@ function LoginContent() {
 
           logActivity({
             module: 'Authentication',
-            action: 'Login Success',
+            action: role === 'staff' ? 'Staff Login' : role === 'owner' ? 'Owner Login' : 'Manager Login',
             description: `User ${email} logged in successfully as ${role}`,
             status: 'success'
           });

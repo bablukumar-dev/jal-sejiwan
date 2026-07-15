@@ -120,7 +120,7 @@ export default function EditCustomer() {
         }
 
         console.log("--- TRACE: Calling updateCustomer with Payload:", JSON.stringify(updatedCustomerData, null, 2));
-        await updateCustomer(customerId, updatedCustomerData, currentUser);
+        await updateCustomer(customerId, updatedCustomerData, currentUser, { skipAuditLog: true });
         console.log("--- TRACE: updateCustomer SUCCESS ---");
 
         logActivity({
@@ -166,7 +166,7 @@ export default function EditCustomer() {
 
       console.log("--- TRACE: Calling deleteWithAudit for customerId:", customerId);
       const { deleteWithAudit } = await import('@/lib/firestore-service');
-      await deleteWithAudit('customers', customerId, currentUser);
+      await deleteWithAudit('customers', customerId, currentUser, { skipAuditLog: true });
       console.log("--- TRACE: deleteWithAudit SUCCESS ---");
 
       await logActivity({

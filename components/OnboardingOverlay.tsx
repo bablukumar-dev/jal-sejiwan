@@ -21,14 +21,14 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
     {
       step: 1,
       title: "Welcome to JalSejiwan",
-      description: "JalSejiwan is your smart water management partner. Let's take a quick tour of your dashboard to help you get started with managing your water infrastructure.",
+      description: "JalSejiwan is your smart water management partner. Let's take a quick tour of your dashboard to help you get started with managing your water operations.",
       targetId: null,
       tooltip: null
     },
     {
       step: 2,
       title: "Your Profile & Settings",
-      description: "Click here to manage your profile, account settings, and security preferences.",
+      description: "Manage your business settings, change notifications, profile info, and security credentials easily here.",
       targetId: "onboarding-profile",
       tooltip: "Access your profile and application settings here."
     },
@@ -41,36 +41,57 @@ export default function OnboardingOverlay({ onClose }: OnboardingOverlayProps) {
     },
     {
       step: 4,
-      title: "Water Storage Tanks",
-      description: "Monitor your primary storage levels and tank health in real-time.",
-      targetId: "onboarding-water-tanks",
-      tooltip: "View and manage your connected water storage tanks."
+      title: "Customer Management",
+      description: "Add and manage household or commercial customers, set their custom water can prices, and track security deposit containers.",
+      targetId: "onboarding-add-customer",
+      tooltip: "Quickly add new customer accounts and configure delivery rates."
     },
     {
       step: 5,
-      title: "Pump Stations",
-      description: "Keep track of pump operation status, pressure levels, and maintenance schedules.",
-      targetId: "onboarding-pump-stations",
-      tooltip: "Monitor the pulse of your water distribution network."
+      title: "Deliveries Tracking",
+      description: "Track and log daily delivery route dispatches, delivered water cans, empty returned containers, and customer balances.",
+      targetId: "onboarding-deliveries",
+      tooltip: "Track delivery details and empty can returns."
     },
     {
       step: 6,
-      title: "Activity & Reports",
-      description: "Access detailed logs and performance reports to optimize your water management.",
-      targetId: "nav-activity_logs",
-      tooltip: "Deep dive into your system's data and logs."
+      title: "Payments & Balances",
+      description: "Record customer cash collections, track transaction histories, and manage outstanding dues with automated reminders.",
+      targetId: "onboarding-payments",
+      tooltip: "Record customer payments and view total collection dues."
     },
     {
       step: 7,
-      title: "Smart Notifications",
-      description: "Get real-time alerts for leaks, low levels, or pump failures directly in your app.",
-      targetId: "onboarding-notifications",
-      tooltip: "Stay informed with critical system updates."
+      title: "Detailed Reports",
+      description: "Generate cash sheets, tax invoices, transaction receipts, and delivery logs.",
+      targetId: "onboarding-reports",
+      tooltip: "Generate invoice receipts and operational summaries."
     },
     {
       step: 8,
+      title: "Staff Management",
+      description: "Register delivery partners, assign roles, define operational areas, and manage secure driver profiles.",
+      targetId: "onboarding-staff",
+      tooltip: "Configure driver and staff permissions."
+    },
+    {
+      step: 9,
+      title: "Live Log",
+      description: "Keep tabs on live operational activities, sync statuses, and background transactions in real-time.",
+      targetId: "nav-activity_logs",
+      tooltip: "Check real-time activity streams and background operations."
+    },
+    {
+      step: 10,
+      title: "Inventory Status",
+      description: "Monitor your jar/can stock levels in real-time, including Full Stock, Empty Stock, Damaged, and stock currently in delivery.",
+      targetId: "onboarding-inventory-status",
+      tooltip: "View real-time stock balances of 20L water cans."
+    },
+    {
+      step: 11,
       title: "Ready to Go!",
-      description: "You're all set to manage your water system with JalSejiwan. Drive efficiency and ensure water security for everyone.",
+      description: "You're all set to run your operations with JalSejiwan. Optimize routes, manage cash flows, and secure your inventories!",
       targetId: null,
       tooltip: null
     }

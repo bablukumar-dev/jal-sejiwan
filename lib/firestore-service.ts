@@ -44,7 +44,7 @@ export const getDocRef = (db: any, businessId: string, collectionName: string, d
   return doc(db, 'businesses', businessId, subName, docId);
 };
 
-export const createWithAudit = async (collectionName: string, data: any, currentUser: any) => {
+export const createWithAudit = async (collectionName: string, data: any, currentUser: any, options?: { skipAuditLog?: boolean }) => {
   const { db } = getFirebase();
   if (!db) throw new Error("Firestore not initialized");
 
@@ -65,22 +65,25 @@ export const createWithAudit = async (collectionName: string, data: any, current
   const docRef = await addDoc(colRef, auditData);
 
   // Background log
-  logActivity({
-    module: collectionName.charAt(0).toUpperCase() + collectionName.slice(1),
-    action: `${collectionName.slice(0, -1)} Created`,
-    description: `Created ${collectionName.slice(0, -1)}: ${data.name || data.customerName || docRef.id}`,
-    status: 'success',
-    resourceType: collectionName,
-    resourceId: docRef.id,
-    resourceName: data.name || data.customerName,
-    businessId,
-    newValue: auditData
-  }).catch(e => console.warn("Background log failed:", e));
+  if (!options?.skipAuditLog) {
+    const formattedAction = collectionName.charAt(0).toUpperCase() + collectionName.slice(1, -1);
+    logActivity({
+      module: collectionName.charAt(0).toUpperCase() + collectionName.slice(1),
+      action: `${formattedAction} Created`,
+      description: `Created ${collectionName.slice(0, -1)}: ${data.name || data.customerName || docRef.id}`,
+      status: 'success',
+      resourceType: collectionName,
+      resourceId: docRef.id,
+      resourceName: data.name || data.customerName,
+      businessId,
+      newValue: auditData
+    }).catch(e => console.warn("Background log failed:", e));
+  }
 
   return docRef;
 };
 
-export const updateWithAudit = async (collectionName: string, docId: string, data: any, currentUser: any) => {
+export const updateWithAudit = async (collectionName: string, docId: string, data: any, currentUser: any, options?: { skipAuditLog?: boolean }) => {
   const { db } = getFirebase();
   if (!db) throw new Error("Firestore not initialized");
 
@@ -106,23 +109,26 @@ export const updateWithAudit = async (collectionName: string, docId: string, dat
   await updateDoc(docRef, auditData);
 
   // Background log
-  logActivity({
-    module: collectionName.charAt(0).toUpperCase() + collectionName.slice(1),
-    action: `${collectionName.slice(0, -1)} Updated`,
-    description: `Updated ${collectionName.slice(0, -1)}: ${previousValue?.name || previousValue?.customerName || docId}`,
-    status: 'success',
-    resourceType: collectionName,
-    resourceId: docId,
-    resourceName: previousValue?.name || previousValue?.customerName,
-    businessId,
-    previousValue,
-    newValue: auditData
-  }).catch(e => console.warn("Background log failed:", e));
+  if (!options?.skipAuditLog) {
+    const formattedAction = collectionName.charAt(0).toUpperCase() + collectionName.slice(1, -1);
+    logActivity({
+      module: collectionName.charAt(0).toUpperCase() + collectionName.slice(1),
+      action: `${formattedAction} Updated`,
+      description: `Updated ${collectionName.slice(0, -1)}: ${previousValue?.name || previousValue?.customerName || docId}`,
+      status: 'success',
+      resourceType: collectionName,
+      resourceId: docId,
+      resourceName: previousValue?.name || previousValue?.customerName,
+      businessId,
+      previousValue,
+      newValue: auditData
+    }).catch(e => console.warn("Background log failed:", e));
+  }
 
   return docRef;
 };
 
-export const deleteWithAudit = async (collectionName: string, docId: string, currentUser?: any) => {
+export const deleteWithAudit = async (collectionName: string, docId: string, currentUser?: any, options?: { skipAuditLog?: boolean }) => {
   const { db } = getFirebase();
   if (!db) throw new Error("Firestore not initialized");
 
@@ -143,30 +149,33 @@ export const deleteWithAudit = async (collectionName: string, docId: string, cur
   await deleteDoc(docRef);
 
   // Background log
-  logActivity({
-    module: collectionName.charAt(0).toUpperCase() + collectionName.slice(1),
-    action: `${collectionName.slice(0, -1)} Deleted`,
-    description: `Deleted ${collectionName.slice(0, -1)}: ${previousValue?.name || previousValue?.customerName || docId}`,
-    status: 'warning',
-    resourceType: collectionName,
-    resourceId: docId,
-    resourceName: previousValue?.name || previousValue?.customerName,
-    businessId,
-    previousValue
-  }).catch(e => console.warn("Background log failed:", e));
+  if (!options?.skipAuditLog) {
+    const formattedAction = collectionName.charAt(0).toUpperCase() + collectionName.slice(1, -1);
+    logActivity({
+      module: collectionName.charAt(0).toUpperCase() + collectionName.slice(1),
+      action: `${formattedAction} Deleted`,
+      description: `Deleted ${collectionName.slice(0, -1)}: ${previousValue?.name || previousValue?.customerName || docId}`,
+      status: 'warning',
+      resourceType: collectionName,
+      resourceId: docId,
+      resourceName: previousValue?.name || previousValue?.customerName,
+      businessId,
+      previousValue
+    }).catch(e => console.warn("Background log failed:", e));
+  }
 
   return true;
 };
 
 // Specialized helpers
-export const addCustomer = (data: any, currentUser: any) => createWithAudit('customers', data, currentUser);
-export const addDelivery = (data: any, currentUser: any) => createWithAudit('deliveries', data, currentUser);
-export const addPayment = (data: any, currentUser: any) => createWithAudit('payments', data, currentUser);
-export const addStaff = (data: any, currentUser: any) => createWithAudit('staff', data, currentUser);
+export const addCustomer = (data: any, currentUser: any, options?: { skipAuditLog?: boolean }) => createWithAudit('customers', data, currentUser, options);
+export const addDelivery = (data: any, currentUser: any, options?: { skipAuditLog?: boolean }) => createWithAudit('deliveries', data, currentUser, options);
+export const addPayment = (data: any, currentUser: any, options?: { skipAuditLog?: boolean }) => createWithAudit('payments', data, currentUser, options);
+export const addStaff = (data: any, currentUser: any, options?: { skipAuditLog?: boolean }) => createWithAudit('staff', data, currentUser, options);
 
-export const updateDelivery = (docId: string, data: any, currentUser: any) => updateWithAudit('deliveries', docId, data, currentUser);
-export const updateCustomer = (docId: string, data: any, currentUser: any) => updateWithAudit('customers', docId, data, currentUser);
-export const updateBusiness = (docId: string, data: any, currentUser: any) => updateWithAudit('businesses', docId, data, currentUser);
+export const updateDelivery = (docId: string, data: any, currentUser: any, options?: { skipAuditLog?: boolean }) => updateWithAudit('deliveries', docId, data, currentUser, options);
+export const updateCustomer = (docId: string, data: any, currentUser: any, options?: { skipAuditLog?: boolean }) => updateWithAudit('customers', docId, data, currentUser, options);
+export const updateBusiness = (docId: string, data: any, currentUser: any, options?: { skipAuditLog?: boolean }) => updateWithAudit('businesses', docId, data, currentUser, options);
 
 export const batchAddDeliveries = async (deliveries: any[], currentUser: any) => {
   console.log("--- TRACE: batchAddDeliveries START ---");
