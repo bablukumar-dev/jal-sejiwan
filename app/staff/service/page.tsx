@@ -22,6 +22,8 @@ import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/app/context/AppContext';
 import { useState, useEffect, useMemo } from 'react';
 import { logActivity } from '@/lib/activityLogger';
+import { getFirebase } from '@/src/lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 export default function CustomerService() {
   const router = useRouter();
@@ -35,7 +37,21 @@ export default function CustomerService() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('All');
-  const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
+  const [currentStaffId, setCurrentStaffId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const pinAuth = localStorage.getItem('pinAuth');
+      if (pinAuth === 'true') {
+        return localStorage.getItem('staffUserId');
+      }
+    }
+    return null;
+  });
+  const [staffRoute, setStaffRoute] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('staffRoute') || null;
+    }
+    return null;
+  });
   
   const today = new Date().toISOString().split('T')[0];
 
@@ -48,18 +64,28 @@ export default function CustomerService() {
       if (currentStaff) {
         requestAnimationFrame(() => {
           setCurrentStaffId(currentStaff.id);
+          if (currentStaff.route) {
+            setStaffRoute(currentStaff.route);
+            localStorage.setItem('staffRoute', currentStaff.route);
+          }
         });
         return;
       }
     }
 
     // 2. Otherwise use current user
-    if (currentUser && currentUser.role === 'staff') {
-      const staffMember = staff.find(s => s.id.toString() === currentUser.uid) || 
-                          staff.find(s => s.name === currentUser.name);
-      if (staffMember) {
+    if (currentUser) {
+      const localUserName = typeof window !== 'undefined' ? localStorage.getItem('userName') : '';
+      const userObj = staff.find(s => s.id.toString() === currentUser.uid) || 
+                      staff.find(s => s.name === currentUser.name) || 
+                      (localUserName ? staff.find(s => s.name === localUserName) : null);
+      if (userObj) {
         requestAnimationFrame(() => {
-          setCurrentStaffId(staffMember.id);
+          setCurrentStaffId(userObj.id);
+          if (userObj.route) {
+            setStaffRoute(userObj.route);
+            localStorage.setItem('staffRoute', userObj.route);
+          }
         });
       }
     }
@@ -67,8 +93,21 @@ export default function CustomerService() {
 
   // Base list of deliveries for the staff
   const baseDeliveries = useMemo(() => {
-    return deliveries.filter(d => currentStaffId === null || String(d.staffId) === String(currentStaffId));
-  }, [deliveries, currentStaffId]);
+    return deliveries.filter(d => {
+      if (currentStaffId === null) return true;
+      const isDirectlyAssigned = String(d.staffId) === String(currentStaffId);
+      if (isDirectlyAssigned) return true;
+
+      // Check route match
+      if (staffRoute) {
+        const customer = customers.find(c => c.id === d.customerId);
+        if (customer && customer.route && customer.route.toLowerCase() === staffRoute.toLowerCase()) {
+          return true;
+        }
+      }
+      return false;
+    });
+  }, [deliveries, currentStaffId, staffRoute, customers]);
 
   const mappedList = useMemo(() => {
     return baseDeliveries.map(delivery => {
@@ -89,7 +128,8 @@ export default function CustomerService() {
       const matchesSearch = searchQuery === '' || 
         item.customer!.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.customer!.route && item.customer!.route.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (item.delivery.skipReason && item.delivery.skipReason.toLowerCase().includes(searchQuery.toLowerCase()));
+        (item.delivery.skipReason && item.delivery.skipReason.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.customer!.phone && item.customer!.phone.toLowerCase().includes(searchQuery.toLowerCase()));
 
       let matchesFilter = true;
       const status = item.delivery.status;
@@ -123,27 +163,42 @@ export default function CustomerService() {
 
   const filterOptions = ['All', 'Pending', 'Skipped', 'Completed'];
 
-  // Pending Skips: status === 'skipped'
-  const pendingSkipsCount = baseDeliveries.filter(d => (d.status || 'pending').toLowerCase() === 'skipped').length;
+  // Pending Skips: status === 'pending'
+  const pendingSkipsCount = baseDeliveries.filter(d => (d.status || 'pending').toLowerCase() === 'pending').length;
 
-  // Completed Today: status === 'completed' && date === today
+  // Completed Today: status === 'completed' or 'delivered' today
   const completedTodayCount = baseDeliveries.filter(d => {
     const status = (d.status || 'pending').toLowerCase();
     const isCompleted = status === 'completed' || status === 'delivered';
-    return isCompleted && d.date === today;
+    const isCompletedToday = d.completedAt ? d.completedAt.startsWith(today) : d.date === today;
+    return isCompleted && isCompletedToday;
   }).length;
 
   const handleCompleteDelivery = async (deliveryId: string) => {
     try {
-      console.log('Auth System Removed: Delivery completion disabled');
+      const { db } = getFirebase();
+      const currentBusinessId = typeof window !== 'undefined' ? localStorage.getItem('businessId') || 'biz_bwcdm2wms' : 'biz_bwcdm2wms';
+      
       const delivery = deliveries.find(d => String(d.id) === String(deliveryId));
       const customer = delivery ? customers.find(c => c.id === delivery.customerId) : null;
       const qty = customer?.defaultQty || delivery?.deliveredQty || 1;
 
+      const completedTime = new Date().toISOString();
       const updated = deliveries.map(d => 
-        String(d.id) === String(deliveryId) ? { ...d, status: 'completed', deliveredQty: qty } : d
+        String(d.id) === String(deliveryId) ? { ...d, status: 'completed', deliveredQty: qty, completedAt: completedTime } : d
       );
       setDeliveries(updated);
+
+      if (db && !deliveryId.startsWith('mock_')) {
+        const docRef = doc(db, 'businesses', currentBusinessId, 'deliveries', deliveryId);
+        await updateDoc(docRef, {
+          status: 'completed',
+          deliveredQty: qty,
+          completedAt: completedTime,
+          updatedAt: completedTime
+        });
+        console.log(`[SERVICE] Firestore document ${deliveryId} updated successfully to completed.`);
+      }
 
       logActivity(
         'delivery_completed',
@@ -159,13 +214,6 @@ export default function CustomerService() {
       );
     } catch (error) {
       console.error("Error completing delivery: ", error);
-      const delivery = deliveries.find(d => String(d.id) === String(deliveryId));
-      const customer = delivery ? customers.find(c => c.id === delivery.customerId) : null;
-      const qty = customer?.defaultQty || delivery?.deliveredQty || 1;
-      const updated = deliveries.map(d => 
-        String(d.id) === String(deliveryId) ? { ...d, status: 'completed', deliveredQty: qty } : d
-      );
-      setDeliveries(updated);
     }
   };
 
@@ -219,7 +267,7 @@ export default function CustomerService() {
         </div>
 
         {/* Filter Navigation */}
-        <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-100 rounded-2xl mb-6 border border-slate-200/50 font-sans">
+        <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 rounded-2xl mb-6 border border-slate-200/50 font-sans w-full">
           {filterOptions.map(opt => {
             const count = counts[opt] || 0;
             const isActive = filterType === opt;
@@ -228,16 +276,15 @@ export default function CustomerService() {
                 type="button"
                 key={opt}
                 onClick={() => setFilterType(opt)}
-                className={`h-11 rounded-xl font-sans font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer select-none outline-none ${
+                className={`min-h-[44px] py-1.5 px-0.5 rounded-xl font-sans font-bold text-[10px] xs:text-xs transition-all duration-200 flex flex-col xs:flex-row items-center justify-center gap-1 cursor-pointer select-none outline-none ${
                   isActive 
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/10' 
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/15' 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/40'
                 }`}
-                style={{ minHeight: '44px' }}
               >
                 <span>{opt}</span>
-                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md transition-colors ${
-                  isActive ? 'bg-blue-700 text-blue-100' : 'bg-slate-200 text-slate-700'
+                <span className={`text-[9px] xs:text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md transition-colors flex items-center justify-center ${
+                  isActive ? 'bg-blue-700 text-blue-50' : 'bg-slate-200 text-slate-700'
                 }`}>
                   {count}
                 </span>

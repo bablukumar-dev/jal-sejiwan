@@ -80,15 +80,34 @@ function StaffDashboard() {
   const today = new Date().toISOString().split('T')[0];
   const currentUserUid = currentStaffId ? String(currentStaffId) : (currentUser?.uid || '');
 
-  // Filter deliveries assigned to current staff for today
-  const todaysDeliveries = deliveries.filter(d => 
-    d.date === today && 
-    (currentStaffId !== null ? String(d.staffId) === String(currentUserUid) : true)
+  // Find customers on this staff's route
+  const routeCustomers = customers.filter(c => 
+    c.route && staffRoute && c.route.toLowerCase() === staffRoute.toLowerCase()
   );
 
+  // Map deliveries for the route customers for today, with fallbacks/mocks if not yet created in DB
+  const mappedDeliveries = routeCustomers.map(customer => {
+    const deliveryToday = deliveries.find(d => d.customerId === customer.id && d.date === today);
+    return {
+      customer,
+      delivery: deliveryToday || {
+        id: `mock_${customer.id}`,
+        customerId: customer.id,
+        date: today,
+        status: 'Pending',
+        staffId: currentStaffId || '',
+        priority: 'Normal',
+        returnedEmpty: 0,
+        deliveredQty: 0,
+      }
+    };
+  });
+
   // STEP 1 — TODAY'S TARGET
-  const totalTarget = todaysDeliveries.length;
-  const completedCount = todaysDeliveries.filter(d => d.status === 'delivered').length;
+  const totalTarget = mappedDeliveries.length;
+  const completedCount = mappedDeliveries.filter(m => 
+    m.delivery.status?.toLowerCase() === 'delivered' || m.delivery.status?.toLowerCase() === 'completed'
+  ).length;
   const deliveryPercentage = totalTarget > 0 ? Math.round((completedCount / totalTarget) * 100) : 0;
 
   // STEP 2 — CASH COLLECTED
@@ -101,10 +120,14 @@ function StaffDashboard() {
     .reduce((sum, p) => sum + p.amount, 0);
 
   // STEP 3 & 4 — EMPTIES AND ASSIGNED ROUTE
-  const emptiesCount = todaysDeliveries.reduce((sum, d) => sum + (d.returnedEmpty || 0), 0);
-  const assignedRoute = deliveries.filter(d => 
-    String(d.staffId) === String(currentUserUid) && d.status !== 'delivered'
-  );
+  const emptiesCount = mappedDeliveries.reduce((sum, m) => sum + (m.delivery.returnedEmpty || 0), 0);
+  const assignedRoute = mappedDeliveries
+    .filter(m => 
+      m.delivery.status?.toLowerCase() !== 'delivered' && 
+      m.delivery.status?.toLowerCase() !== 'completed' && 
+      m.delivery.status !== 'Skipped'
+    )
+    .map(m => m.delivery);
 
   // STEP 5 — PAYMENT LEDGER LIST
   const ledgerPayments = payments.filter(p => {
