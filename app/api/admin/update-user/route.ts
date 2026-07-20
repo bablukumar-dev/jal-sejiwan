@@ -92,6 +92,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing userId or password', trace }, { status: 400 });
     }
 
+    // Strict Tenant Isolation Verification
+    try {
+      const targetDoc = await adminDb.collection('users').doc(userId).get();
+      if (!targetDoc.exists) {
+        logStep(10, 'Tenant isolation check', 'FAIL', 'Target user not found');
+        return NextResponse.json({ success: false, error: 'Target user not found', trace }, { status: 404 });
+      }
+      
+      const ownerUser = ownerDoc.data();
+      const targetUser = targetDoc.data();
+      if (targetUser?.businessId !== ownerUser?.businessId) {
+        logStep(10, 'Tenant isolation check', 'FAIL', 'Cross-tenant update blocked');
+        return NextResponse.json({ success: false, error: 'Forbidden: Cross-tenant update blocked', trace }, { status: 403 });
+      }
+      logStep(10, 'Tenant isolation check', 'PASS');
+    } catch (e: any) {
+      logStep(10, 'Tenant isolation check', 'FAIL', e.message);
+      return NextResponse.json({ success: false, error: 'Database error during isolation check', trace }, { status: 500 });
+    }
+
     try {
       logStep(11, 'Updating password', 'PASS', userId);
       await adminAuth.updateUser(userId, {

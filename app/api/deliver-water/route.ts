@@ -45,13 +45,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized", details: error.message }, { status: 401 });
     }
 
+    // Strict Tenant Isolation Verification
+    const adminDb = getAdminDb();
+    try {
+      const userDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
+      if (!userDoc.exists) {
+        return NextResponse.json({ error: "Forbidden: User profile not found" }, { status: 403 });
+      }
+      const userData = userDoc.data();
+      if (userData?.businessId !== businessId) {
+        console.error(`[TENANT ISOLATION] Requester businessId ${userData?.businessId} does not match target businessId ${businessId}`);
+        return NextResponse.json({ error: "Forbidden: Cross-tenant operation blocked" }, { status: 403 });
+      }
+    } catch (err: any) {
+      console.error("[TENANT ISOLATION] Database error:", err.message);
+      return NextResponse.json({ error: "Database error during isolation check" }, { status: 500 });
+    }
+
     // ENV LOADED
     console.log("[ENV LOADED] Admin SDK ready");
 
     // WRITE FIRESTORE
     console.log("[WRITE FIRESTORE] Starting batch write...");
     try {
-      const adminDb = getAdminDb();
       const batch = adminDb.batch();
       const timestamp = new Date().toISOString();
       const results: string[] = [];

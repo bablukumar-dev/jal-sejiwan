@@ -1,6 +1,31 @@
 import { getFirebase } from '@/src/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
+// Client-side in-memory deduplication cache
+// Key: string (userId:action:resourceId:description)
+// Value: number (timestamp in milliseconds)
+const recentLogsCache = new Map<string, number>();
+
+// Clean up stale logs from the cache every 30 seconds
+if (typeof window !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, timestamp] of recentLogsCache.entries()) {
+      if (now - timestamp > 30000) { // 30s TTL
+        recentLogsCache.delete(key);
+      }
+    }
+  }, 30000);
+}
+
+// Safe UUID Generator for secure/non-secure contexts
+const generateUUID = (): string => {
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+  return 'act_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+};
+
 export interface ActivityLog {
   log_id?: string; // Keeping for backward compatibility with UI
   activityId?: string;
@@ -123,7 +148,25 @@ export async function logActivity(
     console.log("--- TRACE: businessId used for write:", businessId);
     console.log("--- TRACE: user UID:", user.uid);
 
-    const activityId = crypto.randomUUID();
+    // 1. Client-side In-memory Deduplication (Strict 15s window)
+    const action = finalParams.action || '';
+    const description = finalParams.description || finalParams.action || '';
+    const resourceId = finalParams.resourceId || '';
+    const userId = user.uid;
+
+    const dedupeKey = `${userId}:${action}:${resourceId}:${description}`;
+    const now = Date.now();
+    
+    if (recentLogsCache.has(dedupeKey)) {
+      const prevTime = recentLogsCache.get(dedupeKey) || 0;
+      if (now - prevTime < 15000) { // 15 seconds deduplication window
+        console.warn(`[DEDUPE CLIENT] Duplicate activity log blocked within 15s. Key: ${dedupeKey}`);
+        return;
+      }
+    }
+    recentLogsCache.set(dedupeKey, now);
+
+    const activityId = generateUUID();
     
     const logData: Omit<ActivityLog, 'log_id'> = {
       activityId,
@@ -200,6 +243,38 @@ export async function logActivity(
     }
 
     // Write to /businesses/{businessId}/activityLogs subcollection
+    // 2. Client-side Firestore query deduplication (as fallback safety if API fails)
+    try {
+      const { query, collection: fsCollection, where, getDocs, Timestamp: fsTimestamp } = await import('firebase/firestore');
+      const fifteenSecondsAgo = new Date(Date.now() - 15000);
+      const q = query(
+        fsCollection(db, 'businesses', businessId, 'activityLogs'),
+        where('userId', '==', user.uid),
+        where('action', '==', action),
+        where('timestamp', '>=', fsTimestamp.fromDate(fifteenSecondsAgo))
+      );
+      const snap = await getDocs(q);
+      let clientDedupe = false;
+      for (const d of snap.docs) {
+        const dData = d.data();
+        const dResId = dData.resourceId || dData.entityId || '';
+        const dDesc = dData.description || '';
+        if (resourceId && dResId === resourceId) {
+          clientDedupe = true;
+          break;
+        } else if (!resourceId && dDesc === description) {
+          clientDedupe = true;
+          break;
+        }
+      }
+      if (clientDedupe) {
+        console.warn(`[DEDUPE CLIENT DIRECT] Duplicate detected in Firestore via query. Skipping addDoc.`);
+        return;
+      }
+    } catch (err: any) {
+      console.warn(`[DEDUPE CLIENT DIRECT] Firestore check bypassed or index missing:`, err.message);
+    }
+
     addDoc(collection(db, 'businesses', businessId, 'activityLogs'), logData)
       .then((docRef) => {
         console.log("[WRITE SUCCESS] Path:", path);

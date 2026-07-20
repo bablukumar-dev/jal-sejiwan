@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { countAndCheckLimit } from '@/lib/rateLimit';
+import { getAdminAuth } from '../../../src/lib/firebase-admin';
 
 export async function GET(req: NextRequest) {
   // Get IP address for rate limit tracking
@@ -20,6 +21,20 @@ export async function GET(req: NextRequest) {
         }
       }
     );
+  }
+
+  // Enforce JWT Authentication for the maps API key endpoint
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized: Missing token' }, { status: 401 });
+    }
+    const idToken = authHeader.split('Bearer ')[1];
+    const adminAuth = getAdminAuth();
+    await adminAuth.verifyIdToken(idToken);
+  } catch (error: any) {
+    console.error("[MAPS KEY API] Verification failed:", error.message);
+    return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
   }
 
   const apiKey = process.env.GOOGLE_MAPS_PLATFORM_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_PLATFORM_KEY || '';

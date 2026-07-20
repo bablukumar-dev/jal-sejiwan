@@ -6,35 +6,7 @@ import crypto from 'crypto';
 const FieldValue = admin.firestore.FieldValue;
 
 export async function GET() {
-  console.log("[HEALTH CHECK] GET /api/admin/create-user");
-  try {
-    console.log("[HEALTH CHECK] Verifying environment variables...");
-    const envStatus = {
-      FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID ? 'SET' : 'MISSING',
-      FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL ? 'SET' : 'MISSING',
-      FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY ? `SET (Length: ${process.env.FIREBASE_PRIVATE_KEY.length})` : 'MISSING',
-    };
-    
-    console.log("[HEALTH CHECK] Attempting Admin DB initialization...");
-    const db = getAdminDb();
-    const adminStatus = checkAdminStatus();
-
-    return NextResponse.json({ 
-      status: 'online', 
-      api: 'create-user',
-      adminStatus,
-      envStatus,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (e: any) {
-    console.error("[HEALTH CHECK] FAILED:", e.message);
-    return NextResponse.json({ 
-      status: 'error', 
-      error: e.message,
-      stack: e.stack,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
-  }
+  return NextResponse.json({ status: 'online', api: 'create-user' });
 }
 
 export async function POST(req: NextRequest) {
@@ -99,6 +71,12 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
       console.error("[AUTH VERIFIED] FAILED:", error.message);
       return NextResponse.json({ error: "Unauthorized", details: error.message }, { status: 401 });
+    }
+
+    // Strict Tenant Isolation Verification
+    if (requesterData?.businessId !== business_id) {
+      console.error(`[TENANT ISOLATION] Requester businessId ${requesterData?.businessId} does not match target business_id ${business_id}`);
+      return NextResponse.json({ error: "Forbidden: Cross-tenant operation blocked" }, { status: 403 });
     }
 
     // STEP 6: Create Auth User

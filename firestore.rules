@@ -94,8 +94,8 @@ service cloud.firestore {
         isMemberOfBusiness(businessId) || 
         getUserRole() == 'owner'
       );
-      // More permissive create for logs to ensure they are always written
-      allow create: if isSignedIn(); 
+      // Ensure only signed-in members of the business can create activity logs
+      allow create: if isSignedIn() && isMemberOfBusiness(businessId); 
       allow update, delete: if false; // immutable logs
     }
 
