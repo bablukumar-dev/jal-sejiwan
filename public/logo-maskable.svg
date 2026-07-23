@@ -1,0 +1,13 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Full Bleed Background for Maskable Icon Safe Zone -->
+  <rect x="0" y="0" width="1024" height="1024" fill="#0284c7" />
+  
+  <!-- Subtle circular accent in safe zone -->
+  <circle cx="512" cy="512" r="360" fill="#0369a1" opacity="0.4" />
+  
+  <!-- Sleek Water Droplet inside safe zone -->
+  <path d="M 512,280 C 512,280 340,510 340,630 C 340,725 417,800 512,800 C 607,800 684,725 684,630 C 684,510 512,280 512,280 Z" fill="#ffffff" />
+  
+  <!-- Inner water wave accent -->
+  <path d="M 420,640 C 460,670 560,610 604,640 C 604,640 640,690 512,740 C 420,740 400,680 420,640 Z" fill="#38bdf8" opacity="0.9" />
+</svg>
