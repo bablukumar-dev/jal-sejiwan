@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jalsejiwan-v2';
+const CACHE_NAME = 'jalsejiwan-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -8,6 +8,11 @@ const STATIC_ASSETS = [
   '/icons/icon-maskable-512x512.png',
   '/icons/maskable-icon-512x512.png',
   '/icons/apple-touch-icon.png',
+  '/apple-touch-icon.png',
+  '/icon-192x192.png',
+  '/icon-512x512.png',
+  '/favicon-32x32.png',
+  '/favicon-16x16.png',
   '/screenshots/desktop.png',
   '/screenshots/mobile.png',
   '/favicon.ico',
