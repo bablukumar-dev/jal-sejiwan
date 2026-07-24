@@ -47,9 +47,14 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/manifest') ||
     pathname.startsWith('/icons/') ||
     pathname.startsWith('/screenshots/') ||
+    pathname.startsWith('/.well-known/') ||
+    pathname === '/browserconfig.xml' ||
+    pathname === '/robots.txt' ||
     pathname.endsWith('.png') ||
     pathname.endsWith('.svg') ||
-    pathname.endsWith('.ico')
+    pathname.endsWith('.ico') ||
+    pathname.endsWith('.json') ||
+    pathname.endsWith('.xml')
   ) {
     return NextResponse.next();
   }

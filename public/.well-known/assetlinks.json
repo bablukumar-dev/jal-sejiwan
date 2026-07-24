@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "in.jalsejiwan.twa",
+      "sha256_cert_fingerprints": [
+        "14:6D:E8:F7:C5:4F:65:03:7E:62:30:22:98:89:12:05:EC:00:C2:59:7C:F4:74:9C:C9:46:7A:B4:9C:C8:38:91"
+      ]
+    }
+  }
+]

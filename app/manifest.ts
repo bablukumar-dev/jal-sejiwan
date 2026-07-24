@@ -9,6 +9,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: '/?source=pwa',
     scope: '/',
     display: 'standalone',
+    display_override: ['standalone', 'minimal-ui'],
     background_color: '#0f172a',
     theme_color: '#0284c7',
     orientation: 'portrait',
@@ -16,6 +17,7 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'en-US',
     categories: ['business', 'utilities', 'productivity'],
     prefer_related_applications: false,
+    related_applications: [],
     icons: [
       {
         src: '/icons/icon-192x192.png',
@@ -24,8 +26,26 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'any',
       },
       {
+        src: '/icons/icon-256x256.png',
+        sizes: '256x256',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-384x384.png',
+        sizes: '384x384',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
         src: '/icons/icon-512x512.png',
         sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-1024x1024.png',
+        sizes: '1024x1024',
         type: 'image/png',
         purpose: 'any',
       },
