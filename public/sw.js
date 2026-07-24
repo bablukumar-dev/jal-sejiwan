@@ -1,19 +1,25 @@
-const CACHE_NAME = 'jalsejiwan-v1';
+const CACHE_NAME = 'jalsejiwan-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
+  '/icons/icon-maskable-192x192.png',
+  '/icons/icon-maskable-512x512.png',
+  '/icons/maskable-icon-512x512.png',
   '/icons/apple-touch-icon.png',
+  '/screenshots/desktop.png',
+  '/screenshots/mobile.png',
   '/favicon.ico',
-  '/logo.svg'
+  '/logo.svg',
+  '/logo-maskable.svg'
 ];
 
-// Install Event
+// Install Event - Precache App Shell
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Precaching static app shell');
+      console.log('[SW] Precaching static assets for PWABuilder');
       return cache.addAll(STATIC_ASSETS).catch((err) => {
         console.warn('[SW] Pre-cache warning:', err);
       });
@@ -22,7 +28,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate Event
+// Activate Event - Clean up stale caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -39,7 +45,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch Event
+// Fetch Event - Handle offline and network requests
 self.addEventListener('fetch', (event) => {
   // Bypass non-GET requests, API routes, or Firebase backend endpoints
   if (

@@ -46,6 +46,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/service-worker.js') ||
     pathname.startsWith('/manifest') ||
     pathname.startsWith('/icons/') ||
+    pathname.startsWith('/screenshots/') ||
     pathname.endsWith('.png') ||
     pathname.endsWith('.svg') ||
     pathname.endsWith('.ico')
@@ -206,6 +207,6 @@ export const config = {
      * - sw.js / service-worker.js
      * - icons
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|manifest.webmanifest|sw.js|service-worker.js|icons|.*\\.png|.*\\.svg|.*\\.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|manifest.webmanifest|sw.js|service-worker.js|icons|screenshots|.*\\.png|.*\\.svg|.*\\.ico).*)',
   ],
 };
