@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, Lora } from 'next/font/google';
 import './globals.css'; // Global styles
 import { Providers } from '@/components/Providers';
-import { PwaRegister } from '@/components/PwaRegister';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -21,29 +20,12 @@ const lora = Lora({
 export const metadata: Metadata = {
   title: 'JalSejiwan - Smart Water Management',
   description: 'Smart Water Delivery, Inventory & Customer Management Platform',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'JalSejiwan',
-  },
   icons: {
-    icon: [
-      { url: '/favicon.ico' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
+    icon: '/favicon.ico',
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0284c7',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -53,7 +35,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${jakarta.variable} ${lora.variable}`}>
       <body>
-        <PwaRegister />
         <Providers>
           {children}
         </Providers>

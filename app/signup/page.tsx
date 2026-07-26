@@ -12,7 +12,7 @@ import {
   GoogleAuthProvider 
 } from 'firebase/auth';
 import { getFirebase } from '@/src/lib/firebase';
-import { getFriendlyAuthErrorMessage } from '@/lib/authHelper';
+import { getFriendlyAuthErrorMessage, setCookie } from '@/lib/authHelper';
 import { useAppContext } from '@/app/context/AppContext';
 import { logActivity } from '@/lib/activityLogger';
 import { Suspense } from 'react';
@@ -38,6 +38,10 @@ function SignupContent() {
   useEffect(() => {
     if (currentUser && !isLoading) {
       const role = currentUser.role?.toLowerCase();
+      if (!currentUser.onboardingCompleted && role === 'owner') {
+        router.replace('/onboarding');
+        return;
+      }
       if (role === 'staff') {
         router.replace('/staff/dashboard');
       } else if (role === 'manager') {
@@ -82,14 +86,24 @@ function SignupContent() {
         createdAt: new Date().toISOString()
       }, { merge: true });
 
+      // Get ID Token & Set Cookies for Middleware
+      const idToken = await user.getIdToken();
+      setCookie('firebaseIdToken', idToken, 3600);
+      setCookie('userRole', 'owner', 3600 * 24 * 30);
+      setCookie('businessId', businessId, 3600 * 24 * 30);
+      setCookie('onboardingCompleted', 'false', 3600 * 24 * 30);
+      setCookie('sessionActive', 'true', 3600 * 24 * 30);
+
       // Synchronously write to localStorage and context state to avoid race conditions
       localStorage.setItem('businessId', businessId);
       localStorage.setItem('userRole', 'owner');
       localStorage.setItem('ownerId', businessId);
+      localStorage.setItem('onboardingCompleted', 'false');
       setCurrentUser({
         uid: user.uid,
         role: 'owner',
-        businessId: businessId
+        businessId: businessId,
+        onboardingCompleted: false
       });
 
       logActivity({
@@ -100,9 +114,9 @@ function SignupContent() {
       });
 
       console.log("Success: User Logged In");
-      router.replace('/owner/dashboard');
+      router.replace('/onboarding');
     } catch (err: any) {
-      console.error("Signup error:", err);
+      console.error('SIGNUP ERROR TRACE:', err);
       if (err.code) {
         if (err.code === 'permission-denied') {
           setError("Firebase Permission Denied: Your Firestore security rules are blocking the account creation. Please ensure 'users' collection allows writes for authenticated users.");
@@ -141,6 +155,7 @@ function SignupContent() {
       const userDoc = await getDoc(userDocRef);
 
       let businessId = '';
+      let onboardingCompleted = false;
       if (!userDoc.exists()) {
         businessId = `biz_${Math.random().toString(36).substring(2, 11)}`;
         await setDoc(userDocRef, {
@@ -153,16 +168,27 @@ function SignupContent() {
       } else {
         const data = userDoc.data();
         businessId = data.businessId || '';
+        onboardingCompleted = data.onboardingCompleted !== undefined ? data.onboardingCompleted : false;
       }
+
+      // Get ID Token & Set Cookies for Middleware
+      const idToken = await user.getIdToken();
+      setCookie('firebaseIdToken', idToken, 3600);
+      setCookie('userRole', 'owner', 3600 * 24 * 30);
+      setCookie('businessId', businessId, 3600 * 24 * 30);
+      setCookie('onboardingCompleted', onboardingCompleted ? 'true' : 'false', 3600 * 24 * 30);
+      setCookie('sessionActive', 'true', 3600 * 24 * 30);
 
       // Synchronously write to localStorage and context state to avoid race conditions
       localStorage.setItem('businessId', businessId);
       localStorage.setItem('userRole', 'owner');
       localStorage.setItem('ownerId', businessId);
+      localStorage.setItem('onboardingCompleted', onboardingCompleted ? 'true' : 'false');
       setCurrentUser({
         uid: user.uid,
         role: 'owner',
-        businessId: businessId
+        businessId: businessId,
+        onboardingCompleted: onboardingCompleted
       });
 
       logActivity({
@@ -173,7 +199,11 @@ function SignupContent() {
       });
 
       console.log("Success: User Logged In");
-      router.replace('/owner/dashboard');
+      if (!onboardingCompleted) {
+        router.replace('/onboarding');
+      } else {
+        router.replace('/owner/dashboard');
+      }
     } catch (err: any) {
       console.error("OAuth error:", err);
       if (err.code) {

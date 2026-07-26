@@ -71,20 +71,21 @@ export async function POST(req: NextRequest) {
       const dedupeKey = `${userId}:${action}:${resourceId}:${description}`;
       const dedupeHash = crypto.createHash('sha256').update(dedupeKey).digest('hex');
       
-      if (globalThis.serverRecentLogsCache?.has(dedupeHash)) {
+      const g = globalThis as any;
+      if (g.serverRecentLogsCache?.has(dedupeHash)) {
         console.log(`[DEDUPE SERVER IN-MEMORY] DUPLICATE DETECTED. Key: "${dedupeKey}". Skipping write.`);
         return NextResponse.json({ success: true, duplicate: true, message: "Duplicate log ignored" }, { status: 200 });
       }
       
       // Initialize global cache if not present
-      if (!globalThis.serverRecentLogsCache) {
-        globalThis.serverRecentLogsCache = new Set<string>();
+      if (!g.serverRecentLogsCache) {
+        g.serverRecentLogsCache = new Set<string>();
         // Clean cache periodically
         setInterval(() => {
-          globalThis.serverRecentLogsCache?.clear();
+          g.serverRecentLogsCache?.clear();
         }, 15000); // Clear every 15 seconds
       }
-      globalThis.serverRecentLogsCache.add(dedupeHash);
+      g.serverRecentLogsCache.add(dedupeHash);
 
       // 2. Server-side Firestore 15-second Lookback (covers slightly delayed duplicates)
       const now = new Date();

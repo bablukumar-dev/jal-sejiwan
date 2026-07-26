@@ -35,26 +35,12 @@ export function middleware(request: NextRequest) {
     '/terms',
     '/terms-and-conditions',
     '/unauthorized',
-    '/manifest.json',
-    '/manifest.webmanifest',
-    '/sw.js',
-    '/service-worker.js'
   ];
 
   if (
-    pathname.startsWith('/sw.js') ||
-    pathname.startsWith('/service-worker.js') ||
-    pathname.startsWith('/manifest') ||
-    pathname.startsWith('/icons/') ||
-    pathname.startsWith('/screenshots/') ||
-    pathname.startsWith('/.well-known/') ||
-    pathname === '/browserconfig.xml' ||
-    pathname === '/robots.txt' ||
     pathname.endsWith('.png') ||
     pathname.endsWith('.svg') ||
-    pathname.endsWith('.ico') ||
-    pathname.endsWith('.json') ||
-    pathname.endsWith('.xml')
+    pathname.endsWith('.ico')
   ) {
     return NextResponse.next();
   }
@@ -208,10 +194,7 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - manifest.json / manifest.webmanifest
-     * - sw.js / service-worker.js
-     * - icons
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|manifest.webmanifest|sw.js|service-worker.js|icons|screenshots|.*\\.png|.*\\.svg|.*\\.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

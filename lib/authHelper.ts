@@ -13,14 +13,20 @@ export function getFriendlyAuthErrorMessage(errorCode: string): string {
     case 'auth/email-already-in-use':
       return 'This email is already registered.';
     case 'auth/invalid-credential':
+    case 'auth/invalid-login-credentials':
     case 'auth/wrong-password':
       return 'Incorrect email or password.';
     case 'auth/user-not-found':
       return 'No account found with this email.';
     case 'auth/invalid-email':
+    case 'auth/missing-email':
       return 'Please enter a valid email address.';
+    case 'auth/missing-password':
+      return 'Please enter your password.';
     case 'auth/weak-password':
       return 'Password must be at least 6 characters.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled by an administrator.';
     case 'auth/network-request-failed':
       return 'Please check your internet connection.';
     case 'auth/too-many-requests':
@@ -33,6 +39,12 @@ export function getFriendlyAuthErrorMessage(errorCode: string): string {
       return 'This sign-in method is currently unavailable.';
     case 'auth/account-exists-with-different-credential':
       return 'This email is already linked with another sign-in method.';
+    case 'unavailable':
+      return 'Service unavailable. Please check your internet connection.';
+    case 'auth/invalid-api-key':
+      return 'Invalid Firebase API Key. Please check your configuration.';
+    case 'auth/internal-error':
+      return 'An internal authentication error occurred. Please try again.';
     default:
       return 'An unexpected authentication error occurred. Please try again.';
   }

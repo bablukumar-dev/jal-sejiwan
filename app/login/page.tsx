@@ -39,6 +39,10 @@ function LoginContent() {
   useEffect(() => {
     if (currentUser && !isLoading) {
       const role = currentUser.role?.toLowerCase();
+      if (!currentUser.onboardingCompleted && role === 'owner') {
+        router.replace('/onboarding');
+        return;
+      }
       if (role === 'staff') {
         router.replace('/staff/dashboard');
       } else if (role === 'manager') {
@@ -123,7 +127,7 @@ function LoginContent() {
           return;
       }
     } catch (err: any) {
-      console.log(`Error: ${err.message || 'Login failed.'}`);
+      console.error('Authentication Error:', err);
       if (err.code) {
         if (err.code === 'permission-denied') {
           setError("Firebase Permission Denied: Unable to read user profile. Please check your Firestore security rules.");
@@ -235,7 +239,7 @@ function LoginContent() {
           return;
       }
     } catch (err: any) {
-       console.log(`Error: ${err.message || 'Google login failed.'}`);
+       console.error('OAuth Authentication Error:', err);
        if (err.code) {
          if (err.code === 'permission-denied') {
            setError("Firebase Permission Denied: Unable to read user profile after Google login. Please check your Firestore security rules.");
