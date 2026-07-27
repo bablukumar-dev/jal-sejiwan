@@ -21,7 +21,12 @@ export const metadata: Metadata = {
   title: 'JalSejiwan - Smart Water Management',
   description: 'Smart Water Delivery, Inventory & Customer Management Platform',
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/icon.png',
   },
 };
 
