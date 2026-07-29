@@ -20,9 +20,12 @@ const lora = Lora({
 export const metadata: Metadata = {
   title: 'JalSejiwan - Smart Water Management',
   description: 'Smart Water Delivery, Inventory & Customer Management Platform',
+  manifest: '/site.webmanifest',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon-16x16.png', type: 'image/png', sizes: '16x16' },
+      { url: '/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
       { url: '/icon.png', type: 'image/png', sizes: '512x512' },
     ],
     shortcut: '/favicon.ico',
