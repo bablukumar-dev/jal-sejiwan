@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { countAndCheckLimit } from '@/lib/rateLimit';
 import { getAdminAuth } from '../../../src/lib/firebase-admin';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   // Get IP address for rate limit tracking
   const ip = req.headers.get('x-forwarded-for') || (req as any).ip || '127.0.0.1';

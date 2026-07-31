@@ -3,6 +3,8 @@ import { getAdminAuth, getAdminDb } from '../../../src/lib/firebase-admin';
 import * as admin from 'firebase-admin';
 import crypto from 'crypto';
 
+export const dynamic = 'force-dynamic';
+
 const Timestamp = admin.firestore.Timestamp;
 const FieldValue = admin.firestore.FieldValue;
 

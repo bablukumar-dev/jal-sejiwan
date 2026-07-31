@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '../../../src/lib/firebase-admin';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   console.log("-----------------------------------------");
   console.log("[SERVER START] /api/deliver-water");

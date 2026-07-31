@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '../../../../src/lib/firebase-admin';
 import { countAndCheckLimit } from '../../../../lib/rateLimit';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   return NextResponse.json({ status: 'online', api: 'update-user' });
 }

@@ -3,6 +3,8 @@ import { getAdminAuth, getAdminDb, checkAdminStatus } from '../../../../src/lib/
 import * as admin from 'firebase-admin';
 import crypto from 'crypto';
 
+export const dynamic = 'force-dynamic';
+
 const FieldValue = admin.firestore.FieldValue;
 
 export async function GET() {

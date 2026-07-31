@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '../../../../src/lib/firebase-admin';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   return NextResponse.json({ status: 'online', api: 'inventory-update' });
 }
