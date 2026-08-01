@@ -67,7 +67,8 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
               width={32}
               height={32}
               priority
-              className="shrink-0"
+              className="shrink-0 object-contain"
+              referrerPolicy="no-referrer"
             />
           </div>
           <div className="flex flex-col min-w-0 ml-1">
