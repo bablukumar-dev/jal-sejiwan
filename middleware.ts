@@ -40,7 +40,10 @@ export function middleware(request: NextRequest) {
   if (
     pathname.endsWith('.png') ||
     pathname.endsWith('.svg') ||
-    pathname.endsWith('.ico')
+    pathname.endsWith('.ico') ||
+    pathname.endsWith('.xml') ||
+    pathname.endsWith('.txt') ||
+    pathname.endsWith('.webmanifest')
   ) {
     return NextResponse.next();
   }
@@ -195,6 +198,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|icon.png|apple-touch-icon.png|android-chrome-.*|favicon-.*|site.webmanifest|logo.*).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|icon.png|apple-touch-icon.png|android-chrome-.*|favicon-.*|site.webmanifest|sitemap.xml|robots.txt|logo.*).*)',
   ],
 };

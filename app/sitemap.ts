@@ -1,25 +1,25 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  // Use the system injected APP_URL first, fallback to standard localhost or production placeholder
   let baseUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://jalsejiwan.in').replace(/\/$/, '');
   if (baseUrl.startsWith('http://')) {
     baseUrl = baseUrl.replace('http://', 'https://');
   }
 
-  const staticRoutes = [
-    { url: '', changeFrequency: 'daily', priority: 1.0 },
-    { url: '/login', changeFrequency: 'monthly', priority: 0.8 },
-    { url: '/about', changeFrequency: 'monthly', priority: 0.7 },
-    { url: '/contact', changeFrequency: 'monthly', priority: 0.7 },
-    { url: '/privacy', changeFrequency: 'monthly', priority: 0.5 },
-    { url: '/terms', changeFrequency: 'monthly', priority: 0.5 },
+  const routes = [
+    { url: '', changeFrequency: 'daily' as const, priority: 1.0 },
+    { url: '/login', changeFrequency: 'monthly' as const, priority: 0.8 },
+    { url: '/signup', changeFrequency: 'monthly' as const, priority: 0.8 },
+    { url: '/about', changeFrequency: 'monthly' as const, priority: 0.7 },
+    { url: '/contact', changeFrequency: 'monthly' as const, priority: 0.7 },
+    { url: '/privacy', changeFrequency: 'monthly' as const, priority: 0.5 },
+    { url: '/terms', changeFrequency: 'monthly' as const, priority: 0.5 },
   ];
 
-  return staticRoutes.map((route) => ({
+  return routes.map((route) => ({
     url: `${baseUrl}${route.url}`,
-    lastModified: new Date(),
-    changeFrequency: route.changeFrequency as 'daily' | 'monthly' | 'weekly',
+    lastModified: new Date().toISOString(),
+    changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));
 }

@@ -17,8 +17,17 @@ const lora = Lora({
   display: 'swap',
 });
 
+let baseUrlString = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://jalsejiwan.in';
+if (baseUrlString.startsWith('http://')) {
+  baseUrlString = baseUrlString.replace('http://', 'https://');
+}
+
 export const metadata: Metadata = {
-  title: 'JalSejiwan - Smart Water Management',
+  metadataBase: new URL(baseUrlString),
+  title: {
+    default: 'JalSejiwan - Smart Water Management',
+    template: '%s | JalSejiwan',
+  },
   description: 'Smart Water Delivery, Inventory & Customer Management Platform',
   manifest: '/site.webmanifest',
   icons: {
@@ -26,12 +35,34 @@ export const metadata: Metadata = {
       { url: '/favicon.ico', sizes: 'any' },
       { url: '/favicon-16x16.png', type: 'image/png', sizes: '16x16' },
       { url: '/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/favicon-48x48.png', type: 'image/png', sizes: '48x48' },
       { url: '/icon.png', type: 'image/png', sizes: '512x512' },
     ],
     shortcut: '/favicon.ico',
     apple: [
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
+  },
+  openGraph: {
+    title: 'JalSejiwan - Smart Water Management',
+    description: 'Smart Water Delivery, Inventory & Customer Management Platform',
+    siteName: 'JalSejiwan',
+    images: [
+      {
+        url: '/logo.png',
+        width: 512,
+        height: 512,
+        alt: 'JalSejiwan Brand Logo',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'JalSejiwan - Smart Water Management',
+    description: 'Smart Water Delivery, Inventory & Customer Management Platform',
+    images: ['/logo.png'],
   },
 };
 
