@@ -26,7 +26,8 @@ export default function Home() {
         <div className="relative mb-6">
           <div className="absolute inset-0 rounded-full bg-blue-400/20 animate-ping duration-1000" />
           <div className="relative w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-2xl border-4 border-blue-500/20">
-            <Image src="/logo.png" alt="JalSejiwan Logo" width={64} height={64} className="object-contain" referrerPolicy="no-referrer" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="JalSejiwan Logo" width={64} height={64} className="w-16 h-16 object-contain block" style={{ opacity: 1, visibility: 'visible' }} />
           </div>
         </div>
         <h1 className="text-3xl font-extrabold text-white tracking-tight font-sans drop-shadow-sm">JalSejiwan</h1>
@@ -48,7 +49,8 @@ export default function Home() {
       <div className="min-h-screen bg-gradient-to-br from-blue-700 via-blue-800 to-slate-900 flex flex-col items-center justify-center p-6 text-center">
         <div className="relative mb-6">
           <div className="relative w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-2xl border-4 border-blue-500/20">
-            <Image src="/logo.png" alt="JalSejiwan Logo" width={64} height={64} className="object-contain" referrerPolicy="no-referrer" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="JalSejiwan Logo" width={64} height={64} className="w-16 h-16 object-contain block" style={{ opacity: 1, visibility: 'visible' }} />
           </div>
         </div>
         <h1 className="text-3xl font-extrabold text-white tracking-tight font-sans">JalSejiwan</h1>

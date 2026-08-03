@@ -236,7 +236,6 @@ export default function CustomerDetail() {
                 alt={customer.name} 
                 fill 
                 className="object-cover"
-                referrerPolicy="no-referrer"
               />
             ) : (
               <Image 
@@ -244,7 +243,6 @@ export default function CustomerDetail() {
                 alt={`${customer.name} - Active Client profile`} 
                 fill 
                 className="object-cover" 
-                referrerPolicy="no-referrer"
               />
             )}
           </div>

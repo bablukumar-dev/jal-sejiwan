@@ -16,4 +16,10 @@
     font-weight: 700;
     letter-spacing: -0.02em;
   }
+  img[alt*="JalSejiwan"], img[alt*="Logo"] {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    max-width: none;
+  }
 }

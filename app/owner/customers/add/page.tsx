@@ -329,7 +329,6 @@ export default function AddCustomer() {
                       alt="Preview" 
                       fill 
                       className="object-cover"
-                      referrerPolicy="no-referrer"
                     />
                   </div>
                 ) : (

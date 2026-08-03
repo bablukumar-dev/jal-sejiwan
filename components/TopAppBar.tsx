@@ -2,6 +2,7 @@
 
 import { ArrowLeft, UserCircle, LogOut, Bell } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import SyncStatusIndicator from '@/components/SyncStatusIndicator';
 import { useAppContext } from '@/app/context/AppContext';
@@ -61,15 +62,17 @@ export default function TopAppBar({ title, subtitle, showBack = false, showProfi
                 <ArrowLeft className="w-5 h-5 text-blue-700" />
               </button>
             )}
-            <Image
-              src="/logo.png"
-              alt="JalSejiwan Logo"
-              width={32}
-              height={32}
-              priority
-              className="shrink-0 object-contain"
-              referrerPolicy="no-referrer"
-            />
+            <Link href="/" className="flex items-center shrink-0 active:scale-95 transition-transform" title="JalSejiwan Home">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="JalSejiwan Logo"
+                width={32}
+                height={32}
+                className="w-8 h-8 object-contain shrink-0 block"
+                style={{ opacity: 1, visibility: 'visible', minWidth: '32px', minHeight: '32px' }}
+              />
+            </Link>
           </div>
           <div className="flex flex-col min-w-0 ml-1">
             {subtitle && (

@@ -32,10 +32,11 @@ export default function LandingPage() {
       {/* Header */}
       <header className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-slate-200 z-50">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-[10px]">
-            <Image src="/logo.png" alt="JalSejiwan Logo" width={40} height={40} className="object-contain flex-shrink-0" referrerPolicy="no-referrer" />
+          <Link href="/" className="flex items-center gap-[10px] active:scale-95 transition-transform">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="JalSejiwan Logo" width={40} height={40} className="w-10 h-10 object-contain flex-shrink-0 block" style={{ opacity: 1, visibility: 'visible', minWidth: '40px', minHeight: '40px' }} />
             <span className="text-xl font-bold text-blue-700">JalSejiwan</span>
-          </div>
+          </Link>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Login</Link>
             <Link href="/login" className="text-sm font-bold bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors">Get Started</Link>
@@ -67,7 +68,6 @@ export default function LandingPage() {
               height={1080}
               priority
               className="rounded-2xl"
-              referrerPolicy="no-referrer"
             />
           </div>
         </section>

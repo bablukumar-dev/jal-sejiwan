@@ -302,7 +302,10 @@ function LoginContent() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl p-10 flex flex-col items-center border border-slate-100 animate-in fade-in zoom-in-95 duration-300">
-        <Image src="/logo.png" alt="Logo" width={70} height={70} className="object-contain mb-6 drop-shadow-sm" referrerPolicy="no-referrer" />
+        <Link href="/" className="flex flex-col items-center cursor-pointer active:scale-95 transition-transform">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="JalSejiwan Logo" width={70} height={70} className="w-[70px] h-[70px] object-contain mb-4 block" style={{ opacity: 1, visibility: 'visible' }} />
+        </Link>
         <h1 className="text-3xl font-bold text-blue-700 mb-1 font-sans tracking-tight">JalSejiwan</h1>
         <p className="text-slate-500 mb-10 text-center text-sm font-medium">Smart Water Management System</p>
 
