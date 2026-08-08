@@ -7,12 +7,13 @@ import PullToRefresh from '@/components/PullToRefresh';
 import { Search, MapPin, Phone, Plus, ChevronDown, Users, Bell, MessageCircle, X } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
+import { CustomerCardSkeleton } from '@/components/Skeleton';
 import { sendReminderWhatsApp } from '@/lib/whatsappUtils';
 import { wrapRoute } from '@/lib/permissionGuard';
 import { sendWhatsAppSummary } from '@/lib/reminderService';
 
 function CustomersList() {
-  const { customers: rawCustomers, deliveries = [], businessInfo, currentUser } = useAppContext();
+  const { customers: rawCustomers, deliveries = [], businessInfo, currentUser, isInitialized } = useAppContext();
 
   console.log("[CustomersList] Render triggered. rawCustomers from context:", rawCustomers);
 
@@ -314,7 +315,9 @@ function CustomersList() {
 
         {/* Customer List */}
         <div className="space-y-4">
-          {filteredCustomers.length === 0 ? (
+          {!isInitialized ? (
+            <CustomerCardSkeleton count={5} />
+          ) : filteredCustomers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="bg-blue-50 w-24 h-24 rounded-full flex items-center justify-center mb-4">
                 <Users className="w-12 h-12 text-blue-300" />

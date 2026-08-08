@@ -29,10 +29,11 @@ const AnalyticsDashboardSection = dynamic(() => import('@/components/AnalyticsSe
 
 // Import hook separately
 import { useLossDetection } from '@/components/LossDetectionWidget';
+import { StatCardSkeleton } from '@/components/Skeleton';
 
 function OwnerDashboard() {
   const router = useRouter();
-  const { customers: rawCustomers, deliveries, payments, inventory, businessInfo, staff, currentUser } = useAppContext();
+  const { customers: rawCustomers, deliveries, payments, inventory, businessInfo, staff, currentUser, isInitialized } = useAppContext();
 
   const customers = useMemo(() => {
     return Array.from(
@@ -179,7 +180,10 @@ function OwnerDashboard() {
         {/* Inventory Status */}
         <div id="onboarding-inventory-status">
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Inventory Status</h3>
-          <div className="grid grid-cols-2 gap-3">
+          {!isInitialized ? (
+            <StatCardSkeleton count={4} />
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
               <div className="bg-blue-700 rounded-2xl p-5 text-white shadow-sm flex flex-col justify-between h-28">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-blue-100">Full Stock</span>
@@ -209,6 +213,7 @@ function OwnerDashboard() {
                 <div className="text-3xl font-bold">{getSafeNumber(inventory.damagedCans)}</div>
               </div>
           </div>
+          )}
         </div>
 
         {/* Date Selector */}

@@ -7,11 +7,12 @@ import { Search, Calendar, Download, Plus, Wallet, QrCode, SlidersHorizontal, X 
 import Link from 'next/link';
 import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
+import { PaymentCardSkeleton } from '@/components/Skeleton';
 import { logActivity } from '@/lib/activityLogger';
 import { wrapRoute } from '@/lib/permissionGuard';
 
 function PaymentsList() {
-  const { payments, customers, businessInfo } = useAppContext();
+  const { payments, customers, businessInfo, isInitialized } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
@@ -446,7 +447,9 @@ function PaymentsList() {
           </div>
 
           <div className="space-y-3">
-            {sortedPayments.length === 0 ? (
+            {!isInitialized ? (
+              <PaymentCardSkeleton count={4} />
+            ) : sortedPayments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-2xl border border-slate-100">
                 <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mb-4">
                   <Wallet className="w-10 h-10 text-slate-300" />

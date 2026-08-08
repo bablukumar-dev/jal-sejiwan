@@ -4,6 +4,7 @@ import BottomNav from '@/components/BottomNav';
 import { Truck, Wallet, Droplet, ArrowRight, FileText, ChevronRight, Route, Download } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
+import { DeliveryCardSkeleton } from '@/components/Skeleton';
 import { useState, useEffect } from 'react';
 import OnboardingOverlay from '@/components/OnboardingOverlay';
 import TopAppBar from '@/components/TopAppBar';
@@ -11,7 +12,7 @@ import TopAppBar from '@/components/TopAppBar';
 import { wrapRoute } from '@/lib/permissionGuard';
 
 function StaffDashboard() {
-  const { customers, deliveries, payments, inventory, staff, businessInfo, currentUser } = useAppContext();
+  const { customers, deliveries, payments, inventory, staff, businessInfo, currentUser, isInitialized } = useAppContext();
   const [userName, setUserName] = useState('');
   const [staffRoute, setStaffRoute] = useState('');
   const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);

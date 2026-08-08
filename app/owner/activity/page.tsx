@@ -4,6 +4,7 @@
 
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
+import { ActivityLogSkeleton } from '@/components/Skeleton';
 import { useState, useEffect, useMemo, memo } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import { 
@@ -522,10 +523,7 @@ export default function ActivityLogDashboard() {
         {/* Streams Container */}
         <div className="space-y-4">
           {isLoading && logs.length === 0 ? (
-            <div className="bg-white rounded-3xl p-12 text-center border border-slate-100 flex flex-col items-center justify-center space-y-3">
-              <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
-              <p className="text-sm font-medium text-slate-500">Retrieving audit chain...</p>
-            </div>
+            <ActivityLogSkeleton count={5} />
           ) : finalLogs.length === 0 ? (
             <div className="bg-white rounded-3xl p-12 text-center border border-slate-100">
               <Activity className="w-12 h-12 text-slate-300 mx-auto mb-3" />

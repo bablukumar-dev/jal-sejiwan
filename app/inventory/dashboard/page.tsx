@@ -5,11 +5,12 @@ import BottomNav from '@/components/BottomNav';
 import { Package, ArrowUpRight, ArrowDownLeft, AlertTriangle, CheckCircle2, Droplet, MapPin, Calendar, Factory, Truck, Wrench, ArrowRightLeft, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
+import { TableRowSkeleton } from '@/components/Skeleton';
 import { useState, useEffect } from 'react';
 import { wrapRoute } from '@/lib/permissionGuard';
 
 function InventoryDashboard() {
-  const { inventory, inventoryHistory } = useAppContext();
+  const { inventory, inventoryHistory, isInitialized } = useAppContext();
   const [userRole, setUserRole] = useState<'owner' | 'manager'>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('userRole');
@@ -109,7 +110,10 @@ function InventoryDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {inventoryHistory.map(history => (
+                {!isInitialized ? (
+                  <TableRowSkeleton rows={4} />
+                ) : (
+                  inventoryHistory.map(history => (
                   <tr key={history.id}>
                     <td className="p-4 font-bold text-slate-900">#{history.id}</td>
                     <td className="p-4">
@@ -122,7 +126,7 @@ function InventoryDashboard() {
                     </td>
                     <td className="p-4 font-bold text-slate-900">{history.qty} {history.type === 'Dispatch' ? 'Full' : history.type === 'Return' ? 'Empty' : 'Cans'}</td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>

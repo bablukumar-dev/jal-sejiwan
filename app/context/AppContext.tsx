@@ -208,6 +208,7 @@ type AppContextType = {
   setCurrentUser: React.Dispatch<React.SetStateAction<CurrentUser | null>>;
   unsyncedCount: number;
   authLoading: boolean;
+  isInitialized: boolean;
   logout: () => Promise<void>;
   isLoggingOut: boolean;
 };
@@ -863,9 +864,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser,
     unsyncedCount,
     authLoading,
+    isInitialized,
     logout,
     isLoggingOut
-  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, isBackgroundSyncing, syncProgress, triggerSync, currentUser, unsyncedCount, authLoading, logout, isLoggingOut]);
+  }), [customers, deliveries, payments, inventory, inventoryHistory, staff, routes, areas, businessInfo, isOnline, syncStatus, isBackgroundSyncing, syncProgress, triggerSync, currentUser, unsyncedCount, authLoading, isInitialized, logout, isLoggingOut]);
 
   return (
     <AppContext.Provider value={contextValue}>

@@ -3,6 +3,7 @@
 import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { useAppContext } from '@/app/context/AppContext';
+import { Skeleton } from '@/components/Skeleton';
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { wrapRoute } from '@/lib/permissionGuard';
@@ -10,7 +11,7 @@ import { updateBusiness } from '@/lib/firestore-service';
 import { logActivity } from '@/lib/activityLogger';
 
 function RouteManagement() {
-  const { routes, currentUser } = useAppContext();
+  const { routes, currentUser, isInitialized } = useAppContext();
   const [newRoute, setNewRoute] = useState('');
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -93,7 +94,11 @@ function RouteManagement() {
           <h2 className="font-bold text-slate-900 mb-4">Existing Routes</h2>
           
           <div className="space-y-3">
-            {routes.length === 0 ? (
+            {!isInitialized ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-2xl bg-slate-200" />
+              ))
+            ) : routes.length === 0 ? (
               <p className="text-slate-500 text-sm text-center py-4">No routes available.</p>
             ) : (
               routes.map(r => (

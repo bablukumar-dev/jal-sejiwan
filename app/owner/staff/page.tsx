@@ -6,6 +6,7 @@ import TopAppBar from '@/components/TopAppBar';
 import BottomNav from '@/components/BottomNav';
 import { Users, UserPlus, Search, Phone, Mail, Route, Filter, TrendingUp, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Key } from 'lucide-react';
 import { useAppContext, Staff } from '@/app/context/AppContext';
+import { StaffCardSkeleton } from '@/components/Skeleton';
 import { useState } from 'react';
 import { hashPin, getFriendlyAuthErrorMessage } from '@/lib/authHelper';
 import { logActivity } from '@/lib/activityLogger';
@@ -22,7 +23,7 @@ const safeGet = (key: string): string | null => {
 };
 
 function StaffManagement() {
-  const { staff, setStaff, deliveries, currentUser } = useAppContext();
+  const { staff, setStaff, deliveries, currentUser, isInitialized } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedStaffId, setExpandedStaffId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'All' | 'Active' | 'Inactive'>('All');
@@ -195,7 +196,15 @@ function StaffManagement() {
 
         {/* Staff List */}
         <div className="space-y-4">
-          {filteredStaff.map((s) => {
+          {!isInitialized ? (
+            <StaffCardSkeleton count={3} />
+          ) : filteredStaff.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-3xl border border-slate-100">
+              <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p className="font-bold text-slate-700">No staff members found</p>
+            </div>
+          ) : (
+            filteredStaff.map((s) => {
             const isExpanded = expandedStaffId === s.id;
             const perf = getPerformance(s.id);
             
@@ -303,7 +312,7 @@ function StaffManagement() {
                 </div>
               </div>
             );
-          })}
+          }))}
         </div>
 
       </main>

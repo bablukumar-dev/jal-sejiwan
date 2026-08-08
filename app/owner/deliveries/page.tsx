@@ -7,6 +7,7 @@ import { Search, MapPin, CheckCircle2, Droplet, Plus, Truck, Wallet, Phone, XCir
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
+import { DeliveryCardSkeleton } from '@/components/Skeleton';
 import { useRouter } from 'next/navigation';
 import { logActivity } from '@/lib/activityLogger';
 import { wrapRoute } from '@/lib/permissionGuard';
@@ -14,7 +15,7 @@ import { updateDelivery, batchAddDeliveries } from '@/lib/firestore-service';
 
 function DeliveriesList() {
   const router = useRouter();
-  const { deliveries, customers, routes, setDeliveries, currentUser } = useAppContext();
+  const { deliveries, customers, routes, setDeliveries, currentUser, isInitialized } = useAppContext();
   const [activeTab, setActiveTab] = useState('all');
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [routeFilter, setRouteFilter] = useState('All Routes');
@@ -258,7 +259,9 @@ function DeliveriesList() {
 
             {/* Delivery List */}
             <div className="space-y-3">
-              {filteredDeliveries.length === 0 ? (
+              {!isInitialized ? (
+                <DeliveryCardSkeleton count={4} />
+              ) : filteredDeliveries.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <div className="bg-slate-100 w-24 h-24 rounded-full flex items-center justify-center mb-4">
                     <Truck className="w-12 h-12 text-slate-300" />

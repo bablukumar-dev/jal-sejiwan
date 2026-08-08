@@ -8,6 +8,7 @@ import { Phone, Truck, Wallet, Droplet, ArrowLeftRight, AlertTriangle, ArrowRigh
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
+import { CustomerProfileSkeleton } from '@/components/Skeleton';
 import { sendWhatsAppSummary } from '@/lib/reminderService';
 import { updateCustomer, batchAddDeliveries } from '@/lib/firestore-service';
 import { setCookie } from '@/lib/authHelper';
@@ -16,7 +17,7 @@ import { getUniqueId } from '@/lib/utils';
 export default function CustomerDetail() {
   const params = useParams();
   const router = useRouter();
-  const { customers, deliveries, payments, setCustomers, setDeliveries, staff, businessInfo, currentUser } = useAppContext();
+  const { customers, deliveries, payments, setCustomers, setDeliveries, staff, businessInfo, currentUser, isInitialized } = useAppContext();
   const [isDelivering, setIsDelivering] = useState(false);
   
   const customerId = params.id as string;
@@ -26,8 +27,20 @@ export default function CustomerDetail() {
   const [notes, setNotes] = useState(customer?.notes || '');
   const userRole = currentUser?.role || 'owner';
 
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-slate-50 pb-24">
+        <TopAppBar title="Customer Details" showBack={true} />
+        <main className="max-w-md mx-auto px-4 py-6">
+          <CustomerProfileSkeleton />
+        </main>
+        <BottomNav role={userRole} activeTab="customers" />
+      </div>
+    );
+  }
+
   if (!customer) {
-    return <div className="min-h-screen bg-slate-50 flex items-center justify-center">Customer not found</div>;
+    return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-bold text-slate-500">Customer not found</div>;
   }
 
   const customerDeliveries = deliveries.filter(d => d.customerId === customerId);
