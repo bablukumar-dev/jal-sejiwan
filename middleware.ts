@@ -39,6 +39,9 @@ export function middleware(request: NextRequest) {
 
   if (
     pathname.endsWith('.png') ||
+    pathname.endsWith('.jpg') ||
+    pathname.endsWith('.jpeg') ||
+    pathname.endsWith('.webp') ||
     pathname.endsWith('.svg') ||
     pathname.endsWith('.ico') ||
     pathname.endsWith('.xml') ||
@@ -198,6 +201,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|icon.png|apple-touch-icon.png|android-chrome-.*|favicon-.*|site.webmanifest|sitemap.xml|robots.txt|logo.*).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|icon.png|apple-touch-icon.png|android-chrome-.*|favicon-.*|site.webmanifest|sitemap.xml|robots.txt|logo.*|icons/.*|images/.*).*)',
   ],
 };
